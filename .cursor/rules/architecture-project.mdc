@@ -1,0 +1,96 @@
+---
+description: Architecture générale du projet et philosophie de développement
+alwaysApply: true
+---
+
+# Architecture du Projet
+
+Ce projet suit une architecture stricte avec séparation Frontend/Backend et système de design atomique.
+
+## Structure des Dossiers
+
+- **`app/(frontend)/`** : Pages publiques avec layout Header/Footer
+- **`app/dashboard/`** : Pages backend avec layout Sidebar
+- **`components/ui/`** : Design System (Atoms, Molecules, Organisms)
+- **`components/feature/`** : Composants métier spécifiques par page
+- **`lib/`** : Fonctions utilitaires et constantes
+- **`types/`** : Types TypeScript partagés
+- **`hooks/`** : Custom React Hooks
+- **`config/`** : Configuration (navigation, site)
+
+## Philosophie Générale
+
+### Pages comme Orchestrateurs
+
+Les pages (`page.tsx`) doivent être **simples et légères** :
+
+```tsx
+// ✅ GOOD - La page importe et compose
+import { Hero, Features } from '@/components/feature/Frontend/Home';
+
+export default function HomePage() {
+  return (
+    <>
+      <Hero />
+      <Features />
+    </>
+  );
+}
+```
+
+```tsx
+// ❌ BAD - Logique métier dans la page
+export default function HomePage() {
+  const [data, setData] = useState([]);
+  // ... 50 lignes de code
+}
+```
+
+### Préférer les Composants à la Duplication
+
+**Avant d'écrire du code, posez-vous ces questions :**
+
+1. Ce code existe-t-il déjà dans `components/ui/` ?
+2. Puis-je utiliser une variante d'un composant existant ?
+3. Dois-je créer un nouveau composant réutilisable ?
+
+```tsx
+// ❌ BAD - Bouton codé en dur
+<button className="px-4 py-2 bg-black text-white rounded">
+  Cliquer
+</button>
+
+// ✅ GOOD - Utiliser le composant Button
+import { Button } from '@/components/ui/atoms';
+<Button variant="primary">Cliquer</Button>
+```
+
+## Conventions de Nommage
+
+- **Composants** : PascalCase (`Button.tsx`, `Hero.tsx`)
+- **Fonctions** : camelCase (`formatDate`, `debounce`)
+- **Constantes** : UPPER_SNAKE_CASE (`ROUTES`, `ERROR_MESSAGES`)
+- **Types** : PascalCase (`User`, `ApiResponse`)
+
+## Imports
+
+Utilisez les alias configurés :
+
+```tsx
+import { Button } from '@/components/ui/atoms';
+import { cn } from '@/lib/utils';
+import { ROUTES } from '@/lib/constants';
+import { User } from '@/types';
+```
+
+## Barrel Exports
+
+Chaque dossier de composants a un `index.ts` :
+
+```tsx
+// components/ui/atoms/index.ts
+export { Button } from './Button';
+export { Input } from './Input';
+```
+
+Importez toujours depuis l'index, pas directement depuis le fichier.

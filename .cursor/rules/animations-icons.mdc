@@ -1,0 +1,364 @@
+---
+description: Utilisation de Framer Motion pour les animations et Lucide React pour les icônes
+globs: src/**/*.tsx
+alwaysApply: false
+---
+
+# Animations et Icônes
+
+Le projet utilise **Framer Motion** pour les animations et **Lucide React** pour les icônes.
+
+## Framer Motion - Animations
+
+### Animations Prédéfinies
+
+Le fichier `lib/animations.ts` contient des animations prêtes à l'emploi :
+
+#### Animations de Base
+
+```tsx
+import { motion } from 'framer-motion';
+import { fadeIn, fadeInUp, scaleIn } from '@/lib/animations';
+
+// Fade In
+<motion.div variants={fadeIn} initial="hidden" animate="visible">
+  Contenu
+</motion.div>
+
+// Fade In Up (depuis le bas)
+<motion.div variants={fadeInUp} initial="hidden" animate="visible">
+  Contenu
+</motion.div>
+
+// Scale In (zoom)
+<motion.div variants={scaleIn} initial="hidden" animate="visible">
+  Contenu
+</motion.div>
+```
+
+**Animations disponibles** :
+- `fadeIn`, `fadeInUp`, `fadeInDown`, `fadeInLeft`, `fadeInRight`
+- `scaleIn`
+- `slideInBottom`, `slideInTop`
+- `rotate`
+
+#### Animation au Scroll
+
+Pour animer au scroll, utilisez `scrollReveal` :
+
+```tsx
+import { motion } from 'framer-motion';
+import { fadeInUp, scrollReveal } from '@/lib/animations';
+
+<motion.div 
+  variants={fadeInUp}
+  {...scrollReveal}
+>
+  Contenu animé quand visible
+</motion.div>
+```
+
+#### Animation Stagger (Liste)
+
+Pour animer des listes avec un délai entre chaque élément :
+
+```tsx
+import { motion } from 'framer-motion';
+import { staggerContainer, staggerItem } from '@/lib/animations';
+
+<motion.div
+  variants={staggerContainer}
+  initial="hidden"
+  animate="visible"
+>
+  {items.map(item => (
+    <motion.div key={item.id} variants={staggerItem}>
+      {item.name}
+    </motion.div>
+  ))}
+</motion.div>
+```
+
+#### Hover et Interactions
+
+```tsx
+// Hover simple
+<motion.div
+  whileHover={{ scale: 1.05 }}
+  whileTap={{ scale: 0.95 }}
+>
+  Survole-moi
+</motion.div>
+
+// Hover avec transition
+<motion.div
+  whileHover={{ y: -5, transition: { duration: 0.2 } }}
+>
+  Survole-moi
+</motion.div>
+```
+
+#### Animations Infinies
+
+```tsx
+import { motion } from 'framer-motion';
+import { bounce, pulse } from '@/lib/animations';
+
+// Bounce
+<motion.div animate={bounce}>
+  Rebond
+</motion.div>
+
+// Pulse
+<motion.div animate={pulse}>
+  Pulse
+</motion.div>
+```
+
+### Exemple Complet
+
+```tsx
+'use client';
+
+import { motion } from 'framer-motion';
+import { fadeInUp, staggerContainer, staggerItem } from '@/lib/animations';
+
+export const MyComponent = () => {
+  return (
+    <motion.section
+      variants={staggerContainer}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.h1 variants={fadeInUp}>
+        Titre animé
+      </motion.h1>
+      
+      <motion.div variants={fadeInUp}>
+        <p>Paragraphe animé</p>
+      </motion.div>
+
+      <motion.div className="grid gap-4">
+        {[1, 2, 3].map(i => (
+          <motion.div
+            key={i}
+            variants={staggerItem}
+            whileHover={{ y: -5 }}
+          >
+            Card {i}
+          </motion.div>
+        ))}
+      </motion.div>
+    </motion.section>
+  );
+};
+```
+
+### ⚠️ Important : 'use client'
+
+**Framer Motion nécessite un composant client.**
+
+```tsx
+// ✅ GOOD
+'use client';
+
+import { motion } from 'framer-motion';
+
+export const AnimatedComponent = () => {
+  return <motion.div>...</motion.div>;
+};
+```
+
+```tsx
+// ❌ BAD - Erreur car motion nécessite le client
+import { motion } from 'framer-motion';
+
+export const AnimatedComponent = () => {
+  return <motion.div>...</motion.div>;
+};
+```
+
+## Lucide React - Icônes
+
+### Utilisation Directe
+
+```tsx
+import { Home, Settings, User, Mail, Menu } from 'lucide-react';
+
+<Home size={24} />
+<Settings size={20} className="text-blue-500" />
+<User size={16} strokeWidth={2.5} />
+```
+
+### Props des Icônes Lucide
+
+```tsx
+<IconName
+  size={24}              // Taille en pixels
+  color="currentColor"   // Couleur (défaut: currentColor)
+  strokeWidth={2}        // Épaisseur du trait
+  className="..."        // Classes Tailwind
+/>
+```
+
+### Icônes Courantes
+
+**Navigation** :
+- `Home`, `Menu`, `X`, `ChevronRight`, `ChevronDown`, `ArrowRight`
+
+**Actions** :
+- `Plus`, `Minus`, `Edit`, `Trash2`, `Save`, `Download`, `Upload`
+
+**UI** :
+- `Search`, `Filter`, `Settings`, `User`, `Mail`, `Phone`
+
+**État** :
+- `Check`, `X`, `AlertCircle`, `Info`, `HelpCircle`
+
+**Réseaux sociaux** :
+- `Facebook`, `Twitter`, `Instagram`, `Linkedin`, `Github`
+
+**Autre** :
+- `Heart`, `Star`, `Calendar`, `Clock`, `MapPin`, `File`
+
+[Voir toutes les icônes](https://lucide.dev/icons/)
+
+### Composant Icon (Atom)
+
+Pour des icônes avec tailles prédéfinies :
+
+```tsx
+import { Icon } from '@/components/ui/atoms';
+import { Home } from 'lucide-react';
+
+<Icon icon={Home} size="sm" />  // 16px
+<Icon icon={Home} size="md" />  // 20px (défaut)
+<Icon icon={Home} size="lg" />  // 24px
+<Icon icon={Home} size="xl" />  // 32px
+```
+
+### Dans les Composants
+
+#### Boutons avec Icônes
+
+```tsx
+import { Button } from '@/components/ui/atoms';
+import { Download, ArrowRight } from 'lucide-react';
+
+<Button variant="primary">
+  <Download size={20} className="mr-2" />
+  Télécharger
+</Button>
+
+<Button variant="outline">
+  En savoir plus
+  <ArrowRight size={20} className="ml-2" />
+</Button>
+```
+
+#### Navigation avec Icônes
+
+```tsx
+import { Home, Settings, Users } from 'lucide-react';
+
+const navigation = [
+  { label: 'Accueil', href: '/', icon: Home },
+  { label: 'Utilisateurs', href: '/users', icon: Users },
+  { label: 'Paramètres', href: '/settings', icon: Settings },
+];
+
+navigation.map(item => (
+  <Link href={item.href}>
+    <item.icon size={20} />
+    {item.label}
+  </Link>
+));
+```
+
+#### Cards avec Icônes
+
+```tsx
+import { Zap, Shield, Rocket } from 'lucide-react';
+
+const features = [
+  { icon: Zap, title: 'Rapide', description: '...' },
+  { icon: Shield, title: 'Sécurisé', description: '...' },
+  { icon: Rocket, title: 'Performant', description: '...' },
+];
+
+features.map(feature => (
+  <div>
+    <feature.icon size={32} className="text-blue-500" />
+    <h3>{feature.title}</h3>
+    <p>{feature.description}</p>
+  </div>
+));
+```
+
+### Animation des Icônes
+
+Combinez Framer Motion et Lucide :
+
+```tsx
+import { motion } from 'framer-motion';
+import { Heart } from 'lucide-react';
+
+// Icône animée
+<motion.div
+  whileHover={{ scale: 1.2 }}
+  whileTap={{ scale: 0.9 }}
+>
+  <Heart size={24} />
+</motion.div>
+
+// Rotation au hover
+<motion.div
+  whileHover={{ rotate: 180 }}
+  transition={{ duration: 0.3 }}
+>
+  <Settings size={24} />
+</motion.div>
+```
+
+## Bonnes Pratiques
+
+### ✅ DO
+
+```tsx
+// Utiliser les animations prédéfinies
+import { fadeInUp } from '@/lib/animations';
+
+// Animer au scroll pour une meilleure UX
+<motion.div variants={fadeInUp} {...scrollReveal}>
+
+// Icônes cohérentes avec Lucide
+import { Home } from 'lucide-react';
+<Home size={20} />
+```
+
+### ❌ DON'T
+
+```tsx
+// Ne pas créer des animations custom à chaque fois
+<motion.div animate={{ opacity: [0, 1], y: [20, 0] }}>
+
+// Ne pas mélanger plusieurs bibliothèques d'icônes
+import HomeIcon from 'react-icons';  // ❌ Non !
+
+// Ne pas oublier 'use client' avec motion
+// (composant serveur par défaut) ❌
+```
+
+## Performance
+
+### Animations
+
+- Utilisez `whileInView` avec `viewport: { once: true }` pour n'animer qu'une fois
+- Préférez `transform` et `opacity` (optimisés GPU)
+- Évitez d'animer `width`, `height`, `top`, `left`
+
+### Icônes
+
+- Les icônes Lucide sont des SVG légers (~1-2kb chacune)
+- Importez uniquement les icônes nécessaires (tree-shaking automatique)
+- Utilisez `currentColor` pour hériter la couleur du parent

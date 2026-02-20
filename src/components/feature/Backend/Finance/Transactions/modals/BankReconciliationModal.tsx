@@ -1,0 +1,239 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { financeDataService } from '@/lib/services/FinanceDataService'
+import { Modal } from '@/components/ui/organisms'
+import { Button } from '@/components/ui/atoms'
+import { Input } from '@/components/ui/atoms'
+import { Select } from '@/components/ui/atoms'
+import { CheckCheck, Search } from 'lucide-react'
+import type { Transaction } from '@/types/finance'
+import { cn } from '@/lib/utils'
+
+interface BankReconciliationModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onSuccess?: () => void
+  selectedYear?: number
+}
+
+export default function BankReconciliationModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  selectedYear = new Date().getFullYear(),
+}: BankReconciliationModalProps) {
+  const [loading, setLoading] = useState(false)
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'validated'>('validated')
+
+  const loadTransactions = async () => {
+    try {
+      setLoading(true)
+      const data = await financeDataService.getTransactions(selectedYear)
+      setTransactions(data || [])
+    } catch (error) {
+      console.error('Erreur lors du chargement des transactions:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (isOpen) {
+      loadTransactions()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen])
+
+  const handleReconcile = async (transactionId: string) => {
+    try {
+      await financeDataService.reconcileTransaction(transactionId)
+      await loadTransactions()
+      onSuccess?.()
+    } catch (error) {
+      console.error('Erreur lors du rapprochement:', error)
+      alert('Erreur lors du rapprochement')
+    }
+  }
+
+  const handleReconcileAll = async () => {
+    if (!confirm('Rapprocher toutes les transactions validees ?')) return
+
+    try {
+      setLoading(true)
+      const toReconcile = filteredTransactions.filter(
+        (t) => t.status === 'validated' && !t.reconciled
+      )
+
+      for (const transaction of toReconcile) {
+        await financeDataService.reconcileTransaction(transaction.id)
+      }
+
+      await loadTransactions()
+      onSuccess?.()
+    } catch (error) {
+      console.error('Erreur lors du rapprochement:', error)
+      alert('Erreur lors du rapprochement')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const filteredTransactions = transactions.filter((t) => {
+    if (filterStatus === 'validated' && t.status !== 'validated') return false
+    if (filterStatus === 'pending' && t.status !== 'pending') return false
+    if (t.reconciled) return false
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      return (
+        t.label.toLowerCase().includes(query) ||
+        t.entry_number?.toLowerCase().includes(query) ||
+        t.piece_number?.toLowerCase().includes(query)
+      )
+    }
+
+    return true
+  })
+
+  const pendingCount = transactions.filter((t) => t.status === 'validated' && !t.reconciled).length
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Rapprochement bancaire"
+      size="lg"
+      scrollable
+    >
+      <div className="space-y-6">
+        {/* Informations */}
+        <div className="p-4 bg-background-tertiary border-2 border-border-custom rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-zinc-500 mb-1">Transactions a rapprocher</p>
+              <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">{pendingCount}</p>
+            </div>
+            {pendingCount > 0 && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleReconcileAll}
+                disabled={loading}
+              >
+                <CheckCheck className="w-4 h-4 mr-2" />
+                Tout rapprocher
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Filtres */}
+        <div className="flex items-center gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <Input
+              placeholder="Rechercher une transaction..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 h-[38px]"
+            />
+          </div>
+          <div className="w-48">
+            <Select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}
+              options={[
+                { value: 'all', label: 'Toutes' },
+                { value: 'validated', label: 'Validees' },
+                { value: 'pending', label: 'En attente' },
+              ]}
+              className="h-[38px]"
+            />
+          </div>
+        </div>
+
+        {/* Liste des transactions */}
+        <div className="space-y-2 max-h-96 overflow-y-auto">
+          {loading ? (
+            <div className="text-center py-8 text-zinc-500">Chargement...</div>
+          ) : filteredTransactions.length === 0 ? (
+            <div className="text-center py-8 text-zinc-500">
+              <p>Aucune transaction a rapprocher</p>
+            </div>
+          ) : (
+            filteredTransactions.map((transaction) => (
+              <div
+                key={transaction.id}
+                className={cn(
+                  'p-4 border-2 border-border-custom rounded-lg hover:border-accent/50 transition-all',
+                  transaction.reconciled && 'opacity-50'
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="font-mono text-xs text-zinc-900 dark:text-zinc-50">{transaction.entry_number}</span>
+                      <span
+                        className={cn(
+                          'px-2 py-1 text-xs font-heading uppercase rounded border',
+                          transaction.type === 'income'
+                            ? 'bg-green-500/20 text-green-400 border-green-500/50'
+                            : 'bg-red-500/20 text-red-400 border-red-500/50'
+                        )}
+                      >
+                        {transaction.type === 'income' ? 'Entree' : 'Sortie'}
+                      </span>
+                      {transaction.status === 'validated' && (
+                        <span className="px-2 py-1 text-xs font-heading uppercase rounded border bg-green-500/20 text-green-400 border-green-500/50">
+                          Validee
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-medium text-sm mb-1">{transaction.label}</div>
+                    <div className="text-xs text-zinc-500">
+                      {new Date(transaction.date).toLocaleDateString('fr-FR')} •{' '}
+                      {transaction.category}
+                    </div>
+                  </div>
+                  <div className="text-right mr-4">
+                    <div
+                      className={cn(
+                        'text-lg font-mono font-bold',
+                        transaction.type === 'income' ? 'text-green-400' : 'text-red-400'
+                      )}
+                    >
+                      {transaction.type === 'income' ? '+' : '-'}
+                      {transaction.amount.toLocaleString('fr-FR')} EUR
+                    </div>
+                  </div>
+                  {!transaction.reconciled && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleReconcile(transaction.id)}
+                      disabled={loading}
+                    >
+                      <CheckCheck className="w-4 h-4 mr-2" />
+                      Rapprocher
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-3 pt-4 border-t border-border-custom">
+          <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
+            Fermer
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+

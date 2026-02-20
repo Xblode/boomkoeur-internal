@@ -1,0 +1,175 @@
+---
+description: Règles Atomic Design pour les composants UI
+globs: src/components/**/*.tsx
+alwaysApply: false
+---
+
+# Atomic Design - Composants UI
+
+Le projet utilise l'approche **Atomic Design** pour organiser les composants UI de manière scalable.
+
+## Hiérarchie des Composants
+
+```
+Atoms → Molecules → Organisms → Features → Pages
+```
+
+## 1. Atoms (Composants de Base)
+
+**Localisation** : `components/ui/atoms/`
+
+**Définition** : Composants les plus simples, non décomposables, **sans dépendances** vers d'autres composants UI.
+
+**Exemples** : Button, Input, Label, Icon, Badge, Avatar
+
+### Règles pour les Atoms
+
+- ✅ Doivent avoir des **variantes** (size, variant, color)
+- ✅ Doivent être **100% réutilisables**
+- ✅ Doivent être **agnostiques du contexte métier**
+- ❌ Ne peuvent pas importer d'autres composants UI
+- ❌ Ne doivent pas contenir de logique métier
+
+```tsx
+// ✅ GOOD - Atom avec variantes
+export interface ButtonProps {
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
+  disabled?: boolean;
+  loading?: boolean;
+}
+
+export const Button = ({ variant = 'primary', size = 'md', ... }) => {
+  // Logique de styling uniquement
+};
+```
+
+```tsx
+// ❌ BAD - Atom qui importe un autre composant UI
+import { Icon } from '../Icon';
+export const Button = () => <button><Icon />...</button>;
+```
+
+## 2. Molecules (Combinaisons d'Atoms)
+
+**Localisation** : `components/ui/molecules/`
+
+**Définition** : Groupes d'**Atoms** qui fonctionnent ensemble pour former une unité fonctionnelle.
+
+**Exemples** : SearchBar, FormField, Card, AlertDialog
+
+### Règles pour les Molecules
+
+- ✅ Combinent plusieurs **Atoms**
+- ✅ Restent réutilisables et agnostiques du contexte
+- ✅ Peuvent avoir une logique d'interaction simple
+- ❌ Ne doivent pas importer d'Organisms
+- ❌ Ne contiennent pas de logique métier
+
+```tsx
+// ✅ GOOD - Molecule combinant Label + Input
+import { Label, Input } from '../atoms';
+
+export const FormField = ({ label, error, ...inputProps }) => (
+  <div>
+    <Label>{label}</Label>
+    <Input error={error} {...inputProps} />
+    {error && <span className="error">{error}</span>}
+  </div>
+);
+```
+
+## 3. Organisms (Sections Complexes)
+
+**Localisation** : `components/ui/organisms/`
+
+**Définition** : Composants complexes formés de **Molecules** et **Atoms**, souvent des sections complètes.
+
+**Exemples** : Header, Footer, Sidebar, Navbar, Modal
+
+### Règles pour les Organisms
+
+- ✅ Combinent Atoms et Molecules
+- ✅ Peuvent contenir de la logique d'UI (navigation, état d'ouverture)
+- ✅ Réutilisables mais plus spécifiques
+- ❌ Ne contiennent pas de logique métier spécifique à une page
+
+```tsx
+// ✅ GOOD - Organism réutilisable
+import { Button } from '../atoms';
+import { SearchBar } from '../molecules';
+
+export const Header = ({ navigation }) => (
+  <header>
+    <Logo />
+    <nav>{navigation.map(...)}</nav>
+    <SearchBar />
+    <Button>CTA</Button>
+  </header>
+);
+```
+
+## 4. Features (Composants Métier)
+
+**Localisation** : `components/feature/Frontend/` ou `components/feature/Backend/`
+
+**Définition** : Composants **spécifiques à une page ou contexte métier**, utilisant le Design System.
+
+**Exemples** : Hero, ContactForm, DashboardStats, ProductCard
+
+### Règles pour les Features
+
+- ✅ Utilisent les composants du Design System (Atoms, Molecules, Organisms)
+- ✅ Contiennent la logique métier spécifique
+- ✅ Organisés par page : `Frontend/Home/Hero.tsx`
+- ❌ Ne réinventent pas la roue : utilisent le Design System
+
+```tsx
+// ✅ GOOD - Feature utilisant le Design System
+import { Button } from '@/components/ui/atoms';
+import { FormField } from '@/components/ui/molecules';
+
+export const ContactForm = () => {
+  const [formData, setFormData] = useState({...});
+  
+  return (
+    <form>
+      <FormField label="Nom" {...} />
+      <Button type="submit">Envoyer</Button>
+    </form>
+  );
+};
+```
+
+## Décision : Où Placer un Nouveau Composant ?
+
+### Posez-vous ces questions :
+
+1. **Est-ce un élément de base (bouton, input, badge) ?**
+   → `components/ui/atoms/`
+
+2. **Est-ce une combinaison d'éléments de base (champ de formulaire, carte) ?**
+   → `components/ui/molecules/`
+
+3. **Est-ce une section complète réutilisable (header, sidebar, modal) ?**
+   → `components/ui/organisms/`
+
+4. **Est-ce spécifique à une page ou fonctionnalité métier ?**
+   → `components/feature/[Frontend|Backend]/[PageName]/`
+
+## Ajout de Variantes vs Nouveau Composant
+
+**Avant de créer un nouveau composant, vérifiez si une variante suffit.**
+
+```tsx
+// ✅ GOOD - Ajouter une variante
+<Button variant="destructive" size="sm">Supprimer</Button>
+
+// ❌ BAD - Créer DeleteButton, CancelButton, etc.
+<DeleteButton />
+<CancelButton />
+```
+
+**Créez un nouveau composant seulement si :**
+- La structure HTML/logique est fondamentalement différente
+- Les props deviennent trop complexes avec les variantes

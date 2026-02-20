@@ -1,0 +1,179 @@
+---
+description: Organisation et conventions pour les pages
+globs: src/app/**/*.tsx
+alwaysApply: false
+---
+
+# Structure et Organisation des Pages
+
+## Principe Fondamental
+
+**Les pages sont des orchestrateurs légers. Elles ne contiennent PAS de code métier.**
+
+## Pages Frontend
+
+**Localisation** : `app/(frontend)/`
+
+**Layout** : Automatiquement wrappé par `(frontend)/layout.tsx` (Header + Footer)
+
+### Création d'une Nouvelle Page
+
+#### Étape 1 : Créer la structure
+
+```bash
+mkdir src/app/(frontend)/services
+mkdir src/components/feature/Frontend/Services
+```
+
+#### Étape 2 : Créer les composants feature
+
+```tsx
+// components/feature/Frontend/Services/ServicesList.tsx
+export const ServicesList = () => {
+  // Toute la logique ici
+  return <section>...</section>;
+};
+
+// components/feature/Frontend/Services/index.ts
+export { ServicesList } from './ServicesList';
+```
+
+#### Étape 3 : Créer la page
+
+```tsx
+// app/(frontend)/services/page.tsx
+import { ServicesList } from '@/components/feature/Frontend/Services';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Services',
+  description: 'Nos services',
+};
+
+export default function ServicesPage() {
+  return <ServicesList />;
+}
+```
+
+### ✅ GOOD - Page Simple
+
+```tsx
+import { Hero, Features, Testimonials } from '@/components/feature/Frontend/Home';
+
+export default function HomePage() {
+  return (
+    <>
+      <Hero />
+      <Features />
+      <Testimonials />
+    </>
+  );
+}
+```
+
+### ❌ BAD - Logique dans la Page
+
+```tsx
+export default function HomePage() {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  
+  useEffect(() => {
+    // 20 lignes de logique
+  }, []);
+  
+  return (
+    <div>
+      {/* 50 lignes de JSX */}
+    </div>
+  );
+}
+```
+
+## Pages Backend
+
+**Localisation** : `app/dashboard/`
+
+**Layout** : Automatiquement wrappé par `dashboard/layout.tsx` (Sidebar)
+
+**Routes** :
+- Dashboard : `/dashboard`
+- Sous-pages : `/dashboard/settings`, `/dashboard/users`, etc.
+
+### Création d'une Page Backend
+
+```bash
+mkdir src/app/dashboard/users
+mkdir src/components/feature/Backend/Users
+```
+
+```tsx
+// components/feature/Backend/Users/UsersList.tsx
+export const UsersList = () => {
+  // Logique métier
+  return <div>...</div>;
+};
+
+// app/dashboard/users/page.tsx
+import { UsersList } from '@/components/feature/Backend/Users';
+
+export default function UsersPage() {
+  return <UsersList />;
+}
+```
+
+## Métadonnées
+
+**Toujours définir les métadonnées pour le SEO :**
+
+```tsx
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Titre de la page',
+  description: 'Description pour le SEO',
+};
+```
+
+## Pages Spéciales
+
+Le projet inclut des pages d'erreur personnalisées :
+
+- `error.tsx` : Erreurs générales
+- `not-found.tsx` : Page 404
+- `loading.tsx` : État de chargement
+- `forbidden.tsx` : Accès interdit (403)
+- `unauthorized.tsx` : Non authentifié (401)
+
+**Ne modifiez ces pages que pour changer le design, pas la structure.**
+
+## Organisation des Sections
+
+Si une page a plusieurs sections, créez un composant par section :
+
+```
+components/feature/Frontend/Home/
+├── Hero.tsx
+├── Features.tsx
+├── Testimonials.tsx
+├── CTA.tsx
+└── index.ts
+```
+
+```tsx
+// index.ts
+export { Hero } from './Hero';
+export { Features } from './Features';
+export { Testimonials } from './Testimonials';
+export { CTA } from './CTA';
+```
+
+## Checklist Nouvelle Page
+
+- [ ] Dossier créé dans `app/(frontend)/` ou `app/dashboard/`
+- [ ] Composants feature créés dans `components/feature/[Frontend|Backend]/[PageName]/`
+- [ ] Barrel export `index.ts` dans le dossier feature
+- [ ] Page `page.tsx` importe et compose uniquement
+- [ ] Métadonnées définies (`title`, `description`)
+- [ ] Route ajoutée dans `config/navigation.ts` si nécessaire
+- [ ] Route ajoutée dans `app/sitemap.ts` si publique

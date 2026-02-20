@@ -1,0 +1,107 @@
+/**
+ * Variables CSS personnalisées
+ * Ces variables peuvent être utilisées dans tout le projet
+ */
+
+:root {
+  /* Couleurs principales */
+  --color-primary: #000000;
+  --color-primary-hover: #1a1a1a;
+  --color-secondary: #6b7280;
+  --color-accent: #3b82f6;
+
+  /* Couleurs de fond */
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f9fafb;
+  --color-bg-tertiary: #f3f4f6;
+
+  /* Couleurs de texte */
+  --color-text-primary: #171717;
+  --color-text-secondary: #6b7280;
+  --color-text-tertiary: #9ca3af;
+
+  /* Couleurs de bordure */
+  --color-border-light: #e5e7eb;
+  --color-border-medium: #d1d5db;
+  --color-border-dark: #9ca3af;
+
+  /* États */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+
+  /* Espacements personnalisés */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+  --spacing-3xl: 4rem;
+
+  /* Rayons de bordure */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-full: 9999px;
+
+  /* Ombres */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  /* Transitions */
+  --transition-fast: 150ms;
+  --transition-normal: 300ms;
+  --transition-slow: 500ms;
+
+  /* Largeurs maximales */
+  --max-width-sm: 640px;
+  --max-width-md: 768px;
+  --max-width-lg: 1024px;
+  --max-width-xl: 1280px;
+  --max-width-2xl: 1536px;
+
+  /* Z-index */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Couleurs principales (mode sombre) */
+    --color-primary: #ffffff;
+    --color-primary-hover: #e5e5e5;
+    --color-secondary: #9ca3af;
+    --color-accent: #60a5fa;
+
+    /* Couleurs de fond (mode sombre) */
+    --color-bg-primary: #0a0a0a;
+    --color-bg-secondary: #171717;
+    --color-bg-tertiary: #262626;
+
+    /* Couleurs de texte (mode sombre) */
+    --color-text-primary: #ededed;
+    --color-text-secondary: #9ca3af;
+    --color-text-tertiary: #6b7280;
+
+    /* Couleurs de bordure (mode sombre) */
+    --color-border-light: #262626;
+    --color-border-medium: #404040;
+    --color-border-dark: #525252;
+
+    /* États (mode sombre) */
+    --color-success: #34d399;
+    --color-warning: #fbbf24;
+    --color-error: #f87171;
+    --color-info: #60a5fa;
+  }
+}

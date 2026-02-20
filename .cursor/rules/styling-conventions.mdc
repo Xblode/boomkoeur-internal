@@ -1,0 +1,223 @@
+---
+description: Conventions de styling et utilisation de Tailwind CSS
+globs: src/**/*.{tsx,css}
+alwaysApply: false
+---
+
+# Conventions de Styling
+
+## Tailwind CSS
+
+Le projet utilise **Tailwind CSS 4** pour le styling.
+
+## Principe : Utiliser les Composants du Design System
+
+**Avant d'écrire des classes Tailwind, vérifiez si un composant existe.**
+
+### ❌ BAD - Classes en dur
+
+```tsx
+<button className="px-5 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800">
+  Cliquer
+</button>
+```
+
+### ✅ GOOD - Composant avec variante
+
+```tsx
+import { Button } from '@/components/ui/atoms';
+<Button variant="primary">Cliquer</Button>
+```
+
+## Fonction `cn()` pour Classes Conditionnelles
+
+Utilisez la fonction utilitaire `cn()` pour combiner des classes :
+
+```tsx
+import { cn } from '@/lib/utils';
+
+<div className={cn(
+  'base-class',
+  isActive && 'active-class',
+  error && 'error-class',
+  className // Props externe
+)} />
+```
+
+### ❌ BAD - Concaténation de strings
+
+```tsx
+className={`base ${isActive ? 'active' : ''} ${className}`}
+```
+
+### ✅ GOOD - Fonction cn()
+
+```tsx
+className={cn('base', isActive && 'active', className)}
+```
+
+## Variables CSS Personnalisées
+
+Le projet utilise des variables CSS définies dans `styles/variables.css`.
+
+### Utilisation
+
+```tsx
+// ✅ Utiliser les variables
+<div className="bg-[var(--color-bg-primary)]" />
+<div style={{ color: 'var(--color-text-primary)' }} />
+```
+
+**Variables disponibles** :
+- Couleurs : `--color-primary`, `--color-bg-primary`, `--color-text-primary`
+- Espacements : `--spacing-sm`, `--spacing-md`, `--spacing-lg`
+- Rayons : `--radius-sm`, `--radius-md`, `--radius-lg`
+- Ombres : `--shadow-sm`, `--shadow-md`, `--shadow-lg`
+- Z-index : `--z-modal`, `--z-dropdown`, `--z-tooltip`
+
+## Mode Sombre
+
+Le mode sombre est géré automatiquement via `prefers-color-scheme`.
+
+### Styling pour le Dark Mode
+
+```tsx
+// ✅ Classes Tailwind avec dark:
+<div className="bg-white dark:bg-black text-black dark:text-white">
+  Contenu
+</div>
+```
+
+**Les variables CSS s'adaptent automatiquement au mode sombre.**
+
+## Nouveau Composant avec Styling
+
+Quand vous créez un composant UI (Atom, Molecule, Organism) :
+
+### 1. Définir les Variantes
+
+```tsx
+export interface ButtonProps {
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
+}
+```
+
+### 2. Mapper les Variantes aux Classes
+
+```tsx
+const variantStyles = {
+  primary: 'bg-foreground text-background hover:bg-foreground/90',
+  secondary: 'bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300',
+  outline: 'border-2 border-foreground hover:bg-foreground hover:text-background',
+  ghost: 'hover:bg-foreground/10',
+};
+
+const sizeStyles = {
+  sm: 'text-sm px-3 py-1.5 rounded-md',
+  md: 'text-base px-5 py-2.5 rounded-lg',
+  lg: 'text-lg px-6 py-3 rounded-xl',
+};
+```
+
+### 3. Combiner avec cn()
+
+```tsx
+<button
+  className={cn(
+    'base-styles',
+    variantStyles[variant],
+    sizeStyles[size],
+    className
+  )}
+>
+  {children}
+</button>
+```
+
+## Responsive Design
+
+Utilisez les breakpoints Tailwind :
+
+```tsx
+<div className="flex flex-col md:flex-row lg:grid lg:grid-cols-3">
+  {/* Mobile: colonne, Tablet: row, Desktop: grid */}
+</div>
+```
+
+**Breakpoints disponibles** :
+- `sm:` - 640px
+- `md:` - 768px
+- `lg:` - 1024px
+- `xl:` - 1280px
+- `2xl:` - 1536px
+
+### Hook useMediaQuery
+
+Pour la logique conditionnelle basée sur la taille d'écran :
+
+```tsx
+import { useIsMobile, useIsDesktop } from '@/hooks';
+
+const Component = () => {
+  const isMobile = useIsMobile();
+  
+  return isMobile ? <MobileView /> : <DesktopView />;
+};
+```
+
+## Spacing et Layout
+
+### Container Maximum
+
+```tsx
+<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+  {/* Contenu centré avec padding responsive */}
+</div>
+```
+
+### Sections
+
+```tsx
+<section className="w-full py-20 px-4">
+  <div className="max-w-4xl mx-auto">
+    {/* Contenu */}
+  </div>
+</section>
+```
+
+## Éviter le Styling Inline
+
+### ❌ BAD - Style inline
+
+```tsx
+<div style={{ marginTop: '20px', color: '#000' }}>
+  Contenu
+</div>
+```
+
+### ✅ GOOD - Classes Tailwind
+
+```tsx
+<div className="mt-5 text-foreground">
+  Contenu
+</div>
+```
+
+**Exception** : Valeurs dynamiques provenant du backend
+
+```tsx
+<div style={{ width: `${progress}%` }}>
+  {/* OK si progress est dynamique */}
+</div>
+```
+
+## Checklist Styling
+
+- [ ] Vérifier si un composant du Design System existe
+- [ ] Utiliser les variantes plutôt que créer un nouveau composant
+- [ ] Utiliser `cn()` pour les classes conditionnelles
+- [ ] Utiliser les variables CSS quand approprié
+- [ ] Ajouter les classes `dark:` pour le mode sombre
+- [ ] Tester le responsive (mobile, tablet, desktop)
+- [ ] Éviter le styling inline sauf cas exceptionnels

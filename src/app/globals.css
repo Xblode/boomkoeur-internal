@@ -1,0 +1,227 @@
+@import "tailwindcss";
+@import "../styles/variables.css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+
+  /* Variables Backend & UI */
+  --bg-backend: #f9fafb; /* zinc-50 */
+  --bg-card: #ffffff;
+  --bg-toggle: #f4f4f5; /* zinc-100 */
+  --bg-toggle-active: #ffffff;
+  --border-color: #aeaeb1; /* zinc-300 (plus contrasté que 200) */
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+
+  /* Variables Backend & UI Dark */
+  --bg-backend: #171717;
+  --bg-card: #1f1f1f;
+  --bg-toggle: #27272a; /* zinc-800 */
+  --bg-toggle-active: #3f3f46; /* zinc-700 */
+  --border-color: #2e2e33; /* Gris foncé subtil (moins clair que zinc-700) */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  /* Mapping des nouvelles couleurs */
+  --color-backend: var(--bg-backend);
+  --color-card-bg: var(--bg-card);
+  --color-toggle: var(--bg-toggle);
+  --color-toggle-active: var(--bg-toggle-active);
+  --color-border-custom: var(--border-color);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Styles globaux supplémentaires */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Amélioration des scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--foreground);
+  opacity: 0.5;
+}
+
+/* Toast Notifications (Sonner) */
+[data-sonner-toast] {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--foreground) !important;
+}
+
+[data-sonner-toast][data-styled="true"] {
+  padding: 16px !important;
+  border-radius: 12px !important;
+}
+
+[data-sonner-toast] [data-title] {
+  font-weight: 500 !important;
+  color: var(--foreground) !important;
+}
+
+[data-sonner-toast] [data-description] {
+  color: #71717a !important;
+}
+
+.dark [data-sonner-toast] [data-description] {
+  color: #a1a1aa !important;
+}
+
+/* Toast Success */
+[data-sonner-toast][data-type="success"] {
+  border-color: #16a34a !important;
+}
+
+[data-sonner-toast][data-type="success"] [data-icon] {
+  color: #16a34a !important;
+}
+
+/* Toast Error */
+[data-sonner-toast][data-type="error"] {
+  border-color: #dc2626 !important;
+}
+
+[data-sonner-toast][data-type="error"] [data-icon] {
+  color: #dc2626 !important;
+}
+
+/* Toast Warning */
+[data-sonner-toast][data-type="warning"] {
+  border-color: #ea580c !important;
+}
+
+[data-sonner-toast][data-type="warning"] [data-icon] {
+  color: #ea580c !important;
+}
+
+/* Toast Info */
+[data-sonner-toast][data-type="info"] {
+  border-color: #2563eb !important;
+}
+
+[data-sonner-toast][data-type="info"] [data-icon] {
+  color: #2563eb !important;
+}
+
+/* Autofill Fix */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: var(--foreground) !important;
+  transition: background-color 9999s ease-in-out 0s;
+  box-shadow: inset 0 0 20px 20px transparent !important;
+}
+
+/* Custom Date/Time Inputs */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.5);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+.dark input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* Animations personnalisées pour la page Finance */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
