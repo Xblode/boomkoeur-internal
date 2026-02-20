@@ -207,11 +207,18 @@ export const Header: React.FC<HeaderProps> = ({
             ))}
           </nav>
 
-          {/* CTA Button */}
-          <div className="flex items-center gap-4">
-            <Button variant="primary" size="sm" className="hidden sm:inline-flex">
-              Commencer
-            </Button>
+          {/* CTA Buttons */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link href="/login">
+              <Button variant="outline" size="sm" className="hidden sm:inline-flex">
+                Connexion
+              </Button>
+            </Link>
+            <Link href="/register">
+              <Button variant="primary" size="sm" className="hidden sm:inline-flex">
+                S&apos;inscrire
+              </Button>
+            </Link>
             <Button variant="ghost" size="sm" className="md:hidden">
               Menu
             </Button>

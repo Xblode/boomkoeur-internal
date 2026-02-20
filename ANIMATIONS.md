@@ -434,3 +434,4 @@ import { Heart, Star } from 'lucide-react';
 - [Lucide Icons Gallery](https://lucide.dev/icons/)
 - Animations prédéfinies : `src/lib/animations.ts`
 - Composant Icon : `src/components/ui/atoms/Icon.tsx`
+

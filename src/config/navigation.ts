@@ -71,6 +71,14 @@ export const footerLinks = [
     href: '/contact',
   },
   {
+    label: 'Connexion',
+    href: '/login',
+  },
+  {
+    label: 'Inscription',
+    href: '/register',
+  },
+  {
     label: 'Mentions légales',
     href: '/legal',
   },
