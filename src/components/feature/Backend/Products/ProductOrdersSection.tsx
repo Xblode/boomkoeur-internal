@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { SectionHeader } from '@/components/ui';
+import { Card } from '@/components/ui/molecules';
 import { useProductDetail } from './ProductDetailProvider';
 import { cn } from '@/lib/utils';
 import { ShoppingCart } from 'lucide-react';
@@ -87,11 +89,15 @@ export function ProductOrdersSection() {
 
   return (
     <div className="space-y-4">
+      <SectionHeader
+        icon={<ShoppingCart size={28} />}
+        title="Commandes"
+      />
       <p className="text-sm text-zinc-500">{orders.length} commande{orders.length > 1 ? 's' : ''} contenant ce produit</p>
 
-      <div className="bg-white dark:bg-[#1f1f1f] rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+      <Card variant="outline" className="overflow-hidden">
         <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
-          <thead className="bg-zinc-50 dark:bg-[#1f1f1f]">
+          <thead className="bg-zinc-50 dark:bg-card-bg">
             <tr>
               <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Commande</th>
               <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Client</th>
@@ -128,7 +134,7 @@ export function ProductOrdersSection() {
             })}
           </tbody>
         </table>
-      </div>
+      </Card>
     </div>
   );
 }

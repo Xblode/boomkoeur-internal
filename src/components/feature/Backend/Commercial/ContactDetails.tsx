@@ -370,7 +370,7 @@ export default function ContactDetails({ isOpen, onClose, contact }: ContactDeta
       </div>
 
       <ModalFooter>
-        <Button variant="secondary" onClick={onClose}>
+        <Button variant="outline" size="sm" onClick={onClose}>
           Fermer
         </Button>
       </ModalFooter>

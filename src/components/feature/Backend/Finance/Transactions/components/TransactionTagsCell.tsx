@@ -3,9 +3,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { financeDataService } from '@/lib/services/FinanceDataService'
 import { X, Loader2 } from 'lucide-react'
-import { Badge } from '@/components/ui/atoms'
+import { Badge, Button, IconButton } from '@/components/ui/atoms'
 import { TagMultiSelect } from '@/components/ui/molecules'
-import { Button } from '@/components/ui/atoms'
 import { cn } from '@/lib/utils'
 import type { Transaction } from '@/types/finance'
 import { useUpdateTransactionTags } from '@/lib/stubs/supabase-stubs'
@@ -123,20 +122,22 @@ export function TransactionTagsCell({ transaction, tags: initialTags, onUpdate }
               <h4 className="font-label text-xs uppercase tracking-wider text-foreground">
                 Modifier les tags
               </h4>
-              <button
+              <IconButton
+                icon={<X className="w-4 h-4" />}
+                ariaLabel="Fermer"
+                variant="ghost"
+                size="sm"
                 onClick={handleCancel}
                 className="text-zinc-500 hover:text-foreground transition-colors"
-                aria-label="Fermer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              />
             </div>
 
             <div className="mb-4">
               <TagMultiSelect
                 selectedTagIds={selectedTagIds}
                 onChange={setSelectedTagIds}
-                placeholder="Rechercher ou creer un tag..."
+                availableTags={initialTags}
+                placeholder="Ajouter une étiquette..."
               />
             </div>
 

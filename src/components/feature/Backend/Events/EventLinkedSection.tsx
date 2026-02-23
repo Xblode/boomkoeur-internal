@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { Link as LinkIcon } from 'lucide-react';
+import { SectionHeader } from '@/components/ui';
+import { EmptyState } from '@/components/ui/molecules';
 import { useEventDetail } from './EventDetailProvider';
 
 export function EventLinkedSection() {
@@ -9,6 +11,11 @@ export function EventLinkedSection() {
 
   return (
     <div className="space-y-6">
+      <SectionHeader
+        icon={<LinkIcon size={28} />}
+        title="Éléments liés"
+        subtitle="Produits, réunions et autres éléments associés."
+      />
       <div className="pb-4 border-b border-border-custom">
         <p className="text-zinc-500 mt-1">Campagnes et transactions associées à cet événement.</p>
       </div>
@@ -35,11 +42,12 @@ export function EventLinkedSection() {
           ))}
         </div>
       ) : (
-        <div className="p-12 text-center bg-zinc-50 dark:bg-zinc-900 rounded-lg border-2 border-dashed border-zinc-200 dark:border-zinc-800">
-          <LinkIcon className="h-10 w-10 mx-auto text-zinc-300 dark:text-zinc-600 mb-3" />
-          <p className="text-sm text-zinc-500">Aucun élément lié pour le moment</p>
-          <p className="text-xs text-zinc-400 mt-1">Les campagnes peuvent être liées depuis le module Communication</p>
-        </div>
+        <EmptyState
+          icon={LinkIcon}
+          title="Aucun élément lié pour le moment"
+          description="Les campagnes peuvent être liées depuis le module Communication"
+          variant="compact"
+        />
       )}
     </div>
   );

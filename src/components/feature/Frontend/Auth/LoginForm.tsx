@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FormField } from '@/components/ui/molecules';
-import { Button } from '@/components/ui/atoms';
+import { Button, Label, Checkbox } from '@/components/ui/atoms';
 import { CustomLink } from '@/components/ui/atoms';
 import { fadeInUp } from '@/lib/animations';
 import { ROUTES } from '@/lib/constants';
@@ -90,15 +90,12 @@ export const LoginForm: React.FC = () => {
             />
 
             <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="rounded border-zinc-300 dark:border-zinc-600"
-                />
-                <span className="text-zinc-600 dark:text-zinc-400">
+              <div className="flex items-center gap-2 cursor-pointer">
+                <Checkbox id="remember" className="rounded border-zinc-300 dark:border-zinc-600" />
+                <Label htmlFor="remember" className="text-zinc-600 dark:text-zinc-400 font-normal cursor-pointer">
                   Se souvenir de moi
-                </span>
-              </label>
+                </Label>
+              </div>
               <CustomLink href="/login/forgot-password" variant="muted">
                 Mot de passe oublié ?
               </CustomLink>

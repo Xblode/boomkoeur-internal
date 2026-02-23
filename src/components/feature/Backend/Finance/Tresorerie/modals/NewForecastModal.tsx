@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { financeDataService } from '@/lib/services/FinanceDataService'
-import { Modal } from '@/components/ui/organisms'
+import { Modal, ModalFooter } from '@/components/ui/organisms'
 import { Input, Select, Textarea, Button } from '@/components/ui/atoms'
 import { FormField } from '@/components/ui/molecules'
 import { useForm } from 'react-hook-form'
@@ -66,13 +66,31 @@ export default function NewForecastModal({ isOpen, onClose, onSuccess }: NewFore
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<ForecastFormData>({
     defaultValues: {
       type: 'income',
       certainty_level: 'probable',
+      category: '',
     },
   })
+
+  useEffect(() => {
+    setValue('type', transactionType)
+    setValue('category', transactionType === 'income' ? incomeCategories[0].value : expenseCategories[0].value)
+  }, [transactionType, setValue])
+
+  useEffect(() => {
+    if (isOpen) {
+      reset({
+        type: 'income',
+        certainty_level: 'probable',
+        category: incomeCategories[0].value,
+      })
+      setTransactionType('income')
+    }
+  }, [isOpen, reset])
 
   const handleClose = () => {
     reset()
@@ -88,7 +106,7 @@ export default function NewForecastModal({ isOpen, onClose, onSuccess }: NewFore
         date: data.date,
         type: data.type,
         label: data.label,
-        amount: data.amount,
+        amount: Number(data.amount) || 0,
         category: data.category,
         certainty_level: data.certainty_level,
         notes: data.notes || null,
@@ -107,13 +125,14 @@ export default function NewForecastModal({ isOpen, onClose, onSuccess }: NewFore
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Nouvelle prevision de tresorerie" size="lg">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form id="new-forecast-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Type de prevision */}
         <div className="grid grid-cols-2 gap-4">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => setTransactionType('income')}
-            className={`p-4 border-2 rounded transition-all ${
+            className={`p-4 border-2 rounded transition-all h-auto flex flex-col items-start ${
               transactionType === 'income'
                 ? 'border-green-500 bg-green-500/10'
                 : 'border-border-custom hover:border-green-500/50'
@@ -121,11 +140,12 @@ export default function NewForecastModal({ isOpen, onClose, onSuccess }: NewFore
           >
             <div className="text-3xl mb-2">⬆️</div>
             <div className="font-heading text-sm uppercase">Entree prevue</div>
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="outline"
             onClick={() => setTransactionType('expense')}
-            className={`p-4 border-2 rounded transition-all ${
+            className={`p-4 border-2 rounded transition-all h-auto flex flex-col items-start ${
               transactionType === 'expense'
                 ? 'border-red-500 bg-red-500/10'
                 : 'border-border-custom hover:border-red-500/50'
@@ -133,10 +153,10 @@ export default function NewForecastModal({ isOpen, onClose, onSuccess }: NewFore
           >
             <div className="text-3xl mb-2">⬇️</div>
             <div className="font-heading text-sm uppercase">Sortie prevue</div>
-          </button>
+          </Button>
         </div>
 
-        <input type="hidden" {...register('type')} value={transactionType} />
+        <input type="hidden" {...register('type')} />
 
         {/* Date et Montant */}
         <div className="grid grid-cols-2 gap-4">
@@ -188,17 +208,16 @@ export default function NewForecastModal({ isOpen, onClose, onSuccess }: NewFore
         <FormField label="Notes">
           <Textarea id="notes" placeholder="Informations complémentaires..." rows={3} {...register('notes')} />
         </FormField>
-
-        {/* Actions */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-border-custom">
-          <Button type="button" variant="secondary" onClick={handleClose} disabled={loading}>
-            Annuler
-          </Button>
-          <Button type="submit" variant="primary" disabled={loading}>
-            {loading ? 'Creation...' : 'Creer la prevision'}
-          </Button>
-        </div>
       </form>
+
+      <ModalFooter>
+        <Button type="button" variant="outline" size="sm" onClick={handleClose} disabled={loading}>
+          Annuler
+        </Button>
+        <Button type="submit" form="new-forecast-form" variant="primary" size="sm" disabled={loading}>
+          {loading ? 'Creation...' : 'Creer la prevision'}
+        </Button>
+      </ModalFooter>
     </Modal>
   )
 }

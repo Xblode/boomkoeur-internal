@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Check } from 'lucide-react';
+import { Button } from '@/components/ui/atoms';
 import { cn } from '@/lib/utils';
 
 export interface WorkflowStep {
@@ -35,12 +36,14 @@ export function WorkflowStepper({
             <React.Fragment key={index}>
               {/* Nœud */}
               <div className="flex flex-col items-center gap-2 shrink-0">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => isClickable && onStepChange?.(index)}
                   disabled={!isClickable}
                   className={cn(
-                    'flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-semibold transition-all focus:outline-none',
+                    'flex !h-8 !w-8 !p-0 items-center justify-center rounded-full border-2 text-sm font-semibold transition-all focus:outline-none',
                     isCurrent && 'border-zinc-900 bg-transparent text-zinc-900 dark:border-white dark:bg-transparent dark:text-white',
                     isCompleted && !isCurrent && 'cursor-pointer border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900',
                     !isCompleted && !isCurrent && 'cursor-default border-zinc-200 bg-transparent text-zinc-400 dark:border-zinc-700 dark:text-zinc-600',
@@ -51,7 +54,7 @@ export function WorkflowStepper({
                   ) : (
                     <span>{index + 1}</span>
                   )}
-                </button>
+                </Button>
 
                 <span
                   className={cn(

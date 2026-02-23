@@ -1,7 +1,7 @@
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/molecules';
-import { Button } from '@/components/ui/atoms';
-import { User, CreditCard, Activity, TrendingUp, Check, Image as ImageIcon } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, SettingsCardRow, CardDateBadge } from '@/components/ui/molecules';
+import { Button, Badge, IconButton } from '@/components/ui/atoms';
+import { User, CreditCard, Activity, TrendingUp, Check, Image as ImageIcon, Clock, ListChecks, CalendarDays } from 'lucide-react';
 
 export const CardDemo = () => {
   return (
@@ -55,7 +55,29 @@ export const CardDemo = () => {
         </div>
       </div>
 
-      {/* 2. Stats / Dashboard Cards */}
+      {/* 2. Variant Outline */}
+      <div className="space-y-4">
+        <h3 className="text-xl font-semibold border-b border-border-custom pb-2">Variant Outline</h3>
+        <p className="text-sm text-zinc-500 mb-6">
+          Fond transparent, bordure uniquement. Idéal pour les sections légères, KPI, graphiques ou comparaisons.
+        </p>
+        <div className="grid md:grid-cols-2 gap-4">
+          <Card variant="outline">
+            <CardContent className="p-4 space-y-2">
+              <p className="text-sm font-medium text-zinc-500">Solde actuel</p>
+              <p className="text-2xl font-bold text-green-500">12 450 €</p>
+            </CardContent>
+          </Card>
+          <Card variant="outline">
+            <CardContent className="p-4 space-y-2">
+              <p className="text-sm font-medium text-zinc-500">Tendance</p>
+              <p className="text-2xl font-bold">+8,2 %</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* 3. Stats / Dashboard Cards */}
       <div className="space-y-4">
         <h3 className="text-xl font-semibold border-b border-border-custom pb-2">Cartes de Statistiques</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -102,34 +124,26 @@ export const CardDemo = () => {
         </div>
       </div>
 
-      {/* 3. Section / Settings Style Cards */}
+      {/* 4. Variant Settings (Apparence, Admin) */}
       <div className="space-y-4">
-        <h3 className="text-xl font-semibold border-b border-border-custom pb-2">Cartes de Section (Paramètres)</h3>
+        <h3 className="text-xl font-semibold border-b border-border-custom pb-2">Variant Settings</h3>
         <p className="text-sm text-zinc-500 mb-6">
-          Utilise les props <code>title</code> et <code>description</code> directement sur le composant Card.
-          Le titre s'affiche à l'extérieur, idéal pour les pages de configuration.
+          Pour les pages paramètres (Apparence, Admin, Profile). Utilise <code>variant="settings"</code> avec
+          <code>SettingsCardRow</code> pour les lignes label + contrôle.
         </p>
         
         <Card 
+          variant="settings"
           title="Préférences du compte" 
           description="Gérez les paramètres liés à votre compte utilisateur."
         >
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium">Langue</p>
-                <p className="text-xs text-zinc-500">La langue utilisée dans l'interface.</p>
-              </div>
+          <CardContent className="p-0 divide-y divide-border-custom">
+            <SettingsCardRow label="Langue" description="La langue utilisée dans l'interface.">
               <Button variant="outline" size="sm">Français</Button>
-            </div>
-            <div className="my-4 h-px bg-border-custom w-full" />
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium">Authentification à deux facteurs</p>
-                <p className="text-xs text-zinc-500">Ajoute une couche de sécurité supplémentaire.</p>
-              </div>
+            </SettingsCardRow>
+            <SettingsCardRow label="Authentification à deux facteurs" description="Ajoute une couche de sécurité supplémentaire.">
               <Button variant="outline" size="sm">Configurer</Button>
-            </div>
+            </SettingsCardRow>
           </CardContent>
           <CardFooter className="bg-zinc-50/50 dark:bg-zinc-800/50 border-t border-border-custom flex justify-end">
             <Button size="sm">Sauvegarder</Button>
@@ -137,73 +151,140 @@ export const CardDemo = () => {
         </Card>
       </div>
 
-      {/* 4. Other Examples */}
+      {/* 5. Cards liste (Products, Events, Meetings) */}
       <div className="space-y-4">
-        <h3 className="text-xl font-semibold border-b border-border-custom pb-2">Autres Exemples</h3>
-        
-        <div className="grid md:grid-cols-3 gap-6">
-          
-          {/* Image Card */}
-          <Card className="overflow-hidden flex flex-col">
-            <div className="h-48 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400">
-              <ImageIcon size={48} />
-            </div>
-            <CardHeader>
-              <CardTitle>Article de blog</CardTitle>
-              <CardDescription>Publié le 12 Mars 2024</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1">
-              <p className="text-sm text-zinc-600 dark:text-zinc-300">
-                Découvrez les dernières nouveautés de notre plateforme et comment elles peuvent améliorer votre productivité.
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Button size="sm" variant="outline" className="w-full">Lire l'article</Button>
-            </CardFooter>
-          </Card>
+        <h3 className="text-xl font-semibold border-b border-border-custom pb-2">Cartes liste (Products, Events, Meetings)</h3>
+        <p className="text-sm text-zinc-500 mb-6">
+          Utilisez <code>variant="list"</code> pour les grilles Product, Event, Meeting. Fond sombre, bordure zinc-800.
+        </p>
 
-          {/* Pricing Card */}
-          <Card className="flex flex-col border-zinc-900 dark:border-zinc-100 shadow-md">
-            <CardHeader>
-              <CardTitle>Pro Plan</CardTitle>
-              <CardDescription>Pour les équipes en croissance</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 space-y-4">
-              <div className="text-3xl font-bold">29€<span className="text-sm font-normal text-zinc-500">/mois</span></div>
-              <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
-                <li className="flex items-center gap-2"><Check size={16} className="text-green-500" /> Utilisateurs illimités</li>
-                <li className="flex items-center gap-2"><Check size={16} className="text-green-500" /> 20GB de stockage</li>
-                <li className="flex items-center gap-2"><Check size={16} className="text-green-500" /> Support prioritaire</li>
-                <li className="flex items-center gap-2"><Check size={16} className="text-green-500" /> API Access</li>
-              </ul>
-            </CardContent>
-            <CardFooter>
-              <Button className="w-full">Choisir ce plan</Button>
-            </CardFooter>
-          </Card>
+        <div className="space-y-6">
+          <div>
+            <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">ProductCard</h4>
+            <p className="text-xs text-zinc-500 mb-3">
+              Image carrée (aspect-square), titre + <code className="text-xs">Badge</code> statut, SKU/type, tags, prix + stock, footer (commentaires + Edit/Delete).
+            </p>
+            <Card variant="list" className="group relative overflow-hidden transition-all duration-300 cursor-pointer flex flex-col h-full hover:shadow-xl max-w-xs">
+              <CardContent className="p-0 flex flex-col h-full">
+                <div className="p-2">
+                  <div className="relative w-full aspect-square overflow-hidden rounded-lg bg-zinc-800 flex items-center justify-center">
+                    <ImageIcon size={32} className="text-zinc-600" />
+                  </div>
+                </div>
+                <div className="p-4 pb-3">
+                  <div className="flex items-start gap-2 mb-1">
+                    <h3 className="flex-1 font-bold text-base text-white leading-tight line-clamp-2 min-w-0">T-shirt Boomkoeur</h3>
+                    <Badge variant="success" className="flex-shrink-0 shadow-none">Disponible</Badge>
+                  </div>
+                  <p className="text-xs text-zinc-500 font-mono">SKU-001 · T-shirt</p>
+                </div>
+                <div className="px-4 pb-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-lg font-bold text-white">24,00 €</span>
+                    <span className="text-xs text-zinc-400">50 unités</span>
+                  </div>
+                </div>
+                <div className="mt-auto px-4 py-3 border-t border-zinc-800 flex items-center justify-between">
+                  <span className="text-sm text-zinc-400">0 commentaires</span>
+                  <div className="flex gap-1">
+                    <IconButton icon={<User size={14} />} ariaLabel="Éditer" variant="ghost" size="sm" className="p-2 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-700" />
+                    <IconButton icon={<CreditCard size={14} />} ariaLabel="Supprimer" variant="ghost" size="sm" className="p-2 rounded-md text-zinc-400 hover:text-red-400 hover:bg-zinc-700" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-          {/* Profile Card */}
-          <Card className="flex flex-col items-center text-center">
-            <CardHeader className="pb-2">
-              <div className="w-24 h-24 rounded-full bg-zinc-100 dark:bg-zinc-800 mx-auto flex items-center justify-center mb-4">
-                <User size={48} className="text-zinc-400" />
-              </div>
-              <CardTitle>Sophie Martin</CardTitle>
-              <CardDescription>Product Designer</CardDescription>
-            </CardHeader>
-            <CardContent className="pb-2">
-              <p className="text-sm text-zinc-600 dark:text-zinc-300">
-                Passionnée par l'expérience utilisateur et les interfaces minimalistes.
-              </p>
-            </CardContent>
-            <CardFooter className="pt-4">
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline">Message</Button>
-                <Button size="sm">Suivre</Button>
-              </div>
-            </CardFooter>
-          </Card>
+          <div>
+            <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">EventCard</h4>
+            <p className="text-xs text-zinc-500 mb-3">
+              Image paysage (aspect-video 16:9), titre + <code className="text-xs">Badge</code> statut + lieu, bloc date (mois/jour), tags/artistes/horaires, footer (commentaires + Edit/Copy/Delete).
+            </p>
+            <Card variant="list" className="group relative overflow-hidden transition-all duration-300 cursor-pointer flex flex-col h-full hover:shadow-xl max-w-xs">
+              <CardContent className="p-0 flex flex-col h-full">
+                <div className="p-2">
+                  <div className="relative w-full aspect-video overflow-hidden rounded-lg bg-zinc-800 flex items-center justify-center">
+                    <CalendarDays size={48} className="text-zinc-600" />
+                  </div>
+                </div>
+                <div className="p-4 flex gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="flex-1 font-bold text-lg text-white leading-tight line-clamp-2 min-w-0">Soirée Electro 2025</h3>
+                      <Badge variant="success" className="flex-shrink-0 shadow-none">Confirmé</Badge>
+                    </div>
+                    <p className="text-sm text-zinc-400 font-medium">Le Transbordeur, Lyon</p>
+                  </div>
+                  <CardDateBadge month="Mar" day="21" />
+                </div>
+                <div className="px-4 pb-4 space-y-2">
+                  <div className="flex gap-2">
+                    <span className="inline-flex rounded-md px-2.5 py-0.5 text-xs font-medium bg-surface-elevated text-text-tertiary">Électro</span>
+                  </div>
+                  <div className="text-sm text-text-tertiary">20:00 – 23:00</div>
+                </div>
+                <div className="mt-auto px-4 py-3 border-t border-zinc-800 flex items-center justify-between">
+                  <span className="text-sm text-zinc-400">3 commentaires</span>
+                  <div className="flex gap-1">
+                    <IconButton icon={<User size={14} />} ariaLabel="Éditer" variant="ghost" size="sm" className="p-2 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800" />
+                    <IconButton icon={<CreditCard size={14} />} ariaLabel="Dupliquer" variant="ghost" size="sm" className="p-2 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800" />
+                    <IconButton icon={<Activity size={14} />} ariaLabel="Supprimer" variant="ghost" size="sm" className="p-2 rounded-md text-zinc-400 hover:text-red-400 hover:bg-zinc-800" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
+          <div>
+            <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">MeetingCard</h4>
+            <p className="text-xs text-zinc-500 mb-3">
+              Sans image. Titre + <code className="text-xs">Badge</code> statut + lieu, bloc date (mois/jour), horaires + ordre du jour, footer (participants + Présenter/Edit/Delete).
+            </p>
+            <Card variant="list" className="group relative overflow-hidden transition-all duration-300 cursor-pointer flex flex-col h-full hover:shadow-xl max-w-xs">
+              <CardContent className="p-0 flex flex-col h-full">
+                <div className="p-4 flex gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <h3 className="flex-1 font-bold text-lg text-white leading-tight line-clamp-2 min-w-0">Point hebdo équipe</h3>
+                      <Badge variant="info" className="flex-shrink-0 shadow-none">À venir</Badge>
+                    </div>
+                    <p className="text-sm text-zinc-400 font-medium truncate">Salle A</p>
+                  </div>
+                  <CardDateBadge month="Fév" day="19" />
+                </div>
+                <div className="px-4 pb-4 space-y-2">
+                  <div className="flex items-center gap-2.5 text-sm text-text-tertiary">
+                    <Clock className="h-4 w-4 flex-shrink-0" />
+                    <span>14:00 – 15:00</span>
+                  </div>
+                  <div className="flex items-center gap-2.5 text-sm text-text-tertiary">
+                    <ListChecks className="h-4 w-4 flex-shrink-0" />
+                    <span>3 points à l&apos;ordre du jour</span>
+                  </div>
+                </div>
+                <div className="mt-auto px-4 py-3 border-t border-zinc-800 flex items-center justify-between">
+                  <span className="text-sm text-zinc-400">5 participants</span>
+                  <div className="flex gap-1">
+                    <IconButton icon={<Activity size={14} />} ariaLabel="Présenter" variant="ghost" size="sm" className="p-2 rounded-md text-zinc-400 hover:text-purple-400 hover:bg-zinc-800" />
+                    <IconButton icon={<User size={14} />} ariaLabel="Modifier" variant="ghost" size="sm" className="p-2 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800" />
+                    <IconButton icon={<CreditCard size={14} />} ariaLabel="Supprimer" variant="ghost" size="sm" className="p-2 rounded-md text-zinc-400 hover:text-red-400 hover:bg-zinc-800" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        <div className="mt-6 p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800">
+          <h4 className="text-sm font-medium mb-2">Pattern commun</h4>
+          <ul className="text-xs text-zinc-600 dark:text-zinc-400 space-y-1 list-disc list-inside">
+            <li><code>Card</code> + <code>CardContent p-0</code>, <code>flex flex-col h-full</code></li>
+            <li>Statut : <code>Badge</code> (variant success/info/destructive/secondary)</li>
+            <li>Variant : <code>variant="list"</code></li>
+            <li>Bloc date optionnel : <code>CardDateBadge</code></li>
+            <li>Footer : <code>mt-auto border-t border-zinc-800</code> + actions</li>
+            <li>Fichiers : ProductCard, EventCard, MeetingCard</li>
+          </ul>
         </div>
       </div>
 

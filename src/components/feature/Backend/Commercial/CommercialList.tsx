@@ -5,7 +5,6 @@ import { commercialService } from '@/lib/services/CommercialService';
 import { CommercialContact, ContactType, ContactStatus } from '@/types/commercial';
 import {
   Plus,
-  Search,
   Mail,
   Phone,
   MapPin,
@@ -16,8 +15,10 @@ import {
   Trash2,
   Globe,
   User,
+  Users,
 } from 'lucide-react';
-import { Button, Input, Select, Skeleton } from '@/components/ui/atoms';
+import { Button, IconButton, Input, Select, Skeleton, Textarea } from '@/components/ui/atoms';
+import { SectionHeader, SearchInput, FilterField } from '@/components/ui/molecules';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/atoms';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -103,9 +104,9 @@ function EditableDetail({
       <div className={cn('flex items-start gap-2', className)} onClick={(e) => e.stopPropagation()}>
         {icon}
         {textarea ? (
-          <textarea ref={inputRef as React.RefObject<HTMLTextAreaElement>} {...inputProps} rows={3} />
+          <Textarea ref={inputRef as React.RefObject<HTMLTextAreaElement>} {...inputProps} rows={3} className="flex-1 min-w-0 bg-transparent outline-none py-0.5 text-sm border-0 focus-visible:ring-0" />
         ) : (
-          <input ref={inputRef as React.RefObject<HTMLInputElement>} {...inputProps} />
+          <Input ref={inputRef as React.RefObject<HTMLInputElement>} {...inputProps} className="flex-1 min-w-0 bg-transparent outline-none py-0.5 text-sm border-0 focus-visible:ring-0" />
         )}
       </div>
     );
@@ -173,7 +174,7 @@ function EditableAddress({
     return (
       <div className="flex items-start gap-2 md:col-span-2" onClick={(e) => e.stopPropagation()}>
         <MapPin size={14} className="text-zinc-400 shrink-0 mt-0.5" />
-        <input
+        <Input
           ref={inputRef as React.RefObject<HTMLInputElement | null>}
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
@@ -182,7 +183,7 @@ function EditableAddress({
             if (e.key === 'Enter') handleSave();
             if (e.key === 'Escape') onCancelEdit();
           }}
-          className="flex-1 min-w-0 bg-transparent outline-none py-0.5 text-sm"
+          className="flex-1 min-w-0 bg-transparent outline-none py-0.5 text-sm border-0 focus-visible:ring-0"
           placeholder="Rue, code postal ville, pays"
         />
       </div>
@@ -356,55 +357,47 @@ export default function CommercialList() {
 
   return (
     <div className="w-full space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Commercial</h1>
-          <p className="text-muted-foreground">Gérez vos contacts, partenaires et fournisseurs</p>
-        </div>
-        <Button variant="primary" size="sm" onClick={handleAddContact}>
-          <Plus size={14} className="mr-1.5" />
-          Nouveau contact
-        </Button>
-      </div>
-
-      {/* Filtres */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label className="text-xs text-zinc-600 dark:text-zinc-400 mb-1.5 block">Recherche</label>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={15} />
-            <Input
+      <SectionHeader
+        icon={<Users size={28} />}
+        title="Commercial"
+        subtitle="Gérez vos contacts, partenaires et fournisseurs"
+        actions={
+          <Button variant="primary" size="sm" onClick={handleAddContact}>
+            <Plus size={14} className="mr-1.5" />
+            Nouveau contact
+          </Button>
+        }
+        filters={
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <SearchInput
+              label="Recherche"
               placeholder="Nom, société, email..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
+              onChange={setSearchTerm}
             />
-          </div>
+            <FilterField label="Type">
+              <Select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value as ContactType | 'all')}
+                options={[
+                  { value: 'all', label: 'Tous les types' },
+                  ...TYPE_OPTIONS,
+              ]}
+            />
+          </FilterField>
+          <FilterField label="Statut">
+            <Select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as ContactStatus | 'all')}
+                options={[
+                  { value: 'all', label: 'Tous les statuts' },
+                  ...STATUS_OPTIONS,
+              ]}
+            />
+          </FilterField>
         </div>
-        <div>
-          <label className="text-xs text-zinc-600 dark:text-zinc-400 mb-1.5 block">Type</label>
-          <Select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as ContactType | 'all')}
-            options={[
-              { value: 'all', label: 'Tous les types' },
-              ...TYPE_OPTIONS,
-            ]}
-          />
-        </div>
-        <div>
-          <label className="text-xs text-zinc-600 dark:text-zinc-400 mb-1.5 block">Statut</label>
-          <Select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as ContactStatus | 'all')}
-            options={[
-              { value: 'all', label: 'Tous les statuts' },
-              ...STATUS_OPTIONS,
-            ]}
-          />
-        </div>
-      </div>
+        }
+      />
 
       <div className="text-sm text-zinc-600 dark:text-zinc-400">
         {filteredContacts.length} contact{filteredContacts.length !== 1 ? 's' : ''}
@@ -412,7 +405,7 @@ export default function CommercialList() {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-[#1f1f1f] rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-card-bg rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-zinc-50/50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800">
@@ -450,7 +443,7 @@ export default function CommercialList() {
                       </td>
                       <td className="p-0 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 group/cell" onClick={(e) => e.stopPropagation()}>
                         {isEditingName ? (
-                          <input
+                          <Input
                             ref={inputRef as React.RefObject<HTMLInputElement | null>}
                             value={editValue}
                             onChange={(e) => setEditValue(e.target.value)}
@@ -460,7 +453,7 @@ export default function CommercialList() {
                               if (e.key === 'Escape') setEditingCell(null);
                             }}
                             onClick={(e) => e.stopPropagation()}
-                            className="block w-full min-h-[44px] py-2.5 px-4 bg-transparent outline-none text-sm font-medium"
+                            className="block w-full min-h-[44px] py-2.5 px-4 bg-transparent outline-none text-sm font-medium border-0 focus-visible:ring-0"
                             placeholder="Nom"
                           />
                         ) : (
@@ -484,8 +477,9 @@ export default function CommercialList() {
                       <td className="p-0 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 group/cell" onClick={(e) => e.stopPropagation()}>
                         <Popover open={typePopoverOpen === contact.id} onOpenChange={(o) => setTypePopoverOpen(o ? contact.id : null)}>
                           <PopoverTrigger asChild>
-                            <button
-                              className="flex items-center justify-between gap-2 w-full min-h-[44px] py-2.5 px-4 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors text-left cursor-pointer"
+                            <Button
+                              variant="ghost"
+                              className="flex items-center justify-between gap-2 w-full min-h-[44px] py-2.5 px-4 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors text-left cursor-pointer rounded-none h-auto"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setTypePopoverOpen(contact.id);
@@ -500,20 +494,22 @@ export default function CommercialList() {
                                 {getTypeLabel(contact.type)}
                               </span>
                               <ChevronDown size={12} className="text-zinc-400 shrink-0" />
-                            </button>
+                            </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-1" align="start">
                             {TYPE_OPTIONS.map((opt) => (
-                              <button
+                              <Button
                                 key={opt.value}
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => handleUpdateField(contact.id, 'type', opt.value)}
                                 className={cn(
-                                  'w-full text-left px-3 py-1.5 rounded-md text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800',
+                                  'w-full justify-start px-3 py-1.5 rounded-md text-sm',
                                   contact.type === opt.value && 'bg-zinc-100 dark:bg-zinc-800'
                                 )}
                               >
                                 {opt.label}
-                              </button>
+                              </Button>
                             ))}
                           </PopoverContent>
                         </Popover>
@@ -521,8 +517,9 @@ export default function CommercialList() {
                       <td className="p-0 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 group/cell" onClick={(e) => e.stopPropagation()}>
                         <Popover open={statusPopoverOpen === contact.id} onOpenChange={(o) => setStatusPopoverOpen(o ? contact.id : null)}>
                           <PopoverTrigger asChild>
-                            <button
-                              className="flex items-center justify-between gap-2 w-full min-h-[44px] py-2.5 px-4 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors text-left cursor-pointer"
+                            <Button
+                              variant="ghost"
+                              className="flex items-center justify-between gap-2 w-full min-h-[44px] py-2.5 px-4 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors text-left cursor-pointer rounded-none h-auto"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setStatusPopoverOpen(contact.id);
@@ -532,27 +529,29 @@ export default function CommercialList() {
                                 {getStatusLabel(contact.status)}
                               </span>
                               <ChevronDown size={12} className="text-zinc-400 shrink-0" />
-                            </button>
+                            </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-1" align="start">
                             {STATUS_OPTIONS.map((opt) => (
-                              <button
+                              <Button
                                 key={opt.value}
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => handleUpdateField(contact.id, 'status', opt.value)}
                                 className={cn(
-                                  'w-full text-left px-3 py-1.5 rounded-md text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800',
+                                  'w-full justify-start px-3 py-1.5 rounded-md text-sm',
                                   contact.status === opt.value && 'bg-zinc-100 dark:bg-zinc-800'
                                 )}
                               >
                                 {opt.label}
-                              </button>
+                              </Button>
                             ))}
                           </PopoverContent>
                         </Popover>
                       </td>
                       <td className="p-0 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 group/cell" onClick={(e) => e.stopPropagation()}>
                         {(editingCell?.id === contact.id && editingCell?.field === 'email') ? (
-                          <input
+                          <Input
                             ref={inputRef as React.RefObject<HTMLInputElement | null>}
                             value={editValue}
                             onChange={(e) => setEditValue(e.target.value)}
@@ -562,7 +561,7 @@ export default function CommercialList() {
                               if (e.key === 'Escape') setEditingCell(null);
                             }}
                             onClick={(e) => e.stopPropagation()}
-                            className="block w-full min-h-[44px] py-2.5 px-4 bg-transparent outline-none text-sm"
+                            className="block w-full min-h-[44px] py-2.5 px-4 bg-transparent outline-none text-sm border-0 focus-visible:ring-0"
                             placeholder="Email"
                           />
                         ) : (
@@ -584,13 +583,15 @@ export default function CommercialList() {
                         )}
                       </td>
                       <td className="p-0 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 group/delete" onClick={(e) => e.stopPropagation()}>
-                        <button
+                        <IconButton
+                          icon={<Trash2 size={14} />}
+                          ariaLabel="Supprimer"
+                          variant="ghost"
+                          size="sm"
                           onClick={(e) => handleDeleteContact(contact.id, e)}
                           className="flex items-center justify-center w-full min-h-[44px] py-2.5 px-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover/delete:opacity-100 transition-opacity"
                           title="Supprimer"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        />
                       </td>
                     </tr>
 

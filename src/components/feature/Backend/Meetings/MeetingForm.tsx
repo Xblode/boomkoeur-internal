@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Modal, ModalFooter } from '@/components/ui/organisms/Modal';
-import { Button, Input, Badge, Label } from '@/components/ui/atoms';
+import { Button, Input, Badge, Label, Textarea, Checkbox, IconButton } from '@/components/ui/atoms';
 import { FormField, DatePicker, TimePicker } from '@/components/ui/molecules';
 import { Meeting, MeetingInput, AgendaItem } from '@/types/meeting';
 import { meetingService } from '@/lib/services/MeetingService';
@@ -266,13 +266,15 @@ export default function MeetingForm({ isOpen, onClose, onSuccess, meeting }: Mee
               {formData.participants?.map((participant, index) => (
                 <Badge key={index} variant="secondary" className="gap-1 pr-1">
                   {participant}
-                  <button
+                  <IconButton
                     type="button"
+                    icon={<X className="h-3 w-3" />}
+                    ariaLabel="Retirer"
+                    variant="ghost"
+                    size="xs"
                     onClick={() => handleRemoveParticipant(index)}
-                    className="hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded p-0.5"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+                    className="hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded p-0.5 h-5 w-5"
+                  />
                 </Badge>
               ))}
             </div>
@@ -318,26 +320,26 @@ export default function MeetingForm({ isOpen, onClose, onSuccess, meeting }: Mee
                   />
                 </div>
                 <div className="flex items-end pb-2">
-                  <label className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input
-                      type="checkbox"
+                  <div className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox
+                      id="requiresVote"
                       checked={newAgendaItem.requiresVote}
                       onChange={(e) => setNewAgendaItem(prev => ({ ...prev, requiresVote: e.target.checked }))}
                       className="rounded"
                     />
-                    Nécessite un vote
-                  </label>
+                    <Label htmlFor="requiresVote" className="font-normal cursor-pointer">Nécessite un vote</Label>
+                  </div>
                 </div>
               </div>
 
               <div>
                 <Label>Description (optionnelle)</Label>
-                <textarea
+                <Textarea
                   value={newAgendaItem.description}
                   onChange={(e) => setNewAgendaItem(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Détails supplémentaires sur ce point..."
-                  className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                   rows={2}
+                  className="resize-none"
                 />
               </div>
 
@@ -391,26 +393,26 @@ export default function MeetingForm({ isOpen, onClose, onSuccess, meeting }: Mee
                             />
                           </div>
                           <div className="flex items-end pb-2">
-                            <label className="flex items-center gap-2 text-sm cursor-pointer">
-                              <input
-                                type="checkbox"
+                            <div className="flex items-center gap-2 text-sm cursor-pointer">
+                              <Checkbox
+                                id="editingRequiresVote"
                                 checked={editingItemData.requiresVote}
                                 onChange={(e) => setEditingItemData(prev => prev ? ({ ...prev, requiresVote: e.target.checked }) : null)}
                                 className="rounded"
                               />
-                              Nécessite un vote
-                            </label>
+                              <Label htmlFor="editingRequiresVote" className="font-normal cursor-pointer">Nécessite un vote</Label>
+                            </div>
                           </div>
                         </div>
 
                         <div>
                           <Label>Description (optionnelle)</Label>
-                          <textarea
+                          <Textarea
                             value={editingItemData.description}
                             onChange={(e) => setEditingItemData(prev => prev ? ({ ...prev, description: e.target.value }) : null)}
                             placeholder="Détails supplémentaires sur ce point..."
-                            className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                             rows={2}
+                            className="resize-none"
                           />
                         </div>
 
@@ -428,22 +430,26 @@ export default function MeetingForm({ isOpen, onClose, onSuccess, meeting }: Mee
                       // Mode affichage
                       <div className="flex items-center gap-3 p-4 py-3 pr-3 bg-zinc-50 dark:bg-zinc-800">
                         <div className="flex flex-col gap-1">
-                          <button
+                          <IconButton
                             type="button"
+                            icon={<MoveUp size={12} />}
+                            ariaLabel="Monter"
+                            variant="ghost"
+                            size="xs"
                             onClick={() => handleMoveAgendaItem(index, 'up')}
                             disabled={index === 0}
                             className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded disabled:opacity-30"
-                          >
-                            <MoveUp size={12} />
-                          </button>
-                          <button
+                          />
+                          <IconButton
                             type="button"
+                            icon={<MoveDown size={12} />}
+                            ariaLabel="Descendre"
+                            variant="ghost"
+                            size="xs"
                             onClick={() => handleMoveAgendaItem(index, 'down')}
                             disabled={index === (formData.agenda?.length || 0) - 1}
                             className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded disabled:opacity-30"
-                          >
-                            <MoveDown size={12} />
-                          </button>
+                          />
                         </div>
                         
                         <div className="flex-1 min-w-0">
@@ -464,21 +470,25 @@ export default function MeetingForm({ isOpen, onClose, onSuccess, meeting }: Mee
                           </div>
                         </div>
 
-                        <button
+                        <IconButton
                           type="button"
+                          icon={<Edit2 size={16} />}
+                          ariaLabel="Éditer"
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleEditAgendaItem(item)}
                           className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 rounded"
-                        >
-                          <Edit2 size={16} />
-                        </button>
+                        />
 
-                        <button
+                        <IconButton
                           type="button"
+                          icon={<X size={16} />}
+                          ariaLabel="Supprimer"
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleRemoveAgendaItem(index)}
                           className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 rounded"
-                        >
-                          <X size={16} />
-                        </button>
+                        />
                       </div>
                     )}
                   </div>

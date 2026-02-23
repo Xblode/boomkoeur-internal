@@ -1,5 +1,5 @@
-import { ProfileLayout } from '@/components/feature/Backend/Profile/ProfileLayout';
+import { ProfileLayoutConfig } from '@/components/feature/Backend/Profile/ProfileLayoutConfig';
 
 export default function ProfileRootLayout({ children }: { children: React.ReactNode }) {
-  return <ProfileLayout>{children}</ProfileLayout>;
+  return <ProfileLayoutConfig>{children}</ProfileLayoutConfig>;
 }

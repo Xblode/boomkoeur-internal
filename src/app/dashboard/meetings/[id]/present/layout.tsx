@@ -13,7 +13,7 @@ export default function PresentationLayout({
       disableTransitionOnChange
       storageKey="theme-dashboard"
     >
-      <div className="h-screen w-screen overflow-hidden" style={{ backgroundColor: '#171717' }}>
+      <div className="h-screen w-screen overflow-hidden bg-backend">
         {children}
       </div>
     </ThemeProvider>

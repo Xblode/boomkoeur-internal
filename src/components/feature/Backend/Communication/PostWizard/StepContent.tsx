@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Upload, Plus, X, Music } from 'lucide-react';
-import { Input, Textarea, Label, Button, Badge } from '@/components/ui/atoms';
+import { Input, Textarea, Label, Button, Badge, IconButton, Select } from '@/components/ui/atoms';
 import { SocialPost, PostMusic, StoryInteractive } from '@/types/communication';
 
 interface StepContentProps {
@@ -98,16 +98,18 @@ export const StepContent: React.FC<StepContentProps> = ({ data, onChange }) => {
                     alt={`Media ${index + 1}`}
                     className="w-full h-full object-cover rounded bg-muted"
                   />
-                  <button
+                  <IconButton
+                    icon={<X size={12} />}
+                    ariaLabel="Supprimer"
+                    variant="destructive"
+                    size="xs"
                     className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-sm"
                     onClick={() => {
                       const newMedia = [...data.media!];
                       newMedia.splice(index, 1);
                       onChange({ ...data, media: newMedia });
                     }}
-                  >
-                    <X size={12} />
-                  </button>
+                  />
                 </div>
               ))}
             </div>
@@ -152,13 +154,15 @@ export const StepContent: React.FC<StepContentProps> = ({ data, onChange }) => {
           {data.hashtags?.map((tag, index) => (
             <Badge key={index} variant="secondary" className="gap-1 pr-1">
               #{tag}
-              <button
+              <IconButton
+                icon={<X className="h-3 w-3" />}
+                ariaLabel="Retirer"
+                variant="ghost"
+                size="xs"
                 type="button"
                 onClick={() => handleRemoveHashtag(index)}
                 className="hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded p-0.5"
-              >
-                <X className="h-3 w-3" />
-              </button>
+              />
             </Badge>
           ))}
         </div>
@@ -184,13 +188,15 @@ export const StepContent: React.FC<StepContentProps> = ({ data, onChange }) => {
           {data.taggedUsers?.map((user, index) => (
             <Badge key={index} variant="secondary" className="gap-1 pr-1">
               {user}
-              <button
+              <IconButton
+                icon={<X className="h-3 w-3" />}
+                ariaLabel="Retirer"
+                variant="ghost"
+                size="xs"
                 type="button"
                 onClick={() => handleRemoveTaggedUser(index)}
                 className="hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded p-0.5"
-              >
-                <X className="h-3 w-3" />
-              </button>
+              />
             </Badge>
           ))}
         </div>
@@ -216,13 +222,15 @@ export const StepContent: React.FC<StepContentProps> = ({ data, onChange }) => {
           <div className="flex flex-wrap gap-2">
             <Badge variant="secondary" className="gap-1 pr-1">
               {data.collaboration}
-              <button
+              <IconButton
+                icon={<X className="h-3 w-3" />}
+                ariaLabel="Retirer"
+                variant="ghost"
+                size="xs"
                 type="button"
                 onClick={() => onChange({ ...data, collaboration: undefined })}
                 className="hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded p-0.5"
-              >
-                <X className="h-3 w-3" />
-              </button>
+              />
             </Badge>
           </div>
         )}
@@ -283,9 +291,9 @@ export const StepContent: React.FC<StepContentProps> = ({ data, onChange }) => {
       {showStoryInteractive && (
         <div className="border border-purple-200 dark:border-purple-900/50 rounded-lg p-4 bg-purple-50 dark:bg-purple-900/10">
           <Label htmlFor="storyType" className="text-purple-900 dark:text-purple-300">Élément interactif</Label>
-          <select
+          <Select
             id="storyType"
-            className="w-full px-3 py-2 border border-input rounded-lg mt-2 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            className="w-full px-3 py-2 mt-2"
             value={data.storyInteractive?.type || ''}
             onChange={(e) => {
               const type = e.target.value as StoryInteractive['type'];
@@ -294,14 +302,15 @@ export const StepContent: React.FC<StepContentProps> = ({ data, onChange }) => {
                 storyInteractive: type ? { type, data: {} } : undefined,
               });
             }}
-          >
-            <option value="">Aucun</option>
-            <option value="poll">Sondage</option>
-            <option value="question">Question</option>
-            <option value="link">Lien</option>
-            <option value="countdown">Compte à rebours</option>
-            <option value="quiz">Quiz</option>
-          </select>
+            options={[
+              { value: '', label: 'Aucun' },
+              { value: 'poll', label: 'Sondage' },
+              { value: 'question', label: 'Question' },
+              { value: 'link', label: 'Lien' },
+              { value: 'countdown', label: 'Compte à rebours' },
+              { value: 'quiz', label: 'Quiz' },
+            ]}
+          />
 
           {data.storyInteractive && (
             <div className="mt-3">

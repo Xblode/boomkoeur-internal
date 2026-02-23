@@ -20,11 +20,13 @@ type FilterStatus = 'all' | 'quote' | 'pending' | 'paid' | 'overdue'
 
 interface FacturesTabProps {
   filterStatus?: FilterStatus
+  selectedYear?: number
   onCreateInvoice?: () => void
 }
 
-export default function FacturesTab({ filterStatus: externalFilterStatus, onCreateInvoice }: FacturesTabProps) {
+export default function FacturesTab({ filterStatus: externalFilterStatus, selectedYear, onCreateInvoice }: FacturesTabProps) {
   const filterStatus = externalFilterStatus ?? 'all'
+  const year = selectedYear ?? new Date().getFullYear()
   const [searchQuery, setSearchQuery] = useState('')
   const [invoices, setInvoices] = useState<(Invoice & { invoice_lines: InvoiceLine[] })[]>([])
   const [loading, setLoading] = useState(true)
@@ -36,15 +38,16 @@ export default function FacturesTab({ filterStatus: externalFilterStatus, onCrea
 
   useEffect(() => {
     loadInvoices()
-  }, [filterStatus])
+  }, [filterStatus, year])
 
   async function loadInvoices() {
     try {
       setLoading(true)
-      const filters: any = {}
+      const filters: { status?: string; year?: number } = {}
       if (filterStatus !== 'all') {
         filters.status = filterStatus
       }
+      filters.year = year
       const data = await financeDataService.getInvoices(filters)
       setInvoices(data || [])
     } catch (error) {

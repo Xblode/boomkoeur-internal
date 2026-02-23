@@ -49,7 +49,7 @@ export function Calendar({
     <DayPicker
       locale={fr}
       showOutsideDays={showOutsideDays}
-      className={cn('p-0', className)}
+      className={cn('p-2', className)}
       classNames={{
         months: 'flex flex-col sm:flex-row gap-4',
         month: 'space-y-2',

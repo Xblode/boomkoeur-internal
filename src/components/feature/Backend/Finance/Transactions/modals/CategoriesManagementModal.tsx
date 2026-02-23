@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { CHART_SERIES_COLORS } from '@/lib/constants/chart-colors'
 import { financeDataService } from '@/lib/services/FinanceDataService'
-import { Modal, ModalFooter, Button, Input, Select, Textarea } from '@/components/ui'
+import { Modal, ModalFooter, Button, Input, Select, Textarea, Label, IconButton, Card, EmptyState } from '@/components/ui'
 import { Plus, Edit, Trash2, X } from 'lucide-react'
 import type { TransactionCategory } from '@/types/finance'
 
@@ -26,7 +27,7 @@ export default function CategoriesManagementModal({
 
   const [formData, setFormData] = useState({
     name: '',
-    color: '#3b82f6',
+    color: CHART_SERIES_COLORS.bar,
     icon: '',
     description: '',
     sort_order: 0,
@@ -55,7 +56,7 @@ export default function CategoriesManagementModal({
     setEditingCategory(null)
     setFormData({
       name: '',
-      color: '#3b82f6',
+      color: CHART_SERIES_COLORS.bar,
       icon: '',
       description: '',
       sort_order: categories.length + 1,
@@ -72,7 +73,7 @@ export default function CategoriesManagementModal({
     setEditingCategory(category)
     setFormData({
       name: category.name,
-      color: category.color || '#3b82f6',
+      color: category.color || CHART_SERIES_COLORS.bar,
       icon: category.icon || '',
       description: category.description || '',
       sort_order: category.sort_order,
@@ -140,7 +141,7 @@ export default function CategoriesManagementModal({
       <div className="space-y-6">
         {/* Selecteur de type */}
         <div className="flex items-center gap-4">
-          <label className="text-sm font-label uppercase tracking-wider text-zinc-500">Type</label>
+          <Label className="text-sm font-label uppercase tracking-wider text-zinc-500">Type</Label>
           <div className="flex gap-2">
             <Button
               variant={selectedType === 'income' ? 'primary' : 'secondary'}
@@ -173,27 +174,29 @@ export default function CategoriesManagementModal({
 
         {/* Formulaire de creation/edition */}
         {showForm && (
-          <div className="p-4 bg-background-tertiary rounded-lg border border-border-custom">
+          <Card variant="outline" className="p-4 bg-background-tertiary">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-heading text-lg uppercase">
                 {editingCategory ? 'Modifier la categorie' : 'Nouvelle categorie'}
               </h3>
-              <button
+              <IconButton
+                icon={<X className="w-5 h-5" />}
+                ariaLabel="Fermer"
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setShowForm(false)
                   setEditingCategory(null)
                 }}
                 className="text-zinc-500 hover:text-foreground transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              />
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-label uppercase tracking-wider text-zinc-500 mb-2">
+                <Label className="block text-sm font-label uppercase tracking-wider text-zinc-500 mb-2">
                   Nom *
-                </label>
+                </Label>
                 <Input
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -204,29 +207,29 @@ export default function CategoriesManagementModal({
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-label uppercase tracking-wider text-zinc-500 mb-2">
+                  <Label className="block text-sm font-label uppercase tracking-wider text-zinc-500 mb-2">
                     Couleur
-                  </label>
+                  </Label>
                   <div className="flex items-center gap-2">
-                    <input
+                    <Input
                       type="color"
                       value={formData.color}
                       onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                      className="w-12 h-10 rounded border-2 border-border-custom cursor-pointer"
+                      className="w-12 h-10 rounded border-2 border-border-custom cursor-pointer p-1 min-h-0"
                     />
                     <Input
                       value={formData.color}
                       onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                      placeholder="#3b82f6"
+                      placeholder={CHART_SERIES_COLORS.bar}
                       className="flex-1"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-label uppercase tracking-wider text-zinc-500 mb-2">
+                  <Label className="block text-sm font-label uppercase tracking-wider text-zinc-500 mb-2">
                     Ordre d'affichage
-                  </label>
+                  </Label>
                   <Input
                     type="number"
                     value={formData.sort_order}
@@ -237,9 +240,9 @@ export default function CategoriesManagementModal({
               </div>
 
               <div>
-                <label className="block text-sm font-label uppercase tracking-wider text-zinc-500 mb-2">
+                <Label className="block text-sm font-label uppercase tracking-wider text-zinc-500 mb-2">
                   Description
-                </label>
+                </Label>
                 <Textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -249,12 +252,13 @@ export default function CategoriesManagementModal({
               </div>
 
               <div className="flex gap-2">
-                <Button type="submit" variant="primary" disabled={loading}>
+                <Button type="submit" variant="primary" size="sm" disabled={loading}>
                   {editingCategory ? 'Modifier' : 'Creer'}
                 </Button>
                 <Button
                   type="button"
-                  variant="secondary"
+                  variant="outline"
+                  size="sm"
                   onClick={() => {
                     setShowForm(false)
                     setEditingCategory(null)
@@ -264,7 +268,7 @@ export default function CategoriesManagementModal({
                 </Button>
               </div>
             </form>
-          </div>
+          </Card>
         )}
 
         {/* Liste des categories */}
@@ -314,9 +318,11 @@ export default function CategoriesManagementModal({
               )}
             </div>
             {customCategories.length === 0 ? (
-              <p className="text-sm text-zinc-500 p-4 text-center">
-                Aucune categorie personnalisee. Cliquez sur "Ajouter" pour en creer une.
-              </p>
+              <EmptyState
+                title="Aucune catégorie personnalisée"
+                description='Cliquez sur "Ajouter" pour en créer une.'
+                variant="inline"
+              />
             ) : (
               <div className="space-y-2">
                 {customCategories.map((category) => (
@@ -337,20 +343,24 @@ export default function CategoriesManagementModal({
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <button
+                      <IconButton
+                        icon={<Edit className="w-4 h-4" />}
+                        ariaLabel="Modifier"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleEdit(category)}
                         className="text-zinc-900 dark:text-zinc-50 hover:text-zinc-900 dark:text-zinc-50/80 transition-colors"
                         title="Modifier"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
+                      />
+                      <IconButton
+                        icon={<Trash2 className="w-4 h-4" />}
+                        ariaLabel="Supprimer"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleDelete(category.id)}
                         className="text-red-400 hover:text-red-300 transition-colors"
                         title="Supprimer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      />
                     </div>
                   </div>
                 ))}
@@ -361,7 +371,7 @@ export default function CategoriesManagementModal({
       </div>
 
       <ModalFooter>
-        <Button variant="secondary" onClick={onClose}>
+        <Button variant="outline" size="sm" onClick={onClose}>
           Fermer
         </Button>
       </ModalFooter>

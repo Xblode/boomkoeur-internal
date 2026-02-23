@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Artist, ArtistType } from '@/types/event';
-import { Button, Input } from '@/components/ui/atoms';
-import { Modal, ModalFooter } from '@/components/ui/organisms';
+import { Button, Input, Label, IconButton, Badge } from '@/components/ui/atoms';
+import { EmptyState, KPICard, EditableCard } from '@/components/ui/molecules';
+import { Modal, ModalFooter, ModalThreeColumnLayout } from '@/components/ui/organisms';
 import { cn } from '@/lib/utils';
 import {
   Plus,
@@ -16,13 +17,13 @@ import {
   DollarSign,
   FileText,
   X,
-  Edit,
   Trash2,
   Check,
 } from 'lucide-react';
+import { SectionHeader } from '@/components/ui';
 import { useEventDetail } from './EventDetailProvider';
 import { useToolbar } from '@/components/providers/ToolbarProvider';
-import { PageToolbar } from '@/components/ui/organisms';
+import { PageToolbar, PageToolbarFilters, PageToolbarActions } from '@/components/ui/organisms';
 import { artistService, eventArtistService } from '@/lib/services/ArtistService';
 import { toast } from 'sonner';
 
@@ -73,18 +74,17 @@ export function EventArtistsSection() {
 
   useEffect(() => {
     setToolbar(
-      <PageToolbar className="justify-between">
-        <span className="text-xs text-zinc-400 hidden sm:block">Artistes</span>
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setAddModalOpen(true)}
-            className="flex items-center gap-1.5 h-7 px-3 text-xs font-medium rounded-md border border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
-          >
-            <Music size={13} />
-            Gérer les artistes
-          </button>
-        </div>
-      </PageToolbar>
+      <PageToolbar
+        filters={<PageToolbarFilters><span className="text-xs text-zinc-400 hidden sm:block">Artistes</span></PageToolbarFilters>}
+        actions={
+          <PageToolbarActions>
+            <Button onClick={() => setAddModalOpen(true)}>
+              <Music size={13} className="mr-1.5" />
+              Gérer les artistes
+            </Button>
+          </PageToolbarActions>
+        }
+      />
     );
     return () => setToolbar(null);
   }, [setToolbar]);
@@ -183,6 +183,11 @@ export function EventArtistsSection() {
 
   return (
     <div className="space-y-4">
+      <SectionHeader
+        icon={<Music size={28} />}
+        title="Artistes"
+        subtitle="Gérez les artistes et intervenants de l'événement."
+      />
       {/* Info bar */}
       <p className="text-sm text-zinc-500 dark:text-zinc-400">
         {artists.length > 0
@@ -198,38 +203,24 @@ export function EventArtistsSection() {
                   {artists
                     .filter((_, i) => i % 2 === colIndex)
                     .map((artist) => (
-                <div key={artist.id} className="group/card rounded-lg border border-border-custom bg-zinc-50 dark:bg-zinc-900/40 overflow-hidden">
-                  <div className="p-3">
-                    <div className="flex items-start gap-2">
+                <EditableCard
+                  key={artist.id}
+                  isEditing={editingArtistId === artist.id}
+                  onEdit={() => setEditingArtistId(artist.id)}
+                  onCloseEdit={() => setEditingArtistId(null)}
+                  onDelete={() => deleteArtist(artist.id)}
+                  headerPadding="sm"
+                  headerContent={
+                    <>
                       <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center shrink-0 mt-0.5">
                         <Music className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
-                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full border border-zinc-900 dark:border-zinc-100 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shrink-0">
-                              {ARTIST_TYPES.find((t) => t.id === (artist.type ?? TYPE_DEFAULT))?.label ?? 'DJ'}
-                            </span>
-                            <p className="text-sm font-medium leading-snug">{artist.name}</p>
-                          </div>
-                          {editingArtistId === artist.id ? (
-                            <Button variant="outline" size="sm" onClick={() => setEditingArtistId(null)} className="shrink-0 h-6 w-6 p-0" aria-label="Fermer">
-                              <X size={12} />
-                            </Button>
-                          ) : (
-                            <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover/card:opacity-100 transition-opacity">
-                              <Button variant="outline" size="sm" onClick={() => setEditingArtistId(artist.id)}>
-                                <Edit size={12} /> Éditer
-                              </Button>
-                              <button
-                                type="button"
-                                onClick={() => deleteArtist(artist.id)}
-                                className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors text-zinc-400 hover:text-red-600"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            </div>
-                          )}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="default" className="text-[10px] shrink-0">
+                            {ARTIST_TYPES.find((t) => t.id === (artist.type ?? TYPE_DEFAULT))?.label ?? 'DJ'}
+                          </Badge>
+                          <p className="text-sm font-medium leading-snug">{artist.name}</p>
                         </div>
                         {artist.genre && (
                           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{artist.genre}</p>
@@ -249,14 +240,12 @@ export function EventArtistsSection() {
                           )}
                         </div>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Zone d'édition (comme Post) */}
-                  {editingArtistId === artist.id && (
-                    <div className="border-t-2 border-dashed border-zinc-200 dark:border-zinc-800 p-4 space-y-4 bg-white dark:bg-zinc-900/60">
+                    </>
+                  }
+                  editContent={
+                    <>
                       <div>
-                        <label className="text-xs font-medium text-zinc-500 mb-1.5 block uppercase tracking-wide">Horaire (cet événement)</label>
+                        <Label className="text-xs font-medium text-zinc-500 mb-1.5 block uppercase tracking-wide">Horaire (cet événement)</Label>
                         <Input
                           placeholder="23:00 – 01:00"
                           value={artist.performanceTime ?? ''}
@@ -265,7 +254,7 @@ export function EventArtistsSection() {
                         />
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-zinc-500 mb-1.5 block uppercase tracking-wide">Cachet (€)</label>
+                        <Label className="text-xs font-medium text-zinc-500 mb-1.5 block uppercase tracking-wide">Cachet (€)</Label>
                         <Input
                           type="number"
                           placeholder="500"
@@ -277,29 +266,26 @@ export function EventArtistsSection() {
                           fullWidth
                         />
                       </div>
-                    </div>
-                  )}
-                </div>
+                    </>
+                  }
+                />
                     ))}
                 </div>
               ))}
             </div>
           ) : (
-            <div className="py-14 flex flex-col items-center gap-4 rounded-xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40">
-              <div className="w-14 h-14 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-                <Music className="h-7 w-7 text-zinc-400 dark:text-zinc-500" />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Aucun artiste programmé</p>
-                <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
-                  Ajoute les artistes ou DJs qui se produiront lors de cet événement.
-                </p>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => setAddModalOpen(true)} className="gap-1.5">
-                <Plus className="h-3.5 w-3.5" />
-                Gérer les artistes
-              </Button>
-            </div>
+            <EmptyState
+              icon={Music}
+              title="Aucun artiste programmé"
+              description="Ajoute les artistes ou DJs qui se produiront lors de cet événement."
+              action={
+                <Button variant="outline" size="sm" onClick={() => setAddModalOpen(true)} className="gap-1.5">
+                  <Plus className="h-3.5 w-3.5" />
+                  Gérer les artistes
+                </Button>
+              }
+              variant="compact"
+            />
           )}
 
       {/* ── Modal: 3 colonnes (comme Bénévoles) ── */}
@@ -308,64 +294,63 @@ export function EventArtistsSection() {
         onClose={closeAddModal}
         title="Artistes"
         size="lg"
-        scrollable
+        variant="fullBleed"
       >
-        <div
-          className="-mx-6 -my-4 grid overflow-hidden border-t border-border-custom"
-          style={{ height: '500px', gridTemplateColumns: '250px 1fr 1fr' }}
-        >
-          {/* ── Col 1 (gauche) : Types d'artiste ── */}
-          <aside className="border-r border-border-custom flex flex-col bg-zinc-50/30 dark:bg-zinc-900/20 min-w-0">
-            <div className="p-3 border-b border-border-custom">
-              <div className="relative">
-                <Search
-                  size={12}
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
-                />
-                <Input
-                  value={artistSearch}
-                  onChange={(e) => setArtistSearch(e.target.value)}
-                  placeholder="Rechercher..."
-                  className="pl-7 h-7 text-xs"
-                  fullWidth
-                />
+        <ModalThreeColumnLayout
+          sidebar={
+            <>
+              <div className="p-3 border-b border-border-custom">
+                <div className="relative">
+                  <Search
+                    size={12}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
+                  />
+                  <Input
+                    value={artistSearch}
+                    onChange={(e) => setArtistSearch(e.target.value)}
+                    placeholder="Rechercher..."
+                    className="pl-7 h-7 text-xs"
+                    fullWidth
+                  />
+                </div>
               </div>
-            </div>
-            <nav className="p-2 space-y-0.5">
-              {ARTIST_TYPES.map(({ id, label, Icon }) => (
-                <button
-                  key={id}
-                  onClick={() => {
-                    setActiveType(id);
-                    setSelectedArtistId(null);
-                  }}
-                  className={cn(
-                    'flex items-center gap-2 w-full text-left px-2 py-1.5 text-sm rounded-md transition-colors',
-                    activeType === id
-                      ? 'bg-zinc-100 dark:bg-zinc-800 text-foreground font-medium'
-                      : 'text-zinc-500 hover:text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
-                  )}
-                >
-                  <Icon size={15} />
-                  <span>{label}</span>
-                </button>
-              ))}
-            </nav>
-          </aside>
-
-          {/* ── Col 2 (milieu) : Liste des artistes ── */}
-          <div className="border-r border-border-custom flex flex-col overflow-hidden min-w-0">
+              <nav className="p-2 space-y-0.5">
+                {ARTIST_TYPES.map(({ id, label, Icon }) => (
+                  <Button
+                    key={id}
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setActiveType(id);
+                      setSelectedArtistId(null);
+                    }}
+                    className={cn(
+                      'flex items-center gap-2 w-full text-left px-2 py-1.5 text-sm rounded-md transition-colors h-auto font-normal justify-start',
+                      activeType === id
+                        ? 'bg-zinc-100 dark:bg-zinc-800 text-foreground font-medium'
+                        : 'text-zinc-500 hover:text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
+                    )}
+                  >
+                    <Icon size={15} />
+                    <span>{label}</span>
+                  </Button>
+                ))}
+              </nav>
+            </>
+          }
+          list={
             <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
               {isCreating && (
                 <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/40">
                   <div className="w-5 h-5 rounded-full border border-dashed border-zinc-300 dark:border-zinc-600 shrink-0" />
-                  <input
+                  <Input
                     type="text"
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
                     placeholder="Nom de l'artiste..."
                     autoFocus
-                    className="flex-1 bg-transparent border-none outline-none text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
+                    size="sm"
+                    className="flex-1 bg-transparent border-none shadow-none focus-visible:ring-0"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleCreateArtist();
                       if (e.key === 'Escape') {
@@ -399,14 +384,16 @@ export function EventArtistsSection() {
               ))}
 
               {!isCreating && filteredArtists.length === 0 && (
-                <p className="text-sm text-zinc-400 text-center py-8">Aucun artiste</p>
+                <EmptyState
+                  icon={Music}
+                  title="Aucun artiste"
+                  variant="inline"
+                />
               )}
             </div>
-          </div>
-
-          {/* ── Col 3 (droite) : Détails / infos (contenu commun, pas d'horaire) ── */}
-          <div className="overflow-y-auto p-5 min-w-0">
-            {selectedArtist ? (
+          }
+          detail={
+            selectedArtist ? (
               <ArtistDetailsPanel
                 artist={selectedArtist}
                 genre={detailGenre}
@@ -421,9 +408,9 @@ export function EventArtistsSection() {
                 lightjockey={artists.filter((a) => (a.type ?? TYPE_DEFAULT) === 'lightjockey').length}
                 total={artists.length}
               />
-            )}
-          </div>
-        </div>
+            )
+          }
+        />
 
         <ModalFooter>
           <Button
@@ -472,33 +459,35 @@ function ArtistRow({ artist, inEvent, isSelected, onSelect, onToggleInEvent, onR
       )}
     >
       {/* Toggle add/remove (comme VolunteerRow) */}
-      <button
+      <IconButton
+        icon={<Check />}
+        ariaLabel={inEvent ? 'Retirer de l\'événement' : 'Ajouter à l\'événement'}
+        variant="ghost"
+        size="xs"
         onClick={(e) => {
           e.stopPropagation();
           onToggleInEvent();
         }}
         className={cn(
-          'flex items-center justify-center w-5 h-5 rounded-full shrink-0 transition-colors',
+          'flex items-center justify-center w-4 h-4 rounded-full shrink-0 transition-colors [&>svg]:w-2.5 [&>svg]:h-2.5',
           inEvent
             ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
             : 'border border-zinc-300 dark:border-zinc-600 text-transparent group-hover/artist:border-zinc-400'
         )}
-        title={inEvent ? 'Retirer de l\'événement' : 'Ajouter à l\'événement'}
-      >
-        <Check size={11} />
-      </button>
+      />
       <span className="flex-1 text-sm text-zinc-800 dark:text-zinc-200 truncate">{artist.name}</span>
       {inEvent && (
-        <button
+        <IconButton
+          icon={<X size={12} />}
+          ariaLabel="Retirer"
+          variant="ghost"
+          size="sm"
           onClick={(e) => {
             e.stopPropagation();
             onRemove();
           }}
-          className="opacity-0 group-hover/artist:opacity-100 p-1 text-zinc-400 hover:text-red-500 transition-all shrink-0"
-          title="Retirer"
-        >
-          <X size={12} />
-        </button>
+          className="opacity-0 group-hover/artist:opacity-100 p-1 text-zinc-400 hover:text-red-500 shrink-0"
+        />
       )}
     </div>
   );
@@ -573,13 +562,14 @@ function DetailField({
   return (
     <div className="flex items-center gap-2.5">
       <span className="text-zinc-400 shrink-0">{icon}</span>
-      <input
+      <Input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onBlur={onBlur}
         placeholder={placeholder}
-        className="flex-1 bg-transparent border-b border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm py-1 transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-600 text-zinc-800 dark:text-zinc-200"
+        size="sm"
+        className="flex-1 bg-transparent border-b border-zinc-200 dark:border-zinc-700 rounded-none border-x-0 border-t-0 shadow-none focus-visible:ring-0 py-1"
       />
     </div>
   );
@@ -602,10 +592,10 @@ function ArtistsOverviewPanel({ dj, photographe, lightjockey, total }: ArtistsOv
       </h3>
 
       <div className="grid grid-cols-2 gap-2">
-        <StatCard label="DJ" value={dj} />
-        <StatCard label="Photographe" value={photographe} />
-        <StatCard label="Lightjockey" value={lightjockey} />
-        <StatCard label="Total" value={total} />
+        <KPICard label="DJ" value={dj} icon={Music} />
+        <KPICard label="Photographe" value={photographe} icon={Camera} />
+        <KPICard label="Lightjockey" value={lightjockey} icon={Lightbulb} />
+        <KPICard label="Total" value={total} icon={Music} />
       </div>
 
       {total === 0 && (
@@ -618,15 +608,6 @@ function ArtistsOverviewPanel({ dj, photographe, lightjockey, total }: ArtistsOv
           </p>
         </div>
       )}
-    </div>
-  );
-}
-
-function StatCard({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
-      <div className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{value}</div>
-      <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{label}</div>
     </div>
   );
 }

@@ -1,2 +1,2 @@
 export { CalendarView } from './CalendarView';
-export { CalendarLayout } from './CalendarLayout';
+export { CalendarLayoutConfig } from './CalendarLayoutConfig';

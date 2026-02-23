@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Meeting } from '@/types/meeting';
-import { Button } from '@/components/ui/atoms';
+import { Button, IconButton, Input, Label, Textarea } from '@/components/ui/atoms';
 import { X, ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Plus, Trash2, CheckCircle2, Vote, FileText, Eye, ArrowLeft, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -249,7 +249,9 @@ export default function PresentationMode({ meeting }: PresentationModeProps) {
                       : "bg-card text-muted-foreground border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800"
                   )}
                 >
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => {
                       if (idx !== currentIndex) {
                         // Si on clique sur un point différent, changer le point actif
@@ -263,7 +265,7 @@ export default function PresentationMode({ meeting }: PresentationModeProps) {
                         setExpandedAgendaItem(expandedAgendaItem === idx ? -1 : idx);
                       }
                     }}
-                    className="w-full p-2.5 flex items-center justify-between cursor-pointer"
+                    className="w-full p-2.5 flex items-center justify-between cursor-pointer rounded-none h-auto"
                   >
                     <div className="flex items-center gap-2 flex-1">
                       <ChevronDown
@@ -276,7 +278,7 @@ export default function PresentationMode({ meeting }: PresentationModeProps) {
                       <span className="font-medium">{idx + 1}. {item.title}</span>
                     </div>
                     <span className="text-xs opacity-80">{item.duration}min</span>
-                  </button>
+                  </Button>
                   
                   {/* Accordéon - Description */}
                   {expandedAgendaItem === idx && item.description && (
@@ -300,16 +302,18 @@ export default function PresentationMode({ meeting }: PresentationModeProps) {
               <h3 className="text-lg font-semibold mb-3">Documents</h3>
               <div className="grid gap-2">
                 {currentItem.documents.map((doc) => (
-                  <button
+                  <Button
                     key={doc.id}
+                    variant="ghost"
+                    size="sm"
                     onClick={() => openDocument(doc.url)}
-                    className="p-3 bg-card rounded-lg border border-border-custom flex items-center gap-2 cursor-pointer transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left w-full"
+                    className="p-3 bg-card rounded-lg border border-border-custom flex items-center gap-2 cursor-pointer transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left w-full h-auto justify-start"
                   >
                     <div className="w-7 h-7 rounded bg-zinc-100 flex items-center justify-center dark:bg-zinc-800">
                       <span className="text-xs font-bold text-zinc-500">DOC</span>
                     </div>
                     <p className="text-sm font-medium flex-1">{doc.name}</p>
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -321,12 +325,14 @@ export default function PresentationMode({ meeting }: PresentationModeProps) {
           <div className="w-1/2 flex flex-col overflow-hidden bg-card order-3">
             {/* Header du document */}
             <div className="border-b border-border-custom p-4 flex items-center gap-3 shrink-0">
-              <button
+              <IconButton
+                icon={<ArrowLeft size={18} />}
+                ariaLabel="Retour"
+                variant="ghost"
+                size="sm"
                 onClick={closeDocument}
                 className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-              >
-                <ArrowLeft size={18} />
-              </button>
+              />
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded bg-zinc-100 flex items-center justify-center dark:bg-zinc-800">
                   <span className="text-xs font-bold text-zinc-500">DOC</span>
@@ -503,7 +509,7 @@ export default function PresentationMode({ meeting }: PresentationModeProps) {
 
             {/* Contenu selon l'onglet actif */}
             {activeTab === 'notes' ? (
-              <textarea
+              <Textarea
                 value={liveNotes}
                 onChange={(e) => setLiveNotes(e.target.value)}
                 placeholder="Saisissez vos notes pendant la réunion..."
@@ -513,33 +519,31 @@ export default function PresentationMode({ meeting }: PresentationModeProps) {
               <div className="flex-1 overflow-y-auto bg-card rounded-lg border border-border-custom p-4 space-y-4">
                 {/* Question */}
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                  <Label className="text-xs font-medium text-muted-foreground mb-1 block">
                     Question du vote
-                  </label>
-                  <input
+                  </Label>
+                  <Input
                     type="text"
                     value={voteState.question}
                     onChange={(e) => setVoteState(prev => ({ ...prev, question: e.target.value }))}
                     placeholder={currentItem.title}
-                    style={{ backgroundColor: '#272729' }}
-                    className="w-full text-foreground border border-border-custom rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white"
+                    className="bg-surface-subtle w-full text-foreground border border-border-custom rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white"
                   />
                 </div>
 
                 {/* Add Option */}
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                  <Label className="text-xs font-medium text-muted-foreground mb-1 block">
                     Ajouter une option
-                  </label>
+                  </Label>
                   <div className="flex gap-2">
-                    <input
+                    <Input
                       type="text"
                       value={newOptionLabel}
                       onChange={(e) => setNewOptionLabel(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && addVoteOption()}
                       placeholder="Nom de l'option..."
-                      style={{ backgroundColor: '#272729' }}
-                      className="flex-1 text-foreground border border-border-custom rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white"
+                      className="bg-surface-subtle flex-1 text-foreground border border-border-custom rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white"
                     />
                     <Button onClick={addVoteOption} variant="secondary" size="sm">
                       <Plus size={14} />
@@ -550,7 +554,7 @@ export default function PresentationMode({ meeting }: PresentationModeProps) {
                 {/* Vote Options */}
                 <div className="space-y-3">
                   {voteState.options.map((option) => (
-                    <div key={option.id} className="rounded-lg p-3 border border-border-custom" style={{ backgroundColor: '#272729' }}>
+                    <div key={option.id} className="rounded-lg p-3 border border-border-custom bg-surface-subtle">
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="font-semibold text-sm">{option.label}</h4>
                         <div className="flex items-center gap-2">
@@ -558,34 +562,37 @@ export default function PresentationMode({ meeting }: PresentationModeProps) {
                             {option.voters.length} vote{option.voters.length > 1 ? 's' : ''}
                           </span>
                           {option.id.startsWith('option-') && (
-                            <button
+                            <IconButton
+                              icon={<Trash2 size={14} />}
+                              ariaLabel="Supprimer l'option"
+                              variant="ghost"
+                              size="sm"
                               onClick={() => removeVoteOption(option.id)}
                               className="text-red-500 hover:text-red-600"
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                            />
                           )}
                         </div>
                       </div>
                       
                       <div className="flex flex-wrap gap-1.5">
                         {meeting.participants.map((participant) => (
-                          <button
+                          <Button
                             key={participant}
+                            variant={option.voters.includes(participant) ? 'primary' : 'outline'}
+                            size="xs"
                             onClick={() => toggleVoter(option.id, participant)}
                             className={cn(
                               "px-2 py-1 rounded-md text-xs transition-colors border",
                               option.voters.includes(participant)
                                 ? "bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white"
-                                : "text-muted-foreground border-border-custom hover:border-zinc-900 dark:hover:border-white"
+                                : "text-muted-foreground border-border-custom hover:border-zinc-900 dark:hover:border-white bg-surface-subtle"
                             )}
-                            style={!option.voters.includes(participant) ? { backgroundColor: '#272729' } : undefined}
                           >
                             {option.voters.includes(participant) && (
                               <CheckCircle2 size={10} className="inline mr-1" />
                             )}
                             {participant.split(' ')[0]}
-                          </button>
+                          </Button>
                         ))}
                       </div>
                     </div>
@@ -593,7 +600,7 @@ export default function PresentationMode({ meeting }: PresentationModeProps) {
                 </div>
 
                 {/* Vote Summary */}
-                <div className="rounded-lg p-3 border border-border-custom" style={{ backgroundColor: '#272729' }}>
+                <div className="rounded-lg p-3 border border-border-custom bg-surface-subtle">
                   <h4 className="font-semibold text-sm mb-2">Résumé</h4>
                   <div className="text-xs text-muted-foreground space-y-1">
                     <div className="flex justify-between">

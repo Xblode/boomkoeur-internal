@@ -163,11 +163,11 @@ export default function ViewTransactionModal({
       </div>
 
       <ModalFooter>
-        <Button variant="secondary" onClick={onClose}>
+        <Button variant="outline" size="sm" onClick={onClose}>
           Fermer
         </Button>
         {onEdit && (
-          <Button variant="primary" onClick={() => {
+          <Button variant="primary" size="sm" onClick={() => {
             onEdit(transaction)
             onClose()
           }}>

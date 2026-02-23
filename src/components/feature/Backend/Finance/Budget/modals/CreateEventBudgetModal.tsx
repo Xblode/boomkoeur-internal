@@ -336,10 +336,10 @@ export default function CreateEventBudgetModal({
       </div>
 
       <ModalFooter>
-        <Button variant="secondary" onClick={onClose} disabled={loading}>
+        <Button variant="outline" size="sm" onClick={onClose} disabled={loading}>
           Annuler
         </Button>
-        <Button variant="primary" onClick={handleSubmit} disabled={loading}>
+        <Button variant="primary" size="sm" onClick={handleSubmit} disabled={loading}>
           {loading ? 'Enregistrement...' : isEditMode ? 'Mettre a jour' : 'Creer le budget'}
         </Button>
       </ModalFooter>

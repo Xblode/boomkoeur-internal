@@ -3,44 +3,61 @@
 import { Order } from '@/types/order';
 import { Package, MapPin, CreditCard, User, Truck, Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/atoms';
-import { Card, CardContent } from '@/components/ui/molecules/Card';
+import { Card, CardContent } from '@/components/ui/molecules';
 
 interface OrderCardProps {
   order: Order;
 }
 
+const ORDER_STATUS_LABELS: Record<string, string> = {
+  cart: 'Panier',
+  pending_payment: 'En attente',
+  paid: 'Payée',
+  preparing: 'En préparation',
+  shipped: 'Expédiée',
+  delivered: 'Livrée',
+  returned: 'Retournée',
+  cancelled: 'Annulée',
+};
+
+const ORDER_STATUS_VARIANTS: Record<string, 'secondary' | 'warning' | 'success' | 'info' | 'destructive'> = {
+  cart: 'secondary',
+  pending_payment: 'warning',
+  paid: 'success',
+  preparing: 'info',
+  shipped: 'info',
+  delivered: 'success',
+  returned: 'warning',
+  cancelled: 'destructive',
+};
+
+const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  pending: 'En attente',
+  paid: 'Payé',
+  failed: 'Échoué',
+  refunded: 'Remboursé',
+};
+
+const PAYMENT_STATUS_VARIANTS: Record<string, 'warning' | 'success' | 'destructive' | 'secondary'> = {
+  pending: 'warning',
+  paid: 'success',
+  failed: 'destructive',
+  refunded: 'secondary',
+};
+
+const SOURCE_LABELS: Record<string, string> = {
+  manual: 'Manuelle',
+  online_shop: 'Boutique',
+  event: 'Événement',
+};
+
 export default function OrderCard({ order }: OrderCardProps) {
-  const statusColors: Record<string, string> = {
-    cart: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200',
-    pending_payment: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-    paid: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-    preparing: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-    shipped: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-    delivered: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-    returned: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-    cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-  };
-
-  const paymentStatusColors: Record<string, string> = {
-    pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-    paid: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-    failed: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-    refunded: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200',
-  };
-
-  const sourceLabels: Record<string, string> = {
-    manual: 'Manuelle',
-    online_shop: 'Boutique',
-    event: 'Événement',
-  };
-
-  // Déterminer le type de livraison
   const isEventPickup = order.source === 'event' && order.shipping_cost === 0;
   const isShipping = order.shipping && order.shipping_cost > 0;
 
   return (
-    <Card className="hover:shadow-lg transition-shadow border-zinc-200 dark:border-zinc-800">
-      <CardContent className="p-6">
+    <Card variant="outline" className="hover:shadow-md transition-shadow">
+      <CardContent className="p-5">
         <div className="flex items-start justify-between mb-4">
           <div>
             <h3 className="font-semibold text-lg text-foreground">
@@ -57,33 +74,23 @@ export default function OrderCard({ order }: OrderCardProps) {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <span
-              className={`px-3 py-1 text-xs font-medium rounded-full ${
-                statusColors[order.status]
-              }`}
-            >
-              {order.status}
-            </span>
-            <span
-              className={`px-3 py-1 text-xs font-medium rounded-full ${
-                paymentStatusColors[order.payment_status]
-              }`}
-            >
-              {order.payment_status}
-            </span>
-            
-            {/* Badge Type de Livraison */}
+            <Badge variant={ORDER_STATUS_VARIANTS[order.status] ?? 'secondary'}>
+              {ORDER_STATUS_LABELS[order.status] ?? order.status}
+            </Badge>
+            <Badge variant={PAYMENT_STATUS_VARIANTS[order.payment_status] ?? 'secondary'}>
+              {PAYMENT_STATUS_LABELS[order.payment_status] ?? order.payment_status}
+            </Badge>
             {isEventPickup && (
-              <span className="px-3 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-800 flex items-center gap-1">
+              <Badge variant="outline" className="gap-1">
                 <Calendar size={12} />
                 Remise sur événement
-              </span>
+              </Badge>
             )}
             {isShipping && (
-              <span className="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800 flex items-center gap-1">
+              <Badge variant="info" className="gap-1">
                 <Truck size={12} />
                 Livraison
-              </span>
+              </Badge>
             )}
           </div>
         </div>
@@ -105,7 +112,7 @@ export default function OrderCard({ order }: OrderCardProps) {
             <Package size={16} className="text-zinc-400 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-foreground">
-                {sourceLabels[order.source]}
+                {SOURCE_LABELS[order.source] ?? order.source}
               </p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">{order.customer_type}</p>
             </div>
@@ -153,7 +160,7 @@ export default function OrderCard({ order }: OrderCardProps) {
         </div>
 
         {/* Total */}
-        <div className="flex items-center justify-between pt-4 border-t border-zinc-100 dark:border-zinc-800">
+        <div className="flex items-center justify-between pt-4 border-t border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <CreditCard size={16} className="text-zinc-400" />

@@ -13,9 +13,10 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
   ({ className, icon, ariaLabel, size = 'md', ...props }, ref) => {
     // Override padding/size for icon only
     const sizeClasses = {
-      sm: "h-8 w-8 p-0 flex items-center justify-center [&>svg]:w-5 [&>svg]:h-5", // 20px
-      md: "h-10 w-10 p-0 flex items-center justify-center [&>svg]:w-6 [&>svg]:h-6", // 24px
-      lg: "h-12 w-12 p-0 flex items-center justify-center [&>svg]:w-7 [&>svg]:h-7", // 28px
+      xs: "h-6 w-6 p-0 flex items-center justify-center [&>svg]:w-3.5 [&>svg]:h-3.5",
+      sm: "h-8 w-8 p-0 flex items-center justify-center [&>svg]:w-5 [&>svg]:h-5",
+      md: "h-10 w-10 p-0 flex items-center justify-center [&>svg]:w-6 [&>svg]:h-6",
+      lg: "h-12 w-12 p-0 flex items-center justify-center [&>svg]:w-7 [&>svg]:h-7",
     };
 
     // Rendre l'icône : soit c'est déjà un élément React, soit c'est un composant à instancier

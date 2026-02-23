@@ -1,8 +1,8 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Card, CardContent, CardHeader } from '@/components/ui/molecules'
 import { Badge } from '@/components/ui/atoms'
+import { Card, CardContent } from '@/components/ui/molecules'
 import { Calendar, TrendingUp, TrendingDown, AlertCircle, Clock, Sparkles } from 'lucide-react'
 import { format, differenceInDays, isPast, isToday } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -115,41 +115,26 @@ export default function ForecastTimelineCard({
 
   return (
     <motion.div
-      whileHover={{ y: -6, scale: 1.02 }}
+      whileHover={{ y: -2 }}
       transition={{ duration: 0.2 }}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      <Card 
+      <Card
+        variant="outline"
         className={cn(
-          "hover:shadow-xl transition-all duration-300 cursor-pointer border-l-4 relative overflow-hidden group",
+          "transition-all duration-200 cursor-pointer border-l-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/40",
           config.borderColor,
-          config.glowColor,
           className
         )}
         onClick={() => onEdit?.(forecast)}
       >
-        {/* Effet de fond dégradé subtil */}
-        <div className={cn(
-          "absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-300",
-          config.bgColor
-        )} />
-
-        {/* Effet de brillance */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        
-        <CardHeader className="p-4 pb-3 flex flex-row items-start justify-between space-y-0 relative z-10">
+        <CardContent className="p-4">
+        <div className="flex flex-row items-start justify-between">
           <div className="flex items-center gap-3 flex-1">
-            <motion.div 
-              className={cn("p-2.5 rounded-lg bg-gradient-to-br shadow-sm relative", config.color)}
-              style={{
-                backgroundImage: `linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%)`
-              }}
-              whileHover={{ rotate: [0, -10, 10, 0] }}
-              transition={{ duration: 0.4 }}
-            >
+            <div className={cn("p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/50", config.color)}>
               <Icon className="w-5 h-5" />
-            </motion.div>
+            </div>
             <div className="flex-1 min-w-0">
               <p className="text-[10px] font-label uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1">
                 {config.label}
@@ -160,9 +145,9 @@ export default function ForecastTimelineCard({
             </div>
           </div>
           {getStatusBadge()}
-        </CardHeader>
+        </div>
 
-        <CardContent className="p-4 pt-2 relative z-10">
+        <div className="pt-3 mt-3 border-t border-border-custom">
           <div className="flex items-end justify-between mt-2">
             <div className="flex-1">
               <motion.p 
@@ -212,15 +197,11 @@ export default function ForecastTimelineCard({
           </div>
 
           {forecast.notes && (
-            <motion.p 
-              className="mt-3 text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2 italic bg-zinc-50 dark:bg-zinc-900/50 p-2 rounded border border-border-custom"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.1 }}
-            >
+            <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2 italic bg-zinc-50 dark:bg-zinc-900/50 p-2 rounded border border-border-custom">
               {forecast.notes}
-            </motion.p>
+            </p>
           )}
+        </div>
         </CardContent>
       </Card>
     </motion.div>

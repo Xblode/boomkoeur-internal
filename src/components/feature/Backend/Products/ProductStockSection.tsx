@@ -1,15 +1,17 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { SectionHeader, Card, CardContent } from '@/components/ui';
 import { useProductDetail } from './ProductDetailProvider';
 import { productDataService } from '@/lib/services/ProductDataService';
 import { StockMovementInput, Provider } from '@/types/product';
 import { Button, Input, Select, Label, Textarea } from '@/components/ui/atoms';
 import { Modal, ModalFooter } from '@/components/ui/organisms';
 import { useToolbar } from '@/components/providers/ToolbarProvider';
-import { PageToolbar } from '@/components/ui/organisms';
+import { PageToolbar, PageToolbarFilters, PageToolbarActions } from '@/components/ui/organisms';
 import {
   AlertCircle,
+  BarChart,
   TrendingUp,
   TrendingDown,
   Plus,
@@ -58,18 +60,17 @@ export function ProductStockSection() {
 
   useEffect(() => {
     setToolbar(
-      <PageToolbar className="justify-between bg-[#171717] h-10 min-h-0 p-0 px-4 border-b border-zinc-200 dark:border-zinc-800">
-        <div className="flex items-center gap-4 flex-1 h-full">
-          <div className="flex-1" />
-          <button
-            onClick={() => setShowModal(true)}
-            className="px-2 py-1 bg-white text-black rounded text-xs font-medium hover:bg-zinc-200 transition-colors flex items-center gap-1.5"
-          >
-            <Plus className="w-3 h-3" />
-            Ajouter un mouvement
-          </button>
-        </div>
-      </PageToolbar>
+      <PageToolbar
+        filters={<PageToolbarFilters />}
+        actions={
+          <PageToolbarActions>
+            <Button onClick={() => setShowModal(true)}>
+              <Plus className="w-3 h-3 mr-1.5" />
+              Ajouter un mouvement
+            </Button>
+          </PageToolbarActions>
+        }
+      />
     );
     return () => { setToolbar(null); };
   }, [setToolbar]);
@@ -120,10 +121,13 @@ export function ProductStockSection() {
 
   return (
     <div className="space-y-6">
-
+      <SectionHeader
+        icon={<BarChart size={28} />}
+        title="Stock"
+      />
       {/* Fournisseurs card */}
       {(product.providers || []).length > 0 ? (
-        <div className="rounded-lg border border-border-custom bg-zinc-50/50 dark:bg-zinc-900/30 overflow-hidden">
+        <Card variant="outline" className="bg-zinc-50/50 dark:bg-zinc-900/30 overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-3 border-b border-border-custom">
             <Truck size={15} className="text-zinc-500" />
             <h3 className="text-sm font-semibold">Fournisseurs</h3>
@@ -185,7 +189,7 @@ export function ProductStockSection() {
               ))}
             </div>
           )}
-        </div>
+        </Card>
       ) : (
         <div className="rounded-lg border border-dashed border-border-custom p-4 flex items-center gap-2 text-sm text-zinc-400">
           <Truck size={15} />
@@ -195,20 +199,26 @@ export function ProductStockSection() {
 
       {/* Stock summary cards */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="p-4 rounded-lg border border-border-custom bg-zinc-50/50 dark:bg-zinc-900/30">
+        <Card variant="outline" className="bg-zinc-50/50 dark:bg-zinc-900/30">
+          <CardContent className="p-4">
           <p className="text-xs text-zinc-500 mb-1">Stock total</p>
           <p className={cn('text-2xl font-bold', isLowStock ? 'text-orange-600 dark:text-orange-400' : 'text-foreground')}>
             {product.total_stock}
           </p>
-        </div>
-        <div className="p-4 rounded-lg border border-border-custom bg-zinc-50/50 dark:bg-zinc-900/30">
+          </CardContent>
+        </Card>
+        <Card variant="outline" className="bg-zinc-50/50 dark:bg-zinc-900/30">
+          <CardContent className="p-4">
           <p className="text-xs text-zinc-500 mb-1">Variantes</p>
           <p className="text-2xl font-bold text-foreground">{variants.length}</p>
-        </div>
-        <div className="p-4 rounded-lg border border-border-custom bg-zinc-50/50 dark:bg-zinc-900/30">
+          </CardContent>
+        </Card>
+        <Card variant="outline" className="bg-zinc-50/50 dark:bg-zinc-900/30">
+          <CardContent className="p-4">
           <p className="text-xs text-zinc-500 mb-1">Seuil d&apos;alerte</p>
           <p className="text-2xl font-bold text-foreground">{product.stock_threshold}</p>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Low stock alert */}
@@ -228,9 +238,9 @@ export function ProductStockSection() {
       {variants.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold mb-3">Stock par variante</h3>
-          <div className="bg-white dark:bg-[#1f1f1f] rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+          <Card variant="outline" className="overflow-hidden">
             <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
-              <thead className="bg-zinc-50 dark:bg-[#1f1f1f]">
+              <thead className="bg-zinc-50 dark:bg-card-bg">
                 <tr>
                   <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Variante</th>
                   <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">SKU</th>
@@ -257,7 +267,7 @@ export function ProductStockSection() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
         </div>
       )}
 
@@ -269,9 +279,9 @@ export function ProductStockSection() {
             Aucun mouvement de stock pour ce produit
           </div>
         ) : (
-          <div className="bg-white dark:bg-[#1f1f1f] rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+          <Card variant="outline" className="overflow-hidden">
             <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
-              <thead className="bg-zinc-50 dark:bg-[#1f1f1f]">
+              <thead className="bg-zinc-50 dark:bg-card-bg">
                 <tr>
                   <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Date</th>
                   <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Type</th>
@@ -306,7 +316,7 @@ export function ProductStockSection() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
         )}
       </div>
 

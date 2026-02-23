@@ -408,11 +408,11 @@ export default function CreateBudgetProjectModal({
       </div>
 
       <ModalFooter>
-        <Button variant="secondary" onClick={onClose} disabled={loading}>
+        <Button variant="outline" size="sm" onClick={onClose} disabled={loading}>
           <X className="w-4 h-4 mr-2" />
           Annuler
         </Button>
-        <Button variant="primary" onClick={handleSubmit} disabled={loading}>
+        <Button variant="primary" size="sm" onClick={handleSubmit} disabled={loading}>
           <Save className="w-4 h-4 mr-2" />
           {loading ? 'Enregistrement...' : isEditMode ? 'Mettre a jour' : 'Creer le projet'}
         </Button>

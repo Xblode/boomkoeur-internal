@@ -7,9 +7,9 @@ import { productDataService } from '@/lib/services/ProductDataService';
 import { useProduct } from '@/components/providers';
 import ProductCard from './ProductCard';
 import CatalogSkeleton from './CatalogSkeleton';
-import { Card } from '@/components/ui/molecules/Card';
-import { Button, Input, Select } from '@/components/ui/atoms';
-import { Plus, Search } from 'lucide-react';
+import { Card, SectionHeader, SearchInput, FilterField } from '@/components/ui/molecules';
+import { Button, Select, Checkbox, Label } from '@/components/ui/atoms';
+import { Plus, Package } from 'lucide-react';
 
 const DEFAULT_FILTERS: ProductFilters = {
   search: '',
@@ -95,76 +95,64 @@ export default function CatalogTab({ filters: externalFilters }: CatalogTabProps
 
   return (
     <div className="w-full space-y-4">
-
-      {/* Header — même mise en page que Events */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Produits & Merch</h1>
-          <p className="text-muted-foreground">Gérez votre catalogue, stocks et variantes</p>
-        </div>
-        <Button variant="primary" size="sm" onClick={() => router.push('/dashboard/products/new')}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nouveau produit
-        </Button>
-      </div>
-
-      {/* Filtres — grille 4 colonnes avec labels */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
-          <label className="text-xs text-zinc-600 dark:text-zinc-400 mb-1.5 block">Recherche</label>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={15} />
-            <Input
+      <SectionHeader
+        icon={<Package size={28} />}
+        title="Produits & Merch"
+        subtitle="Gérez votre catalogue, stocks et variantes"
+        actions={
+          <Button variant="primary" size="sm" onClick={() => router.push('/dashboard/products/new')}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nouveau produit
+          </Button>
+        }
+        filters={
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <SearchInput
+              label="Recherche"
               placeholder="Nom, SKU..."
               value={filters.search}
-              onChange={e => updateFilter('search', e.target.value)}
-              className="pl-9"
+              onChange={(v) => updateFilter('search', v)}
             />
+            <FilterField label="Type">
+              <Select
+                value={filters.type}
+                onChange={e => updateFilter('type', e.target.value as ProductType | 'all')}
+                options={[
+                  { value: 'all', label: 'Tous les types' },
+                  { value: 'tshirt', label: 'T-shirts' },
+                  { value: 'poster', label: 'Affiches' },
+                  { value: 'keychain', label: 'Porte-clés' },
+                  { value: 'fan', label: 'Éventails' },
+                  { value: 'other', label: 'Autre' },
+                ]}
+              />
+            </FilterField>
+            <FilterField label="Statut">
+              <Select
+                value={filters.status}
+                onChange={e => updateFilter('status', e.target.value as ProductStatus | 'all')}
+                options={[
+                  { value: 'all', label: 'Tous les statuts' },
+                  { value: 'idea', label: 'Idée' },
+                  { value: 'in_production', label: 'En production' },
+                  { value: 'available', label: 'Disponible' },
+                  { value: 'out_of_stock', label: 'Rupture' },
+                  { value: 'archived', label: 'Archivé' },
+                ]}
+              />
+            </FilterField>
+            <FilterField label="Stock">
+              <Label className="flex items-center gap-2 cursor-pointer h-[38px]">
+                <Checkbox
+                  checked={filters.low_stock}
+                  onChange={e => updateFilter('low_stock', e.target.checked)}
+                />
+                <span className="text-sm text-foreground">Stock faible uniquement</span>
+              </Label>
+            </FilterField>
           </div>
-        </div>
-        <div>
-          <label className="text-xs text-zinc-600 dark:text-zinc-400 mb-1.5 block">Type</label>
-          <Select
-            value={filters.type}
-            onChange={e => updateFilter('type', e.target.value as ProductType | 'all')}
-            options={[
-              { value: 'all', label: 'Tous les types' },
-              { value: 'tshirt', label: 'T-shirts' },
-              { value: 'poster', label: 'Affiches' },
-              { value: 'keychain', label: 'Porte-clés' },
-              { value: 'fan', label: 'Éventails' },
-              { value: 'other', label: 'Autre' },
-            ]}
-          />
-        </div>
-        <div>
-          <label className="text-xs text-zinc-600 dark:text-zinc-400 mb-1.5 block">Statut</label>
-          <Select
-            value={filters.status}
-            onChange={e => updateFilter('status', e.target.value as ProductStatus | 'all')}
-            options={[
-              { value: 'all', label: 'Tous les statuts' },
-              { value: 'idea', label: 'Idée' },
-              { value: 'in_production', label: 'En production' },
-              { value: 'available', label: 'Disponible' },
-              { value: 'out_of_stock', label: 'Rupture' },
-              { value: 'archived', label: 'Archivé' },
-            ]}
-          />
-        </div>
-        <div>
-          <label className="text-xs text-zinc-600 dark:text-zinc-400 mb-1.5 block">Stock</label>
-          <label className="flex items-center gap-2 cursor-pointer h-[38px]">
-            <input
-              type="checkbox"
-              checked={filters.low_stock}
-              onChange={e => updateFilter('low_stock', e.target.checked)}
-              className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700"
-            />
-            <span className="text-sm text-foreground">Stock faible uniquement</span>
-          </label>
-        </div>
-      </div>
+        }
+      />
 
       {/* Compteur */}
       <div className="text-sm text-zinc-600 dark:text-zinc-400">

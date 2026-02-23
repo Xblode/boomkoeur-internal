@@ -11,7 +11,7 @@ import type { EventBudgetSummary, BudgetProjectSummary } from '@/types/finance'
 // TODO: Implementer ces fonctions ou les connecter aux hooks du projet
 const getAllEventsWithBudgets = async ({ year }: { year: number }) => []
 const getAllProjectsWithBudgets = async ({ year }: { year: number }) => []
-import { LoadingState, EmptyState, StatCard } from '@/components/feature/Backend/Finance/shared/components'
+import { LoadingState, EmptyState, KPICard } from '@/components/feature/Backend/Finance/shared/components'
 import EventBudgetCard from './EventBudgetCard'
 import BudgetProjectCard from './BudgetProjectCard'
 import CreateEventBudgetModal from '../modals/CreateEventBudgetModal'
@@ -133,29 +133,29 @@ export default function BudgetTab({ selectedYear: externalSelectedYear, filterSt
       {/* KPIs globaux */}
       {globalKPIs.eventsWithBudget > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
+          <KPICard
             label="Evenements avec budget"
             value={`${globalKPIs.eventsWithBudget} / ${globalKPIs.totalEvents}`}
-            color="text-blue-400"
             subtext="Evenements planifies"
+            icon={CalendarIcon}
           />
-          <StatCard
+          <KPICard
             label="Budget total prevu"
             value={`${globalKPIs.totalRevenueAllocated.toLocaleString('fr-FR')} EUR`}
-            color="text-green-400"
             subtext="Revenus attendus"
+            icon={TrendingUp}
           />
-          <StatCard
+          <KPICard
             label="Charges prevues"
             value={`${globalKPIs.totalExpenseAllocated.toLocaleString('fr-FR')} EUR`}
-            color="text-red-400"
             subtext="Depenses planifiees"
+            icon={DollarSign}
           />
-          <StatCard
+          <KPICard
             label="Resultat previsionnel"
             value={`${globalKPIs.totalBudget >= 0 ? '+' : ''}${globalKPIs.totalBudget.toLocaleString('fr-FR')} EUR`}
-            color={globalKPIs.totalBudget >= 0 ? 'text-green-400' : 'text-red-400'}
             subtext={`Reel: ${globalKPIs.totalActual >= 0 ? '+' : ''}${globalKPIs.totalActual.toLocaleString('fr-FR')} EUR`}
+            icon={Package}
           />
         </div>
       )}

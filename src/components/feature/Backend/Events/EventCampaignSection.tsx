@@ -2,15 +2,17 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import { ComWorkflow, ComWorkflowPost, PostVisual, PostNetwork, PostType } from '@/types/event';
-import { Button, Input, Textarea, Popover, PopoverContent, PopoverTrigger, Checkbox } from '@/components/ui/atoms';
-import { DatePicker } from '@/components/ui/molecules';
+import { Button, Input, Textarea, Popover, PopoverContent, PopoverTrigger, Checkbox, IconButton, FileInput, Label, Badge, Chip } from '@/components/ui/atoms';
+import { DatePicker, TabSwitcher, ConfirmActions, EditableCard } from '@/components/ui/molecules';
 import { WorkflowStepper } from './WorkflowStepper';
 import { EventShotgunStats } from './EventShotgunStats';
-import { EmptyState } from '@/components/feature/Backend/Finance/shared/components/EmptyState';
+import { EmptyState } from '@/components/ui/molecules';
 import { cn } from '@/lib/utils';
+import { SectionHeader } from '@/components/ui';
 import {
   ArrowLeft,
   Check,
+  FileImage,
   ChevronRight,
   ChevronDown,
   ExternalLink,
@@ -284,7 +286,7 @@ export function EventCampaignSection() {
           )}
         </div>
         <div className="flex gap-2 mt-auto">
-          <input type="file" ref={inputRef} className="hidden" accept="image/*"
+          <FileInput ref={inputRef} variant="hidden" accept="image/*"
             onChange={(e) => { if (e.target.files?.[0]) handleUpload(type, e.target.files[0]); }} />
           {fileUrl ? (
             <>
@@ -292,28 +294,22 @@ export function EventCampaignSection() {
                 onClick={() => handleDownload(fileUrl, `${type}.png`)}>
                 <Download className="h-3 w-3 mr-1.5" /> Télécharger
               </Button>
-              <Button variant="ghost" size="sm" className="px-2 h-8"
-                onClick={() => inputRef.current?.click()} title="Remplacer">
-                <Upload className="h-3 w-3" />
-              </Button>
+              <IconButton icon={Upload} ariaLabel="Remplacer" variant="ghost" size="sm" className="px-2 h-8"
+                onClick={() => inputRef.current?.click()} title="Remplacer" />
             </>
           ) : (
             <div className="flex flex-1 gap-1">
-              <input
+              <Input
                 type="url"
+                size="sm"
                 value={visualUrlInputs[type]}
                 onChange={(e) => setVisualUrlInputs(prev => ({ ...prev, [type]: e.target.value }))}
                 onKeyDown={(e) => { if (e.key === 'Enter') saveUrl(); }}
                 placeholder="https://..."
-                className="flex-1 h-8 rounded-md border border-border-custom bg-transparent px-2.5 text-xs placeholder:text-zinc-400 outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600"
+                className="flex-1 h-8"
               />
-              <button
-                onClick={saveUrl}
-                disabled={!visualUrlInputs[type].trim()}
-                className="h-8 px-2 rounded-md border border-border-custom text-zinc-500 hover:text-foreground hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                <Check className="h-3.5 w-3.5" />
-              </button>
+              <IconButton icon={Check} ariaLabel="Valider l'URL" variant="outline" size="sm" className="h-8 px-2"
+                onClick={saveUrl} disabled={!visualUrlInputs[type].trim()} />
             </div>
           )}
         </div>
@@ -355,7 +351,7 @@ export function EventCampaignSection() {
                     : 'Ajoute tes posts dans la section Campagne ci-dessous.'}
                 </p>
               </div>
-              {postsCount > 0 && <span className="text-[10px] font-medium text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/40 px-2 py-0.5 rounded-full shrink-0">Auto</span>}
+              {postsCount > 0 && <Badge variant="success" className="text-[10px] shrink-0">Auto</Badge>}
             </div>
             {postsCount === 0 && !autoPlanCom && (
               <label className="flex items-center gap-2 cursor-pointer">
@@ -399,20 +395,16 @@ export function EventCampaignSection() {
                     </a>
                   )}
                   {wf.shotgunUrl && (
-                    <button
+                    <IconButton
+                      icon={syncStatus === 'loading' ? Loader2 : syncStatus === 'success' ? CheckCircle2 : RefreshCw}
+                      ariaLabel="Synchroniser avec Shotgun"
+                      variant="outline"
+                      size="md"
                       onClick={handleSyncShotgun}
                       disabled={syncStatus === 'loading'}
                       title="Synchroniser avec Shotgun"
-                      className="shrink-0 flex items-center gap-1 px-3 h-10 rounded-md border border-border-custom text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
-                    >
-                      {syncStatus === 'loading' ? (
-                        <Loader2 size={14} className="animate-spin" />
-                      ) : syncStatus === 'success' ? (
-                        <CheckCircle2 size={14} className="text-green-500" />
-                      ) : (
-                        <RefreshCw size={14} />
-                      )}
-                    </button>
+                      className={cn('shrink-0 px-3', syncStatus === 'loading' && '[&>svg]:animate-spin', syncStatus === 'success' && '[&>svg]:text-green-500')}
+                    />
                   )}
                 </div>
                 {/* Feedback sync */}
@@ -483,9 +475,9 @@ export function EventCampaignSection() {
                   <div key={post.id} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border border-border-custom bg-zinc-50 dark:bg-zinc-900/40">
                     <div className="flex items-center gap-2 min-w-0">
                       {post.type && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 shrink-0">
+                        <Badge variant="secondary" className="text-[10px] shrink-0">
                           {TYPE_LABELS[post.type]}
-                        </span>
+                        </Badge>
                       )}
                       <span className="text-sm font-medium truncate">{post.name}</span>
                     </div>
@@ -550,15 +542,13 @@ export function EventCampaignSection() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0 flex-wrap">
                           {post.type && (
-                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 shrink-0">
+                            <Badge variant="secondary" className="text-[10px] shrink-0">
                               {TYPE_LABELS[post.type]}
-                            </span>
+                            </Badge>
                           )}
                           <span className="text-sm font-medium truncate">{post.name}</span>
                           {post.networks.map(n => (
-                            <span key={n} className="text-[10px] px-1.5 py-0.5 rounded-full border border-zinc-200 dark:border-zinc-700 text-zinc-500">
-                              {NETWORK_LABELS[n]}
-                            </span>
+                            <Chip key={n} label={NETWORK_LABELS[n]} variant="outline" className="text-[10px]" />
                           ))}
                         </div>
                         {isComplete
@@ -569,9 +559,9 @@ export function EventCampaignSection() {
                       {!isComplete && (
                         <div className="flex flex-wrap gap-1 mt-2">
                           {missing.map(item => (
-                            <span key={item} className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                            <Badge key={item} variant="warning" className="text-[10px]">
                               Manque : {item}
-                            </span>
+                            </Badge>
                           ))}
                         </div>
                       )}
@@ -629,15 +619,13 @@ export function EventCampaignSection() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           {post.type && (
-                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300">
+                            <Badge variant="secondary" className="text-[10px]">
                               {TYPE_LABELS[post.type]}
-                            </span>
+                            </Badge>
                           )}
                           <span className="text-sm font-medium">{post.name}</span>
                           {post.networks.map(n => (
-                            <span key={n} className="text-[10px] px-1.5 py-0.5 rounded-full border border-zinc-200 dark:border-zinc-700 text-zinc-500">
-                              {NETWORK_LABELS[n]}
-                            </span>
+                            <Chip key={n} label={NETWORK_LABELS[n]} variant="outline" className="text-[10px]" />
                           ))}
                         </div>
                         {post.bio && (
@@ -749,9 +737,9 @@ export function EventCampaignSection() {
                   )}
                 </div>
                 {(isEventPast || !!wf.manual.eventDayPassed) && (
-                  <span className="text-[10px] font-medium text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/40 px-2 py-0.5 rounded-full shrink-0">
+                  <Badge variant="success" className="text-[10px] shrink-0">
                     {isEventPast ? 'Auto' : 'Manuel'}
-                  </span>
+                  </Badge>
                 )}
               </div>
             )}
@@ -797,9 +785,9 @@ export function EventCampaignSection() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     {post.type && (
-                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 shrink-0">
+                      <Badge variant="secondary" className="text-[10px] shrink-0">
                         {TYPE_LABELS[post.type]}
-                      </span>
+                      </Badge>
                     )}
                     <span className={cn(
                       'text-sm font-medium',
@@ -808,9 +796,7 @@ export function EventCampaignSection() {
                       {post.name}
                     </span>
                     {post.networks.map(n => (
-                      <span key={n} className="text-[10px] px-1.5 py-0.5 rounded-full border border-zinc-200 dark:border-zinc-700 text-zinc-500">
-                        {NETWORK_LABELS[n]}
-                      </span>
+<Chip key={n} label={NETWORK_LABELS[n]} variant="outline" className="text-[10px]" />
                     ))}
                   </div>
                   {post.scheduledDate ? (
@@ -1020,22 +1006,28 @@ export function EventCampaignSection() {
 
   return (
     <div className="space-y-8">
+      <SectionHeader
+        icon={<FileImage size={28} />}
+        title="Campagne"
+        subtitle="Visuels, affiches et supports de communication."
+      />
 
       {/* Phase indicator */}
       <div className="flex items-center gap-1">
         {PHASE_ORDER.map((p, i) => (
           <React.Fragment key={p}>
-            <button
+            <Button
+              type="button"
+              variant={p === currentPhase ? 'primary' : 'ghost'}
+              size="xs"
               onClick={() => goPhase(p)}
               className={cn(
-                'text-xs px-2.5 py-1 rounded-full transition-colors font-medium',
-                p === currentPhase
-                  ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
-                  : 'text-zinc-500 hover:text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                'rounded-full',
+                p !== currentPhase && 'text-zinc-500 hover:text-foreground'
               )}
             >
               {PHASE_LABELS[p]}
-            </button>
+            </Button>
             {i < PHASE_ORDER.length - 1 && (
               <ChevronRight size={12} className="text-zinc-300 dark:text-zinc-700 shrink-0" />
             )}
@@ -1081,71 +1073,42 @@ export function EventCampaignSection() {
       {/* Campaign section */}
       <div className="border-t-2 border-dashed border-zinc-200 dark:border-zinc-800 pt-8">
 
-        <div className="flex items-center gap-6 border-b border-border-custom mb-6">
-          {([
-            { id: 'campagne' as const, label: 'Campagne' },
+        <TabSwitcher<'campagne' | 'statistiques'>
+          options={[
+            { value: 'campagne', label: 'Campagne' },
             ...(event.shotgunEventId
-              ? [{ id: 'statistiques' as const, label: 'Statistiques' }]
+              ? [{ value: 'statistiques' as const, label: 'Statistiques' }]
               : []),
-          ]).map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setWfSectionTab(tab.id)}
-              className={cn(
-                'relative pb-3 text-sm font-medium transition-colors',
-                wfSectionTab === tab.id ? 'text-foreground' : 'text-zinc-500 hover:text-foreground'
-              )}
-            >
-              {tab.label}
-              {wfSectionTab === tab.id && (
-                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-foreground rounded-full" />
-              )}
-            </button>
-          ))}
-        </div>
+          ]}
+          value={wfSectionTab}
+          onChange={setWfSectionTab}
+          className="mb-6"
+        />
 
         {wfSectionTab === 'campagne' && (
           <div className="space-y-3">
 
             {/* Post list */}
             {wf.posts!.map((post) => (
-              <div key={post.id} className="group/card rounded-lg border border-border-custom bg-zinc-50 dark:bg-zinc-900/40 overflow-hidden">
-
-                <div className="p-3">
-                  <div className="flex items-start gap-2">
+              <EditableCard
+                key={post.id}
+                isEditing={editingPostId === post.id}
+                onEdit={() => toggleEditPost(post.id)}
+                onCloseEdit={() => toggleEditPost(post.id)}
+                onDelete={() => deletePost(post.id)}
+                headerPadding="sm"
+                headerContent={
+                  <>
                     <FileText size={14} className="text-zinc-400 shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
-
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
-                          {post.type && (
-                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full border border-zinc-900 dark:border-zinc-100 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shrink-0">
-                              {TYPE_LABELS[post.type]}
-                            </span>
-                          )}
-                          <p className="text-sm font-medium leading-snug">{post.name}</p>
-                        </div>
-
-                        {editingPostId === post.id ? (
-                          <Button variant="outline" size="sm" onClick={() => toggleEditPost(post.id)} className="shrink-0 h-6 w-6 p-0" aria-label="Fermer">
-                            <X size={12} />
-                          </Button>
-                        ) : (
-                          <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover/card:opacity-100 transition-opacity">
-                            <Button variant="outline" size="sm" onClick={() => toggleEditPost(post.id)}>
-                              <Edit size={12} /> Éditer
-                            </Button>
-                            <button
-                              type="button"
-                              onClick={() => deletePost(post.id)}
-                              className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors text-zinc-400 hover:text-red-600"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {post.type && (
+                          <Badge variant="default" className="text-[10px] shrink-0">
+                            {TYPE_LABELS[post.type]}
+                          </Badge>
                         )}
+                        <p className="text-sm font-medium leading-snug">{post.name}</p>
                       </div>
-
                       {post.networks?.length > 0 && (
                         <div className="flex flex-wrap items-center gap-1 mt-1.5">
                           {post.networks.map(n => (
@@ -1164,12 +1127,76 @@ export function EventCampaignSection() {
                         <p className="text-xs text-zinc-500 mt-1.5 whitespace-pre-wrap leading-relaxed">{post.description}</p>
                       )}
                     </div>
-                  </div>
-                </div>
-
-                {/* Edit zone */}
-                {editingPostId === post.id && (
-                  <div className="border-t-2 border-dashed border-zinc-200 dark:border-zinc-800 p-4 space-y-5 bg-white dark:bg-zinc-900/60">
+                  </>
+                }
+                editContent={
+                  <>
+                    {/* Infos de base */}
+                    <div className="space-y-3 pb-3 border-b border-border-custom">
+                      <div>
+                        <Label className="text-xs font-medium text-zinc-500 mb-1.5 block uppercase tracking-wide">Nom</Label>
+                        <Input
+                          key={`name-${post.id}`}
+                          defaultValue={post.name}
+                          onBlur={(e) => { if (e.target.value !== post.name) updatePost(post.id, { name: e.target.value }); }}
+                          placeholder="Ex : Story annonce, Post affiche..."
+                          fullWidth
+                          size="sm"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-medium text-zinc-500 mb-1.5 block uppercase tracking-wide">Type</Label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {POST_TYPES.map(pt => (
+                            <Button
+                              key={pt.id}
+                              type="button"
+                              variant={post.type === pt.id ? 'primary' : 'outline'}
+                              size="xs"
+                              onClick={() => updatePost(post.id, { type: pt.id })}
+                              className="rounded-full"
+                            >
+                              {pt.label}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-xs font-medium text-zinc-500 mb-1.5 block uppercase tracking-wide">Réseaux</Label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {NETWORKS.map(net => {
+                            const active = (post.networks ?? []).includes(net.id);
+                            return (
+                              <Button
+                                key={net.id}
+                                type="button"
+                                variant="outline"
+                                size="xs"
+                                onClick={() => updatePost(post.id, {
+                                  networks: active
+                                    ? (post.networks ?? []).filter(x => x !== net.id)
+                                    : [...(post.networks ?? []), net.id],
+                                })}
+                                className={cn('rounded-full font-medium', active ? net.activeColor : net.color)}
+                              >
+                                {net.label}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-xs font-medium text-zinc-500 mb-1.5 block uppercase tracking-wide">Description</Label>
+                        <Input
+                          key={`desc-${post.id}`}
+                          defaultValue={post.description ?? ''}
+                          onBlur={(e) => { if (e.target.value !== (post.description ?? '')) updatePost(post.id, { description: e.target.value }); }}
+                          placeholder="Notes ou description du post..."
+                          fullWidth
+                          size="sm"
+                        />
+                      </div>
+                    </div>
 
                     <div>
                       <label className="text-xs font-medium text-zinc-500 mb-1.5 block uppercase tracking-wide">Date de publication</label>
@@ -1219,32 +1246,49 @@ export function EventCampaignSection() {
                                 )}
                                 {!isEditingThis && (
                                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
-                                    <button type="button" onClick={() => { setEditingVisualId(v.id); setEditingVisualUrl(v.url); }}
-                                      className="flex items-center gap-1 text-[10px] font-medium text-white bg-white/20 hover:bg-white/30 rounded px-2 py-1 transition-colors w-full justify-center">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="xs"
+                                      onClick={() => { setEditingVisualId(v.id); setEditingVisualUrl(v.url); }}
+                                      className="flex items-center gap-1 text-[10px] font-medium text-white bg-white/20 hover:bg-white/30 rounded px-2 py-1 w-full justify-center border-0"
+                                    >
                                       <Link2 size={10} /> Modifier URL
-                                    </button>
-                                    <button type="button" onClick={() => removeVisual(post.id, v.id)}
-                                      className="flex items-center gap-1 text-[10px] font-medium text-white bg-red-500/70 hover:bg-red-500/90 rounded px-2 py-1 transition-colors w-full justify-center">
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="destructive"
+                                      size="xs"
+                                      onClick={() => removeVisual(post.id, v.id)}
+                                      className="flex items-center gap-1 text-[10px] font-medium text-white bg-red-500/70 hover:bg-red-500/90 rounded px-2 py-1 w-full justify-center border-0"
+                                    >
                                       <Trash2 size={10} /> Supprimer
-                                    </button>
+                                    </Button>
                                   </div>
                                 )}
                                 {isEditingThis && (
                                   <div className="absolute inset-0 bg-zinc-900/90 flex flex-col items-center justify-center gap-2 p-2">
                                     <Link2 size={14} className="text-zinc-400 shrink-0" />
-                                    <input type="url" value={editingVisualUrl} onChange={(e) => setEditingVisualUrl(e.target.value)} autoFocus
-                                      placeholder="Nouvelle URL..." className="w-full text-[10px] px-1.5 py-1 rounded border border-zinc-600 bg-zinc-800 text-white text-center focus:outline-none focus:border-zinc-400 transition-colors"
+                                    <Input
+                                      type="url"
+                                      size="xs"
+                                      value={editingVisualUrl}
+                                      onChange={(e) => setEditingVisualUrl(e.target.value)}
+                                      autoFocus
+                                      placeholder="Nouvelle URL..."
+                                      className="w-full text-[10px] px-1.5 py-1 rounded border border-zinc-600 bg-zinc-800 text-white text-center focus:outline-none focus:border-zinc-400"
                                       onKeyDown={(e) => {
                                         if (e.key === 'Enter') saveVisualUrl(post.id, v.id, editingVisualUrl);
                                         if (e.key === 'Escape') { setEditingVisualId(null); setEditingVisualUrl(''); }
                                       }}
                                     />
-                                    <div className="flex gap-1 w-full">
-                                      <button type="button" onClick={() => saveVisualUrl(post.id, v.id, editingVisualUrl)} disabled={!editingVisualUrl.trim()}
-                                        className="flex-1 text-[10px] font-medium py-0.5 rounded bg-white text-zinc-900 disabled:opacity-30 transition-opacity">OK</button>
-                                      <button type="button" onClick={() => { setEditingVisualId(null); setEditingVisualUrl(''); }}
-                                        className="flex-1 text-[10px] font-medium py-0.5 rounded bg-zinc-700 text-white hover:bg-zinc-600 transition-colors">✕</button>
-                                    </div>
+                                    <ConfirmActions
+                                      compact
+                                      overlay
+                                      onConfirm={() => saveVisualUrl(post.id, v.id, editingVisualUrl)}
+                                      onCancel={() => { setEditingVisualId(null); setEditingVisualUrl(''); }}
+                                      disabled={!editingVisualUrl.trim()}
+                                    />
                                   </div>
                                 )}
                               </div>
@@ -1262,25 +1306,34 @@ export function EventCampaignSection() {
                               <ImageIcon size={14} />
                               <Play size={12} className="fill-current" />
                             </div>
-                            <input type="url" value={newVisualUrl} onChange={(e) => setNewVisualUrl(e.target.value)}
+                            <Input
+                              type="url"
+                              size="xs"
+                              value={newVisualUrl}
+                              onChange={(e) => setNewVisualUrl(e.target.value)}
                               placeholder="URL image ou vidéo..."
-                              className="w-full text-[10px] px-1.5 py-1 rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-center focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-500 transition-colors"
+                              className="w-full text-[10px] px-1.5 py-1 text-center"
                               onKeyDown={(e) => { if (e.key === 'Enter') addVisual(post.id, newVisualUrl); }}
                             />
-                            <button type="button" onClick={() => addVisual(post.id, newVisualUrl)} disabled={!newVisualUrl.trim()}
-                              className="text-[10px] font-medium px-2 py-0.5 rounded bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 disabled:opacity-30 transition-opacity">
+                            <Button
+                              type="button"
+                              variant="primary"
+                              size="xs"
+                              onClick={() => addVisual(post.id, newVisualUrl)}
+                              disabled={!newVisualUrl.trim()}
+                              className="text-[10px] font-medium px-2 py-0.5"
+                            >
                               Ajouter
-                            </button>
+                            </Button>
                           </div>
                         </div>
 
                       </div>
                     </div>
 
-                  </div>
-                )}
-
-              </div>
+                  </>
+                }
+              />
             ))}
 
             {/* Empty state */}
@@ -1294,6 +1347,7 @@ export function EventCampaignSection() {
                     <Plus size={14} /> Ajouter un post
                   </Button>
                 }
+                variant="full"
               />
             )}
 
@@ -1311,27 +1365,35 @@ export function EventCampaignSection() {
                 <div className="flex items-center gap-2.5">
                   <Popover>
                     <PopoverTrigger asChild>
-                      <button type="button" className={cn(
-                        'flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium transition-all shrink-0',
-                        newPostType
-                          ? 'border-zinc-900 dark:border-zinc-100 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900'
-                          : 'border-zinc-300 dark:border-zinc-600 text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
-                      )}>
+                      <Button
+                        type="button"
+                        variant={newPostType ? 'primary' : 'outline'}
+                        size="xs"
+                        className={cn(
+                          'rounded-full shrink-0',
+                          !newPostType && 'border-zinc-300 dark:border-zinc-600 text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
+                        )}
+                      >
                         {newPostType ? TYPE_LABELS[newPostType] : 'Type'}
                         <ChevronDown size={11} />
-                      </button>
+                      </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-40 p-1" align="start">
                       {POST_TYPES.map(pt => (
-                        <button key={pt.id} type="button"
+                        <Button
+                          key={pt.id}
+                          type="button"
+                          variant="ghost"
+                          size="sm"
                           onClick={() => setNewPostType(newPostType === pt.id ? undefined : pt.id)}
                           className={cn(
-                            'w-full text-left text-sm px-3 py-1.5 rounded-md transition-colors flex items-center justify-between',
-                            newPostType === pt.id ? 'bg-zinc-100 dark:bg-zinc-800 font-medium' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300'
-                          )}>
+                            'w-full justify-between font-normal',
+                            newPostType === pt.id && 'bg-zinc-100 dark:bg-zinc-800 font-medium'
+                          )}
+                        >
                           {pt.label}
                           {newPostType === pt.id && <Check size={13} className="text-zinc-600 dark:text-zinc-400" />}
-                        </button>
+                        </Button>
                       ))}
                     </PopoverContent>
                   </Popover>
@@ -1339,28 +1401,34 @@ export function EventCampaignSection() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-zinc-500 mb-1.5 block">Nom *</label>
+                  <Label className="text-xs font-medium text-zinc-500 mb-1.5 block">Nom *</Label>
                   <Input placeholder="Ex : Story annonce, Post affiche, Reel DJ..." value={newPostName} onChange={(e) => setNewPostName(e.target.value)} fullWidth autoFocus
                     onKeyDown={(e) => { if (e.key === 'Escape') resetForm(); }} />
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-zinc-500 mb-2 block">Réseaux</label>
+                  <Label className="text-xs font-medium text-zinc-500 mb-2 block">Réseaux</Label>
                   <div className="flex flex-wrap gap-2">
                     {NETWORKS.map(net => {
                       const active = newPostNetworks.includes(net.id);
                       return (
-                        <button key={net.id} type="button" onClick={() => toggleNetwork(net.id)}
-                          className={cn('text-xs font-medium px-3 py-1 rounded-full border transition-all', active ? net.activeColor : net.color)}>
+                        <Button
+                          key={net.id}
+                          type="button"
+                          variant="outline"
+                          size="xs"
+                          onClick={() => toggleNetwork(net.id)}
+                          className={cn('rounded-full font-medium', active ? net.activeColor : net.color)}
+                        >
                           {net.label}
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-zinc-500 mb-1.5 block">Notes / idées</label>
+                  <Label className="text-xs font-medium text-zinc-500 mb-1.5 block">Notes / idées</Label>
                   <Textarea placeholder="Format, message, tonalité, contenu visuel prévu..." value={newPostDesc} onChange={(e) => setNewPostDesc(e.target.value)} rows={3} className="resize-none" />
                 </div>
 

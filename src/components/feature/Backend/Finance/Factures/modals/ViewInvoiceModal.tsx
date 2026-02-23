@@ -1,6 +1,6 @@
 'use client'
 
-import { Modal } from '@/components/ui/organisms'
+import { Modal, ModalFooter } from '@/components/ui/organisms'
 import { Button } from '@/components/ui/atoms'
 import { Download, X } from 'lucide-react'
 import type { Invoice, InvoiceLine } from '@/types/finance'
@@ -227,16 +227,15 @@ export default function ViewInvoiceModal({ isOpen, onClose, invoice }: ViewInvoi
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex justify-end gap-3 pt-4 border-t border-border-custom mt-6">
-        <Button variant="secondary" onClick={onClose}>
+      <ModalFooter>
+        <Button variant="outline" size="sm" onClick={onClose}>
           Fermer
         </Button>
-        <Button variant="primary" onClick={handleDownloadPDF}>
+        <Button variant="primary" size="sm" onClick={handleDownloadPDF}>
           <Download className="w-4 h-4 mr-2" />
           Telecharger PDF
         </Button>
-      </div>
+      </ModalFooter>
     </Modal>
   )
 }

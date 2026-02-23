@@ -135,12 +135,13 @@ export default function UserDetails({
       </div>
 
       <ModalFooter>
-        <Button variant="secondary" onClick={onClose}>
+        <Button variant="outline" size="sm" onClick={onClose}>
           Fermer
         </Button>
         <div className="flex gap-2">
           <Button
             variant="outline"
+            size="sm"
             onClick={() => onEdit(user)}
             className="flex items-center gap-2"
           >
@@ -149,6 +150,7 @@ export default function UserDetails({
           </Button>
           <Button
             variant="outline"
+            size="sm"
             onClick={() => onDelete(user)}
             className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30"
           >

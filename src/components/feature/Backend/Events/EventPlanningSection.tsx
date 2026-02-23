@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { SectionHeader } from '@/components/ui';
 import { useEventDetail } from './EventDetailProvider';
-import { Card, CardContent } from '@/components/ui/molecules';
-import { Button, Input, Badge } from '@/components/ui/atoms';
-import { Modal, ModalFooter } from '@/components/ui/organisms';
+import { Card, CardContent, EmptyState, KPICard } from '@/components/ui/molecules';
+import { Button, Input, Badge, IconButton, Textarea } from '@/components/ui/atoms';
+import { Modal, ModalFooter, ModalThreeColumnLayout } from '@/components/ui/organisms';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -13,6 +14,7 @@ import {
   Plus,
   Search,
   AlertTriangle,
+  CalendarClock,
   ArrowRight,
   ArrowLeft,
   X,
@@ -40,7 +42,7 @@ import {
 } from '@/types/planning';
 import { volunteerService, eventPlanningService } from '@/lib/services/PlanningService';
 import { useToolbar } from '@/components/providers/ToolbarProvider';
-import { PageToolbar } from '@/components/ui/organisms';
+import { PageToolbar, PageToolbarFilters, PageToolbarActions } from '@/components/ui/organisms';
 import { Share2 } from 'lucide-react';
 
 // ── Helpers ──
@@ -152,29 +154,27 @@ export const EventPlanningSection: React.FC = () => {
       : '';
 
     setToolbar(
-      <PageToolbar className="justify-between">
-        <span className="text-xs text-zinc-400 hidden sm:block">Planning bénévoles</span>
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setAddVolOpen(true)}
-            className="flex items-center gap-1.5 h-7 px-3 text-xs font-medium rounded-md border border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
-          >
-            <Users size={13} />
-            Gérer les bénévoles
-          </button>
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(shareUrl).then(() => {
-                toast.success('Lien copié dans le presse-papier !');
-              });
-            }}
-            className="flex items-center gap-1.5 h-7 px-3 text-xs font-medium rounded-md border border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
-          >
-            <Share2 size={13} />
-            Partager
-          </button>
-        </div>
-      </PageToolbar>
+      <PageToolbar
+        filters={<PageToolbarFilters><span className="text-xs text-zinc-400 hidden sm:block">Planning bénévoles</span></PageToolbarFilters>}
+        actions={
+          <PageToolbarActions>
+            <Button onClick={() => setAddVolOpen(true)}>
+              <Users size={13} className="mr-1.5" />
+              Gérer les bénévoles
+            </Button>
+            <Button
+              onClick={() => {
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                  toast.success('Lien copié dans le presse-papier !');
+                });
+              }}
+            >
+              <Share2 size={13} className="mr-1.5" />
+              Partager
+            </Button>
+          </PageToolbarActions>
+        }
+      />
     );
     return () => setToolbar(null);
   }, [event.id, setToolbar]);
@@ -315,32 +315,24 @@ export const EventPlanningSection: React.FC = () => {
     setSelectedVolunteerId(null);
   };
 
-  // ── No endTime → alert ──
+  // ── No endTime → empty state ──
 
   if (!event.endTime) {
     return (
-      <Card>
-        <CardContent className="p-8">
-          <div className="flex flex-col items-center text-center gap-4 py-8">
-            <div className="w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-950/30 flex items-center justify-center">
-              <AlertTriangle size={28} className="text-amber-600 dark:text-amber-400" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-1">Heure de fin manquante</h3>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-md">
-                Pour générer le planning par créneaux, renseignez l&apos;heure de fin de la soirée
-                dans la section Informations de cet événement.
-              </p>
-            </div>
-            <Link href={`/dashboard/events/${event.id}`}>
-              <Button variant="primary" size="sm">
-                Aller aux Informations
-                <ArrowRight size={16} className="ml-2" />
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={AlertTriangle}
+        title="Heure de fin manquante"
+        description="Pour générer le planning par créneaux, renseignez l'heure de fin de la soirée dans la section Informations de cet événement."
+        action={
+          <Link href={`/dashboard/events/${event.id}`}>
+            <Button variant="primary" size="sm">
+              Aller aux Informations
+              <ArrowRight size={16} className="ml-2" />
+            </Button>
+          </Link>
+        }
+        variant="compact"
+      />
     );
   }
 
@@ -348,6 +340,11 @@ export const EventPlanningSection: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      <SectionHeader
+        icon={<CalendarClock size={28} />}
+        title="Planning"
+        subtitle="Timeline et planning détaillé de l'événement."
+      />
       {/* Info bar */}
       <p className="text-sm text-zinc-500 dark:text-zinc-400">
         {format(new Date(event.date), "EEEE d MMMM yyyy 'à' HH:mm", { locale: fr })}
@@ -401,13 +398,14 @@ export const EventPlanningSection: React.FC = () => {
                             {KIND_LABELS[vol.kind]}
                           </Badge>
                         </div>
-                        <button
+                        <IconButton
+                          icon={<X size={12} />}
+                          ariaLabel="Retirer du planning"
+                          variant="ghost"
+                          size="xs"
                           onClick={() => handleToggleVolunteerInPlanning(vol.id)}
-                          className="opacity-0 group-hover/row:opacity-100 p-1 text-zinc-400 hover:text-red-500 transition-all shrink-0"
-                          title="Retirer du planning"
-                        >
-                          <X size={12} />
-                        </button>
+                          className="opacity-0 group-hover/row:opacity-100 p-1 text-zinc-400 hover:text-red-500 shrink-0"
+                        />
                       </div>
                     </td>
 
@@ -431,32 +429,32 @@ export const EventPlanningSection: React.FC = () => {
                                 title="Changer le poste"
                               >
                                 <span className="truncate">{POST_LABELS[posts[0]]}</span>
-                                <button
+                                <IconButton
+                                  icon={<X size={10} />}
+                                  ariaLabel="Retirer ce poste"
+                                  variant="ghost"
+                                  size="xs"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleUnassignPost(vol.id, shift, posts[0]);
                                   }}
-                                  className="absolute top-1 right-1 opacity-0 group-hover/chip:opacity-100 hover:opacity-70 transition-opacity"
-                                  title="Retirer ce poste"
-                                >
-                                  <X size={10} />
-                                </button>
+                                  className="absolute top-1 right-1 opacity-0 group-hover/chip:opacity-100 hover:opacity-70 h-5 w-5"
+                                />
                               </div>
                             ) : (
-                              <button
+                              <Button
+                                variant="outline"
                                 onClick={() =>
                                   setPostModalTarget({ volunteerId: vol.id, shift })
                                 }
                                 className={cn(
-                                  'flex-1 w-full flex items-center justify-center rounded-md',
-                                  'border border-dashed border-zinc-300 dark:border-zinc-700',
+                                  'flex-1 w-full flex items-center justify-center rounded-md min-h-[52px] border-dashed',
                                   'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300',
-                                  'hover:border-zinc-400 dark:hover:border-zinc-500',
-                                  'transition-colors min-h-[52px]'
+                                  'hover:border-zinc-400 dark:hover:border-zinc-500'
                                 )}
                               >
                                 <Plus size={12} />
-                              </button>
+                              </Button>
                             )}
                           </div>
                         </td>
@@ -468,7 +466,8 @@ export const EventPlanningSection: React.FC = () => {
                 {/* Empty-state row */}
                 <tr>
                   <td colSpan={shiftKeys.length + 1} className="p-3">
-                    <button
+                    <Button
+                      variant="outline"
                       onClick={() => {
                         setVolSearch('');
                         setIsCreating(false);
@@ -476,13 +475,11 @@ export const EventPlanningSection: React.FC = () => {
                         setAddVolOpen(true);
                       }}
                       className={cn(
-                        'w-full flex items-center justify-center gap-2 py-5 rounded-xl',
-                        'border-2 border-dashed border-zinc-200 dark:border-zinc-800',
+                        'w-full flex items-center justify-center gap-2 py-5 rounded-xl border-2 border-dashed',
                         'text-zinc-400 dark:text-zinc-500',
                         'hover:text-zinc-600 dark:hover:text-zinc-300',
                         'hover:border-zinc-400 dark:hover:border-zinc-600',
-                        'hover:bg-zinc-50 dark:hover:bg-zinc-900/30',
-                        'transition-all duration-200 group/add'
+                        'hover:bg-zinc-50 dark:hover:bg-zinc-900/30 group/add'
                       )}
                     >
                       <UserPlus
@@ -494,7 +491,7 @@ export const EventPlanningSection: React.FC = () => {
                           ? 'Ajouter un premier bénévole au planning'
                           : 'Ajouter un bénévole au planning'}
                       </span>
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               </tbody>
@@ -520,8 +517,9 @@ export const EventPlanningSection: React.FC = () => {
               ? getPostsForCell(postModalTarget.volunteerId, postModalTarget.shift).includes(post)
               : false;
             return (
-              <button
+              <Button
                 key={post}
+                variant="outline"
                 onClick={async () => {
                   if (!postModalTarget) return;
                   if (isAssigned) {
@@ -551,7 +549,7 @@ export const EventPlanningSection: React.FC = () => {
                   <CirclePlus size={14} className="shrink-0 opacity-40" />
                 )}
                 {POST_LABELS[post]}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -568,76 +566,70 @@ export const EventPlanningSection: React.FC = () => {
         onClose={closeAddModal}
         title="Bénévoles"
         size="lg"
-        scrollable
+        variant="fullBleed"
       >
-        {/* 3-column layout — annule le padding du modal scrollable (-mx-6 -my-4) */}
-        <div
-          className="-mx-6 -my-4 grid overflow-hidden border-t border-border-custom"
-          style={{ height: '500px', gridTemplateColumns: '250px 1fr 1fr' }}
-        >
-          {/* ── Col 1 : Navigation ── */}
-          <aside className="border-r border-border-custom flex flex-col bg-zinc-50/30 dark:bg-zinc-900/20 min-w-0">
-            {/* Search */}
-            <div className="p-3 border-b border-border-custom">
-              <div className="relative">
-                <Search
-                  size={12}
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
-                />
-                <Input
-                  value={volSearch}
-                  onChange={(e) => setVolSearch(e.target.value)}
-                  placeholder="Rechercher..."
-                  className="pl-7 h-7 text-xs"
-                  fullWidth
-                />
+        <ModalThreeColumnLayout
+          sidebar={
+            <>
+              <div className="p-3 border-b border-border-custom">
+                <div className="relative">
+                  <Search
+                    size={12}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
+                  />
+                  <Input
+                    value={volSearch}
+                    onChange={(e) => setVolSearch(e.target.value)}
+                    placeholder="Rechercher..."
+                    className="pl-7 h-7 text-xs"
+                    fullWidth
+                  />
+                </div>
               </div>
-            </div>
-
-            {/* Nav */}
-            <nav className="p-2 space-y-0.5">
-              {(
-                [
-                  { id: 'benevoles' as const, label: 'Bénévoles', Icon: Users },
-                  { id: 'membres' as const, label: 'Membres', Icon: UserIcon },
-                ] as const
-              ).map(({ id, label, Icon }) => (
-                <button
-                  key={id}
-                  onClick={() => {
-                    setActiveTab(id);
-                    setSelectedVolunteerId(null);
-                  }}
-                  className={cn(
-                    'flex items-center gap-2 w-full text-left px-2 py-1.5 text-sm rounded-md transition-colors',
-                    activeTab === id
-                      ? 'bg-zinc-100 dark:bg-zinc-800 text-foreground font-medium'
-                      : 'text-zinc-500 hover:text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
-                  )}
-                >
-                  <Icon size={15} className="shrink-0" />
-                  <span>{label}</span>
-                </button>
-              ))}
-            </nav>
-          </aside>
-
-          {/* ── Col 2 : Liste ── */}
-          <div className="border-r border-border-custom flex flex-col overflow-hidden min-w-0">
+              <nav className="p-2 space-y-0.5">
+                {(
+                  [
+                    { id: 'benevoles' as const, label: 'Bénévoles', Icon: Users },
+                    { id: 'membres' as const, label: 'Membres', Icon: UserIcon },
+                  ] as const
+                ).map(({ id, label, Icon }) => (
+                  <Button
+                    key={id}
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setActiveTab(id);
+                      setSelectedVolunteerId(null);
+                    }}
+                    className={cn(
+                      'flex items-center gap-2 w-full text-left px-2 py-1.5 text-sm rounded-md transition-colors h-auto font-normal justify-start',
+                      activeTab === id
+                        ? 'bg-zinc-100 dark:bg-zinc-800 text-foreground font-medium'
+                        : 'text-zinc-500 hover:text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
+                    )}
+                  >
+                    <Icon size={15} className="shrink-0" />
+                    <span>{label}</span>
+                  </Button>
+                ))}
+              </nav>
+            </>
+          }
+          list={
             <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
               {activeTab === 'benevoles' ? (
                 <>
-                  {/* Ligne création inline */}
                   {isCreating && (
                     <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/40">
                       <div className="w-5 h-5 rounded-full border border-dashed border-zinc-300 dark:border-zinc-600 shrink-0" />
-                      <input
+                      <Input
                         type="text"
                         value={newName}
                         onChange={(e) => setNewName(e.target.value)}
                         placeholder="Nom du bénévole..."
                         autoFocus
-                        className="flex-1 bg-transparent border-none outline-none text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
+                        size="sm"
+                        className="flex-1 bg-transparent border-none shadow-none focus-visible:ring-0"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') handleCreateVolunteer();
                           if (e.key === 'Escape') {
@@ -675,7 +667,11 @@ export const EventPlanningSection: React.FC = () => {
                   ))}
 
                   {!isCreating && sortedVolunteers.benevoles.length === 0 && (
-                    <p className="text-sm text-zinc-400 text-center py-8">Aucun bénévole</p>
+                    <EmptyState
+                      icon={UserIcon}
+                      title="Aucun bénévole"
+                      variant="inline"
+                    />
                   )}
                 </>
               ) : (
@@ -698,17 +694,18 @@ export const EventPlanningSection: React.FC = () => {
                   ))}
 
                   {sortedVolunteers.membres.length === 0 && (
-                    <p className="text-sm text-zinc-400 text-center py-8">Aucun membre</p>
+                    <EmptyState
+                      icon={Users}
+                      title="Aucun membre"
+                      variant="inline"
+                    />
                   )}
                 </>
               )}
             </div>
-          </div>
-
-          {/* ── Col 3 : Détails ── */}
-          <div className="overflow-y-auto p-5 min-w-0">
-            {selectedVolunteerId &&
-            volunteers.find((v) => v.id === selectedVolunteerId) ? (
+          }
+          detail={
+            selectedVolunteerId && volunteers.find((v) => v.id === selectedVolunteerId) ? (
               <VolunteerDetailsPanel
                 volunteer={volunteers.find((v) => v.id === selectedVolunteerId)!}
                 phone={detailPhone}
@@ -728,9 +725,9 @@ export const EventPlanningSection: React.FC = () => {
                 missingPhone={volunteers.filter((v) => !v.phone).length}
                 missingEmail={volunteers.filter((v) => !v.email).length}
               />
-            )}
-          </div>
-        </div>
+            )
+          }
+        />
 
         <ModalFooter>
           {activeTab === 'benevoles' && (
@@ -789,28 +786,33 @@ function VolunteerRow({
       )}
     >
       {/* Planning toggle */}
-      <button
+      <IconButton
+        icon={<Check />}
+        ariaLabel={inPlanning ? 'Retirer du planning' : 'Ajouter au planning'}
+        variant="ghost"
+        size="xs"
         onClick={(e) => {
           e.stopPropagation();
           onTogglePlanning();
         }}
         className={cn(
-          'flex items-center justify-center w-5 h-5 rounded-full shrink-0 transition-colors',
+          'flex items-center justify-center w-4 h-4 rounded-full shrink-0 transition-colors [&>svg]:w-2.5 [&>svg]:h-2.5',
           inPlanning
             ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
             : 'border border-zinc-300 dark:border-zinc-600 text-transparent group-hover/vol:border-zinc-400'
         )}
-        title={inPlanning ? 'Retirer du planning' : 'Ajouter au planning'}
-      >
-        <Check size={11} />
-      </button>
+      />
 
       <span className="flex-1 text-sm text-zinc-800 dark:text-zinc-200 truncate">
         {vol.name}
       </span>
 
       {showFavorite && (
-        <button
+        <IconButton
+          icon={<Star className={vol.isFavorite ? 'fill-current' : ''} />}
+          ariaLabel={vol.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+          variant="ghost"
+          size="xs"
           onClick={onToggleFavorite}
           className={cn(
             'p-1 rounded-md transition-colors shrink-0',
@@ -818,10 +820,7 @@ function VolunteerRow({
               ? 'text-amber-400 hover:text-amber-500'
               : 'text-zinc-300 dark:text-zinc-600 hover:text-amber-400 dark:hover:text-amber-400'
           )}
-          title={vol.isFavorite ? 'Retirer des favoris' : 'Mettre en favori'}
-        >
-          <Star size={14} className={cn(vol.isFavorite && 'fill-amber-400')} />
-        </button>
+        />
       )}
     </div>
   );
@@ -898,13 +897,13 @@ function VolunteerDetailsPanel({
         />
         <div className="flex items-start gap-2.5 pt-1">
           <FileText size={13} className="text-zinc-400 shrink-0 mt-1.5" />
-          <textarea
+          <Textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             onBlur={() => onSave('notes', notes)}
             placeholder="Notes..."
             rows={3}
-            className="flex-1 bg-transparent border-b border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm py-1 resize-none transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-600 text-zinc-800 dark:text-zinc-200"
+            className="flex-1 bg-transparent border-b border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm py-1 resize-none transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-600 text-zinc-800 dark:text-zinc-200 border-0 rounded-none focus-visible:ring-0"
           />
         </div>
       </div>
@@ -920,10 +919,11 @@ function VolunteerDetailsPanel({
             Ajouter
           </Button>
         </div>
-        <div className="flex flex-col items-center justify-center py-5 text-zinc-300 dark:text-zinc-700 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-lg">
-          <FileText size={22} className="mb-1.5" />
-          <p className="text-xs text-zinc-400 dark:text-zinc-500">Aucun contrat</p>
-        </div>
+        <EmptyState
+          icon={FileText}
+          title="Aucun contrat"
+          variant="inline"
+        />
       </div>
     </div>
   );
@@ -942,13 +942,14 @@ function DetailField({ icon, value, placeholder, onChange, onBlur, type = 'text'
   return (
     <div className="flex items-center gap-2.5">
       <span className="text-zinc-400 shrink-0">{icon}</span>
-      <input
+      <Input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onBlur={onBlur}
         placeholder={placeholder}
-        className="flex-1 bg-transparent border-b border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm py-1 transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-600 text-zinc-800 dark:text-zinc-200"
+        size="sm"
+        className="flex-1 bg-transparent border-b border-zinc-200 dark:border-zinc-700 rounded-none border-x-0 border-t-0 shadow-none focus-visible:ring-0 py-1"
       />
     </div>
   );
@@ -978,10 +979,10 @@ function PlanningOverviewPanel({
       </h3>
 
       <div className="grid grid-cols-2 gap-2">
-        <StatCard label="Bénévoles" value={benevoles} />
-        <StatCard label="Membres" value={membres} />
-        <StatCard label="Au planning" value={inPlanning} />
-        <StatCard label="Total" value={benevoles + membres} />
+        <KPICard label="Bénévoles" value={benevoles} icon={Users} />
+        <KPICard label="Membres" value={membres} icon={UserIcon} />
+        <KPICard label="Au planning" value={inPlanning} icon={Check} />
+        <KPICard label="Total" value={benevoles + membres} icon={Users} />
       </div>
 
       {(missingPhone > 0 || missingEmail > 0) && (
@@ -1012,15 +1013,6 @@ function PlanningOverviewPanel({
           </p>
         </div>
       )}
-    </div>
-  );
-}
-
-function StatCard({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
-      <div className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{value}</div>
-      <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{label}</div>
     </div>
   );
 }

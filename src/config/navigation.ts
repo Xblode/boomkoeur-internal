@@ -1,4 +1,4 @@
-import { LayoutDashboard, Twitter, Linkedin, Github, CalendarDays, Wallet, Package, Users, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, Twitter, Linkedin, Github, CalendarDays, Wallet, Package, Users, ClipboardList, FlaskConical } from 'lucide-react';
 
 /**
  * Configuration de la navigation Frontend
@@ -51,6 +51,11 @@ export const backendNavigation = [
     label: 'Commercial',
     href: '/dashboard/commercial',
     icon: Users,
+  },
+  {
+    label: 'Test Layout',
+    href: '/dashboard/test',
+    icon: FlaskConical,
   },
 ];
 

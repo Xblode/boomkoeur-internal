@@ -1,48 +1,97 @@
 'use client'
 
-import { ReactNode } from 'react'
+import React, { ReactNode, Children, isValidElement, cloneElement } from 'react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/atoms'
 
 export interface PageToolbarProps {
-  /** Contenu à afficher (boutons, actions, etc.) */
+  /** Filtres, selects, etc. — affichés à gauche */
+  filters?: ReactNode
+  /** Boutons d'action — affichés à droite. Le dernier bouton (Button) est primary, les autres outline. */
+  actions?: ReactNode
+  /** Contenu libre (legacy) — utilise flex justify-between */
   children?: ReactNode
   /** Classe CSS personnalisée */
   className?: string
 }
 
+const TOOLBAR_BASE =
+  'h-10 min-h-0 flex items-center p-0 px-4 border-b bg-backend text-foreground border-zinc-200 dark:border-zinc-800'
+
 /**
- * PageToolbar - Composant de toolbar pour les pages backend
- * 
- * Affiche une barre horizontale fixe sous le header avec des actions/filtres.
- * Utilisé avec le ToolbarProvider pour injecter du contenu dynamiquement.
- * 
+ * PageToolbar - Barre d'outils pour les pages backend
+ *
+ * Layout : filtres/selects à gauche, boutons d'action à droite.
+ * Le bouton le plus à droite doit être primary, les autres outline.
+ *
  * @example
+ * ```tsx
+ * <PageToolbar
+ *   filters={<PageToolbarFilters>...</PageToolbarFilters>}
+ *   actions={<PageToolbarActions>...</PageToolbarActions>}
+ * />
+ * ```
+ *
+ * Ou avec children (legacy) :
  * ```tsx
  * <PageToolbar className="justify-between">
  *   <div>Filtres</div>
- *   <div>Actions</div>
+ *   <PageToolbarActions>
+ *     <Button>Export</Button>
+ *     <Button>Nouveau</Button>
+ *   </PageToolbarActions>
  * </PageToolbar>
  * ```
  */
-export function PageToolbar({ children, className }: PageToolbarProps) {
-  // Si justify-between est dans le className, on ne wrappe pas les children
-  const useWrapper = !className?.includes('justify-between')
-  
-  return (
-    <div
-      className={cn(
-        'h-10 min-h-0 flex items-center justify-end p-0 px-4 border-b bg-[#171717] text-foreground',
-        'border-zinc-200 dark:border-zinc-800',
-        className
-      )}
-    >
-      {children && (useWrapper ? (
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          {children}
+export function PageToolbar({ filters, actions, children, className }: PageToolbarProps) {
+  if (filters != null || actions != null) {
+    return (
+      <div className={cn(TOOLBAR_BASE, className)}>
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          {filters}
         </div>
-      ) : (
-        children
-      ))}
+        {actions && (
+          <div className="flex items-center gap-2 shrink-0">
+            {actions}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className={cn(TOOLBAR_BASE, className)}>
+      {children}
+    </div>
+  )
+}
+
+/** Wrapper pour les filtres (selects, dropdowns, etc.) — à gauche de la toolbar */
+export function PageToolbarFilters({ children, className }: { children?: ReactNode; className?: string }) {
+  return (
+    <div className={cn('flex items-center gap-2', className)}>
+      {children}
+    </div>
+  )
+}
+
+/**
+ * Wrapper pour les boutons d'action — à droite de la toolbar.
+ * Applique automatiquement : dernier bouton = primary, autres = outline.
+ */
+export function PageToolbarActions({ children, className }: { children: ReactNode; className?: string }) {
+  const count = Children.count(children)
+  const processed = Children.map(children, (child, index) => {
+    if (!isValidElement(child) || child.type !== Button) return child
+    const isLast = index === count - 1
+    return cloneElement(child as React.ReactElement<{ variant?: string; size?: string }>, {
+      variant: isLast ? 'primary' : 'outline',
+      size: 'xs',
+    })
+  })
+  return (
+    <div className={cn('flex items-center gap-2', className)}>
+      {processed}
     </div>
   )
 }

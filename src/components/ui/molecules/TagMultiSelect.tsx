@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useMemo, useRef, useEffect } from 'react'
-import { X, Plus, Search } from 'lucide-react'
-import { Badge } from '@/components/ui/atoms'
-import { Input } from '@/components/ui/atoms'
+import { useState, useRef, useEffect } from 'react'
+import { Plus, Tag } from 'lucide-react'
+import { Chip } from '@/components/ui/atoms'
 import { cn } from '@/lib/utils'
 
 export interface TagMultiSelectTag {
@@ -13,234 +12,189 @@ export interface TagMultiSelectTag {
 }
 
 interface TagMultiSelectProps {
-  /** IDs des tags sélectionnés */
-  selectedTagIds: string[]
-  /** Callback appelé quand les tags changent */
+  /** IDs des tags sélectionnés (mode avec availableTags) */
+  selectedTagIds?: string[]
+  /** Tags sélectionnés en mode simple (noms) — prioritaire si fourni */
+  value?: string[]
+  /** Callback quand les tags changent (IDs ou noms selon le mode) */
   onChange: (tagIds: string[]) => void
-  /** Tous les tags disponibles */
+  /** Tags disponibles (mode avec IDs) */
   availableTags?: TagMultiSelectTag[]
-  /** Placeholder de l'input */
+  /** Placeholder du bouton + / zone vide */
   placeholder?: string
-  /** Classe CSS personnalisée */
   className?: string
-  /** Désactiver le composant */
   disabled?: boolean
-  /** Permettre la création de nouveaux tags */
-  allowCreate?: boolean
-  /** Callback appelé quand on crée un nouveau tag */
+  /** Créer un nouveau tag (mode IDs) — retourne le tag créé avec son id */
   onCreateTag?: (name: string) => Promise<TagMultiSelectTag | void>
 }
 
 /**
- * TagMultiSelect - Sélecteur de tags avec recherche et création
- * 
- * Composant permettant de sélectionner plusieurs tags avec recherche et possibilité
- * de créer de nouveaux tags à la volée.
- * 
- * @example
- * ```tsx
- * <TagMultiSelect
- *   selectedTagIds={selectedIds}
- *   onChange={setSelectedIds}
- *   availableTags={tags}
- *   allowCreate={true}
- *   onCreateTag={async (name) => {
- *     const newTag = await api.createTag(name)
- *     return newTag
- *   }}
- * />
- * ```
+ * TagMultiSelect — Étiquettes avec ajout inline (style page événement)
+ *
+ * Clic sur + → ajoute un chip vide immédiatement éditable.
+ * Saisie directe dans le chip, Enter/blur pour valider.
+ *
+ * Modes :
+ * - Simple (value) : tags = noms (string[])
+ * - Avec IDs (selectedTagIds + availableTags) : pour transactions, etc.
  */
 export function TagMultiSelect({
-  selectedTagIds,
+  selectedTagIds = [],
+  value,
   onChange,
   availableTags = [],
-  placeholder = 'Rechercher ou créer un tag...',
+  placeholder = 'Ajouter une étiquette...',
   className,
   disabled = false,
-  allowCreate = false,
   onCreateTag,
 }: TagMultiSelectProps) {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [isOpen, setIsOpen] = useState(false)
-  const [isCreating, setIsCreating] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const isSimpleMode = value !== undefined
+  const tags = isSimpleMode ? value : selectedTagIds.map((id) => availableTags.find((t) => t.id === id)?.name ?? id)
+  const [editingIndex, setEditingIndex] = useState<number | null>(null)
+  const [editingValue, setEditingValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Tags sélectionnés
-  const selectedTags = useMemo(() => {
-    return availableTags.filter((tag) => selectedTagIds.includes(tag.id))
-  }, [availableTags, selectedTagIds])
-
-  // Tags filtrés (excluant ceux déjà sélectionnés)
-  const filteredTags = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return availableTags.filter((tag) => !selectedTagIds.includes(tag.id))
+  const handleChange = (newTagNames: string[]) => {
+    if (isSimpleMode) {
+      onChange(newTagNames)
+    } else {
+      const newIds = newTagNames.map((name) => {
+        const existing = availableTags.find((t) => t.name === name)
+        return existing ? existing.id : name
+      })
+      onChange(newIds)
     }
-
-    const query = searchQuery.toLowerCase()
-    return availableTags.filter(
-      (tag) =>
-        !selectedTagIds.includes(tag.id) &&
-        tag.name.toLowerCase().includes(query)
-    )
-  }, [availableTags, selectedTagIds, searchQuery])
-
-  // Vérifier si le tag existe déjà
-  const canCreateTag = useMemo(() => {
-    if (!searchQuery.trim() || !allowCreate) return false
-    const query = searchQuery.toLowerCase().trim()
-    return !availableTags.some((tag) => tag.name.toLowerCase() === query)
-  }, [searchQuery, availableTags, allowCreate])
-
-  const handleSelectTag = (tagId: string) => {
-    if (selectedTagIds.includes(tagId)) return
-    onChange([...selectedTagIds, tagId])
-    setSearchQuery('')
-    inputRef.current?.focus()
   }
 
-  const handleRemoveTag = (tagId: string) => {
-    onChange(selectedTagIds.filter((id) => id !== tagId))
+  const handleAddNew = () => {
+    if (disabled) return
+    setEditingIndex(tags.length)
+    setEditingValue('')
+    setTimeout(() => inputRef.current?.focus(), 0)
   }
 
-  const handleCreateTag = async () => {
-    if (!canCreateTag || !searchQuery.trim() || !onCreateTag) return
+  const handleCommitEdit = async () => {
+    const trimmed = editingValue.trim()
+    if (editingIndex === null) return
 
-    const name = searchQuery.trim()
-    setIsCreating(true)
-
-    try {
-      const newTag = await onCreateTag(name)
-      if (newTag) {
-        handleSelectTag(newTag.id)
+    if (trimmed) {
+      if (editingIndex < tags.length) {
+        const newTags = [...tags]
+        newTags[editingIndex] = trimmed
+        handleChange(newTags)
+      } else {
+        if (isSimpleMode) {
+          if (!tags.includes(trimmed)) handleChange([...tags, trimmed])
+        } else if (onCreateTag) {
+          const newTag = await onCreateTag(trimmed)
+          if (newTag && !selectedTagIds.includes(newTag.id)) {
+            onChange([...selectedTagIds, newTag.id])
+          }
+        } else if (!tags.includes(trimmed)) {
+          handleChange([...tags, trimmed])
+        }
       }
-      setSearchQuery('')
-    } catch (error) {
-      console.error('Error creating tag:', error)
-    } finally {
-      setIsCreating(false)
+    } else if (editingIndex < tags.length) {
+      const newTags = tags.filter((_, i) => i !== editingIndex)
+      handleChange(newTags)
+    }
+
+    setEditingIndex(null)
+    setEditingValue('')
+  }
+
+  const handleRemove = (index: number) => {
+    const newTags = tags.filter((_, i) => i !== index)
+    handleChange(newTags)
+    if (editingIndex !== null && editingIndex >= index && editingIndex > 0) {
+      setEditingIndex(editingIndex - 1)
+    } else if (editingIndex === index) {
+      setEditingIndex(null)
     }
   }
 
-  // Fermer le dropdown quand on clique en dehors
+  const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleCommitEdit()
+    }
+    if (e.key === 'Escape') {
+      setEditingIndex(null)
+      setEditingValue('')
+    }
+    if (e.key === 'Backspace' && editingValue === '') {
+      e.preventDefault()
+      if (index < tags.length) {
+        handleRemove(index)
+        if (index > 0) {
+          setEditingIndex(index - 1)
+          setEditingValue(tags[index - 1] ?? '')
+        } else {
+          setEditingIndex(null)
+        }
+      } else {
+        setEditingIndex(null)
+      }
+    }
+  }
+
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
-      }
+    if (editingIndex !== null) {
+      if (editingIndex < tags.length) setEditingValue(tags[editingIndex] ?? '')
+      else setEditingValue('')
     }
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [isOpen])
+  }, [editingIndex])
 
   return (
-    <div ref={containerRef} className={cn('relative w-full', className)}>
-      {/* Tags sélectionnés */}
-      {selectedTags.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-2">
-          {selectedTags.map((tag) => (
-            <Badge
-              key={tag.id}
+    <div className={cn('flex flex-wrap items-center gap-2', className)}>
+      <Tag size={14} className="text-zinc-400 shrink-0" />
+      {tags.map((tag, index) => (
+        <span key={index} className="inline-flex items-center">
+          {editingIndex === index ? (
+            <input
+              ref={index === editingIndex ? inputRef : undefined}
+              value={editingValue}
+              onChange={(e) => setEditingValue(e.target.value)}
+              onBlur={handleCommitEdit}
+              onKeyDown={(e) => handleKeyDown(e, index)}
+              placeholder="Nom du tag"
+              className="h-6 min-w-[80px] max-w-[180px] rounded-full border border-zinc-200 dark:border-zinc-700 bg-transparent px-2.5 py-0.5 text-xs font-medium outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-500"
+              autoFocus
+            />
+          ) : (
+            <Chip
+              label={tag}
               variant="default"
-              className="flex items-center gap-1.5 pr-1"
-              style={{
-                backgroundColor: tag.color ? `${tag.color}20` : undefined,
-                borderColor: tag.color || undefined,
-                color: tag.color || undefined,
-              }}
-            >
-              <span>{tag.name}</span>
-              {!disabled && (
-                <button
-                  type="button"
-                  onClick={() => handleRemoveTag(tag.id)}
-                  className="ml-1 hover:opacity-70 transition-opacity"
-                  aria-label={`Retirer le tag ${tag.name}`}
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </Badge>
-          ))}
-        </div>
+              onDelete={disabled ? undefined : () => handleRemove(index)}
+              onClick={disabled ? undefined : () => setEditingIndex(index)}
+              className="cursor-text"
+            />
+          )}
+        </span>
+      ))}
+      {editingIndex === tags.length && (
+        <input
+          ref={inputRef}
+          value={editingValue}
+          onChange={(e) => setEditingValue(e.target.value)}
+          onBlur={handleCommitEdit}
+          onKeyDown={(e) => handleKeyDown(e, tags.length)}
+          placeholder="Nom du tag"
+          className="h-6 min-w-[80px] max-w-[180px] rounded-full border border-zinc-200 dark:border-zinc-700 bg-transparent px-2.5 py-0.5 text-xs font-medium outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-500"
+          autoFocus
+        />
       )}
-
-      {/* Input de recherche */}
-      <div className="relative">
-        <div className="relative">
-          <Input
-            ref={inputRef}
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value)
-              setIsOpen(true)
-            }}
-            onFocus={() => setIsOpen(true)}
-            placeholder={placeholder}
-            disabled={disabled}
-            className="pl-9"
-          />
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-        </div>
-
-        {/* Dropdown */}
-        {isOpen && !disabled && (
-          <div className="absolute z-50 w-full mt-1 bg-card-bg border border-border-custom rounded-md shadow-lg max-h-60 overflow-y-auto">
-            {filteredTags.length > 0 || canCreateTag ? (
-              <div className="p-1">
-                {/* Option de création */}
-                {canCreateTag && (
-                  <button
-                    type="button"
-                    onClick={handleCreateTag}
-                    disabled={isCreating}
-                    className="w-full px-3 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded flex items-center gap-2 transition-colors disabled:opacity-50"
-                  >
-                    {isCreating ? (
-                      <span className="text-sm text-zinc-600 dark:text-zinc-400">Création...</span>
-                    ) : (
-                      <>
-                        <Plus className="w-4 h-4 text-zinc-900 dark:text-zinc-50" />
-                        <span className="text-sm text-foreground">
-                          Créer "<strong>{searchQuery.trim()}</strong>"
-                        </span>
-                      </>
-                    )}
-                  </button>
-                )}
-
-                {/* Liste des tags */}
-                {filteredTags.map((tag) => (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    onClick={() => handleSelectTag(tag.id)}
-                    className="w-full px-3 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      {tag.color && (
-                        <div
-                          className="w-3 h-3 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: tag.color }}
-                        />
-                      )}
-                      <span className="text-sm text-foreground">{tag.name}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="p-4 text-center text-zinc-500 text-sm">
-                {searchQuery.trim() ? 'Aucun tag trouvé' : 'Commencez à taper pour rechercher'}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      {!disabled && editingIndex === null && (
+        <button
+          type="button"
+          onClick={handleAddNew}
+          className="inline-flex items-center justify-center w-6 h-6 rounded-full border border-dashed border-zinc-300 dark:border-zinc-600 text-zinc-500 hover:text-foreground hover:border-zinc-400 dark:hover:border-zinc-500 transition-colors shrink-0"
+          title={placeholder}
+          aria-label={placeholder}
+        >
+          <Plus size={14} />
+        </button>
+      )}
     </div>
   )
 }

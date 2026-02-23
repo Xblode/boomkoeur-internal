@@ -3,15 +3,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { ProductStatus, ProductType, Provider, ProductProvider } from '@/types/product';
-import { Button, Textarea, Popover, PopoverContent, PopoverTrigger } from '@/components/ui/atoms';
+import { Button, Textarea, Popover, PopoverContent, PopoverTrigger, Input, Label, InlineEdit } from '@/components/ui/atoms';
+import { TagMultiSelect, Card, CardContent } from '@/components/ui/molecules';
 import { cn } from '@/lib/utils';
 import {
   Pencil,
   ChevronDown,
-  X,
   AlignLeft,
   CircleDot,
-  Tag,
   Package,
   Euro,
   Truck,
@@ -62,7 +61,6 @@ export function ProductInfoSection() {
   const [categoryValue, setCategoryValue] = useState(product.category);
   const [collectionValue, setCollectionValue] = useState(product.collection || '');
   const [imageValue, setImageValue] = useState(product.main_image || '');
-  const [tagsInput, setTagsInput] = useState('');
 
   // Providers (liste pour le picker) + résolution des assignés (ancien storage ou Commercial)
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -189,14 +187,8 @@ export function ProductInfoSection() {
   };
 
   // Tags
-  const handleAddTag = (tag: string) => {
-    const trimmed = tag.trim();
-    if (!trimmed || product.tags.includes(trimmed)) return;
-    persistField({ tags: [...product.tags, trimmed] });
-    setTagsInput('');
-  };
-  const handleRemoveTag = (tag: string) => {
-    persistField({ tags: product.tags.filter(t => t !== tag) });
+  const handleTagsChange = (tags: string[]) => {
+    persistField({ tags });
   };
 
   // Description
@@ -234,29 +226,16 @@ export function ProductInfoSection() {
 
           <div className="flex-1 min-w-0">
             {/* Inline editable title */}
-            <div className={cn(
-              'group inline-flex items-center gap-2 rounded-lg p-1 -m-1 transition-colors cursor-text',
-              editingField === 'name'
-                ? 'border border-zinc-200 dark:border-zinc-800'
-                : 'border border-transparent hover:bg-zinc-50 dark:hover:bg-zinc-900/50'
-            )}>
-              <div className="inline-grid text-3xl font-bold">
-                <span className="invisible col-start-1 row-start-1 whitespace-pre leading-tight">
-                  {nameValue || 'Nom du produit'}
-                </span>
-                <input
-                  ref={nameInputRef}
-                  value={nameValue}
-                  onChange={(e) => setNameValue(e.target.value)}
-                  onFocus={() => setEditingField('name')}
-                  onBlur={saveName}
-                  onKeyDown={handleNameKeyDown}
-                  placeholder="Nom du produit"
-                  className="col-start-1 row-start-1 bg-transparent border-0 outline-none text-3xl font-bold text-foreground p-0 leading-tight placeholder:text-zinc-300 dark:placeholder:text-zinc-600"
-                />
-              </div>
-              <Pencil size={16} className="text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity mt-1 shrink-0" />
-            </div>
+            <InlineEdit
+              ref={nameInputRef}
+              value={nameValue}
+              onChange={(e) => setNameValue(e.target.value)}
+              onFocus={() => setEditingField('name')}
+              onBlur={saveName}
+              onKeyDown={handleNameKeyDown}
+              placeholder="Nom du produit"
+              variant="title"
+            />
 
             <div className="flex items-center gap-3 mt-2">
               <span className="text-sm font-mono text-zinc-500">{product.sku}</span>
@@ -279,24 +258,26 @@ export function ProductInfoSection() {
             <div>
               <Popover>
                 <PopoverTrigger asChild>
-                  <button className="group flex items-center justify-between w-full px-3 py-2 rounded-md hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50 transition-colors text-left text-sm">
+                  <Button variant="ghost" className="group flex items-center justify-between w-full px-3 py-2 rounded-md hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50 transition-colors text-left text-sm h-auto font-normal">
                     <span className="font-medium">{TYPE_LABELS[product.type]}</span>
                     <ChevronDown size={12} className="text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2" />
-                  </button>
+                  </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-1" align="start">
                   <div className="flex flex-col gap-0.5">
                     {(Object.entries(TYPE_LABELS) as [ProductType, string][]).map(([key, label]) => (
-                      <button
+                      <Button
                         key={key}
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleTypeChange(key)}
                         className={cn(
-                          'flex items-center px-3 py-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-sm text-left',
+                          'flex items-center px-3 py-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-sm text-left w-full justify-start font-normal',
                           product.type === key && 'bg-zinc-100 dark:bg-zinc-800'
                         )}
                       >
                         {label}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </PopoverContent>
@@ -309,28 +290,30 @@ export function ProductInfoSection() {
             <div>
               <Popover>
                 <PopoverTrigger asChild>
-                  <button className="group flex items-center justify-between w-full px-3 py-2 rounded-md hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50 transition-colors text-left">
+                  <Button variant="ghost" className="group flex items-center justify-between w-full px-3 py-2 rounded-md hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50 transition-colors text-left h-auto font-normal">
                     <span className={cn('px-2 py-0.5 text-xs font-medium rounded-full', STATUS_CONFIG[product.status].className)}>
                       {STATUS_CONFIG[product.status].label}
                     </span>
                     <ChevronDown size={12} className="text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2" />
-                  </button>
+                  </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-1" align="start">
                   <div className="flex flex-col gap-0.5">
                     {(Object.keys(STATUS_CONFIG) as ProductStatus[]).map(s => (
-                      <button
+                      <Button
                         key={s}
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleStatusChange(s)}
                         className={cn(
-                          'flex items-center px-2 py-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors',
+                          'flex items-center px-2 py-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors w-full justify-start font-normal',
                           product.status === s && 'bg-zinc-100 dark:bg-zinc-800'
                         )}
                       >
                         <span className={cn('px-2 py-0.5 text-xs font-medium rounded-full', STATUS_CONFIG[s].className)}>
                           {STATUS_CONFIG[s].label}
                         </span>
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </PopoverContent>
@@ -343,56 +326,34 @@ export function ProductInfoSection() {
               <span>Catégorie</span>
             </div>
             <div>
-              <div
-                className={cn(
-                  'group flex items-center justify-between w-full px-3 py-2 rounded-md cursor-text transition-colors',
-                  editingField === 'category' ? 'bg-zinc-100/50 dark:bg-zinc-800/50' : 'hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50'
-                )}
-                onClick={() => categoryInputRef.current?.focus()}
-              >
-                <div className="inline-grid text-sm flex-1">
-                  <span className="invisible col-start-1 row-start-1 whitespace-pre">{categoryValue || 'Catégorie'}</span>
-                  <input
-                    ref={categoryInputRef}
-                    value={categoryValue}
-                    onChange={(e) => setCategoryValue(e.target.value)}
-                    onFocus={() => setEditingField('category')}
-                    onBlur={saveCategory}
-                    onKeyDown={handleCategoryKeyDown}
-                    placeholder="Catégorie"
-                    className="col-start-1 row-start-1 bg-transparent border-0 outline-none text-sm p-0 placeholder:text-zinc-400"
-                  />
-                </div>
-                <Pencil size={11} className="text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2" />
-              </div>
+              <InlineEdit
+                ref={categoryInputRef}
+                value={categoryValue}
+                onChange={(e) => setCategoryValue(e.target.value)}
+                onFocus={() => setEditingField('category')}
+                onBlur={saveCategory}
+                onKeyDown={handleCategoryKeyDown}
+                placeholder="Catégorie"
+                variant="default"
+                className="w-full"
+              />
             </div>
             <div className="flex items-center gap-2 py-2 text-sm text-zinc-500 dark:text-zinc-400">
               <Bookmark size={14} className="shrink-0" />
               <span>Collection</span>
             </div>
             <div>
-              <div
-                className={cn(
-                  'group flex items-center justify-between w-full px-3 py-2 rounded-md cursor-text transition-colors',
-                  editingField === 'collection' ? 'bg-zinc-100/50 dark:bg-zinc-800/50' : 'hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50'
-                )}
-                onClick={() => collectionInputRef.current?.focus()}
-              >
-                <div className="inline-grid text-sm flex-1">
-                  <span className="invisible col-start-1 row-start-1 whitespace-pre">{collectionValue || 'Collection'}</span>
-                  <input
-                    ref={collectionInputRef}
-                    value={collectionValue}
-                    onChange={(e) => setCollectionValue(e.target.value)}
-                    onFocus={() => setEditingField('collection')}
-                    onBlur={saveCollection}
-                    onKeyDown={handleCollectionKeyDown}
-                    placeholder="Collection"
-                    className="col-start-1 row-start-1 bg-transparent border-0 outline-none text-sm p-0 placeholder:text-zinc-400"
-                  />
-                </div>
-                <Pencil size={11} className="text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2" />
-              </div>
+              <InlineEdit
+                ref={collectionInputRef}
+                value={collectionValue}
+                onChange={(e) => setCollectionValue(e.target.value)}
+                onFocus={() => setEditingField('collection')}
+                onBlur={saveCollection}
+                onKeyDown={handleCollectionKeyDown}
+                placeholder="Collection"
+                variant="default"
+                className="w-full"
+              />
             </div>
 
             {/* Row 3: Fournisseurs / Stock total */}
@@ -403,7 +364,7 @@ export function ProductInfoSection() {
             <div className="min-w-0">
               <Popover open={providerPickerOpen} onOpenChange={handleProviderPickerOpen}>
                 <PopoverTrigger asChild>
-                  <button className="group flex items-center justify-between w-full px-3 py-2 rounded-md hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50 transition-colors text-left text-sm min-h-[36px]">
+                  <Button variant="ghost" className="group flex items-center justify-between w-full px-3 py-2 rounded-md hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50 transition-colors text-left text-sm min-h-[36px] h-auto font-normal">
                     {(() => {
                       const assigned = product.providers || [];
                       const displayable = assigned
@@ -432,7 +393,7 @@ export function ProductInfoSection() {
                       );
                     })()}
                     <ChevronDown size={12} className="text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2" />
-                  </button>
+                  </Button>
                 </PopoverTrigger>
 
                 <PopoverContent className="!w-72 !p-0" align="start" sideOffset={4}>
@@ -440,12 +401,13 @@ export function ProductInfoSection() {
                   <div className="p-2 border-b border-border-custom">
                     <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-zinc-100 dark:bg-zinc-800">
                       <Search size={13} className="text-zinc-400 shrink-0" />
-                      <input
+                      <Input
                         autoFocus
                         value={providerSearch}
                         onChange={e => setProviderSearch(e.target.value)}
                         placeholder="Rechercher un fournisseur..."
-                        className="bg-transparent border-0 outline-none text-sm w-full placeholder:text-zinc-400"
+                        size="sm"
+                        className="bg-transparent border-0 shadow-none focus-visible:ring-0 h-auto py-1"
                       />
                     </div>
                   </div>
@@ -458,11 +420,13 @@ export function ProductInfoSection() {
                         const assigned = (product.providers || []).find(x => x.provider_id === p.id);
                         return (
                           <div key={p.id}>
-                            <button
+                            <Button
                               type="button"
+                              variant="ghost"
+                              size="sm"
                               onClick={() => handleToggleProvider(p.id)}
                               className={cn(
-                                'w-full flex items-center gap-3 px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-left',
+                                'w-full flex items-center gap-3 px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-left h-auto font-normal justify-start',
                                 assigned && 'bg-zinc-50 dark:bg-zinc-800/60'
                               )}
                             >
@@ -476,17 +440,18 @@ export function ProductInfoSection() {
                                 )}
                               </div>
                               {assigned && <Check size={14} className="text-foreground shrink-0" />}
-                            </button>
+                            </Button>
 
                             {/* Role input for assigned provider */}
                             {assigned && (
                               <div className="px-3 pb-2">
-                                <input
+                                <Input
                                   value={assigned.role}
                                   onChange={e => handleUpdateProviderRole(p.id, e.target.value)}
                                   placeholder="Rôle (ex: Impression, Matière première...)"
                                   list="provider-roles-picker"
-                                  className="w-full text-xs bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md px-2 py-1.5 outline-none focus:ring-1 focus:ring-zinc-400 placeholder:text-zinc-400 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-list-button]:hidden"
+                                  size="sm"
+                                  className="w-full text-xs [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-list-button]:hidden"
                                 />
                               </div>
                             )}
@@ -547,65 +512,33 @@ export function ProductInfoSection() {
               <span>Image</span>
             </div>
             <div className="col-span-3">
-              <div
-                className={cn(
-                  'group flex items-center justify-between w-full px-3 py-2 rounded-md cursor-text transition-colors',
-                  editingField === 'image' ? 'bg-zinc-100/50 dark:bg-zinc-800/50' : 'hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50'
-                )}
-                onClick={() => imageInputRef.current?.focus()}
-              >
-                <div className="inline-grid text-sm flex-1">
-                  <span className="invisible col-start-1 row-start-1 whitespace-pre">{imageValue || 'URL de l\'image'}</span>
-                  <input
-                    ref={imageInputRef}
-                    value={imageValue}
-                    onChange={(e) => setImageValue(e.target.value)}
-                    onFocus={() => setEditingField('image')}
-                    onBlur={saveImage}
-                    onKeyDown={handleImageKeyDown}
-                    placeholder="URL de l'image"
-                    className="col-start-1 row-start-1 bg-transparent border-0 outline-none text-sm p-0 placeholder:text-zinc-400"
-                  />
-                </div>
-                <Pencil size={11} className="text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2" />
-              </div>
+              <InlineEdit
+                ref={imageInputRef}
+                value={imageValue}
+                onChange={(e) => setImageValue(e.target.value)}
+                onFocus={() => setEditingField('image')}
+                onBlur={saveImage}
+                onKeyDown={handleImageKeyDown}
+                placeholder="URL de l'image"
+                variant="default"
+                className="w-full"
+              />
             </div>
 
           </div>
 
           {/* Tags */}
-          <div className="py-3 flex flex-wrap items-center gap-2">
-            <Tag size={14} className="text-zinc-400 shrink-0" />
-            {product.tags.map(tag => (
-              <span
-                key={tag}
-                className="inline-flex items-center gap-1 pl-2.5 pr-1 py-0.5 rounded-full text-xs font-medium border bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700"
-              >
-                {tag}
-                <button
-                  onClick={() => handleRemoveTag(tag)}
-                  className="flex items-center justify-center w-3.5 h-3.5 rounded-full hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors ml-0.5"
-                >
-                  <X size={9} />
-                </button>
-              </span>
-            ))}
-            <input
-              value={tagsInput}
-              onChange={(e) => setTagsInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); handleAddTag(tagsInput); }
-                if (e.key === 'Backspace' && tagsInput === '' && product.tags.length > 0) {
-                  handleRemoveTag(product.tags[product.tags.length - 1]);
-                }
-              }}
-              placeholder={product.tags.length === 0 ? 'Ajouter une étiquette...' : '+'}
-              className="bg-transparent border-0 outline-none text-sm placeholder:text-zinc-400 flex-1 min-w-[140px]"
+          <div className="py-3">
+            <TagMultiSelect
+              value={product.tags}
+              onChange={handleTagsChange}
+              placeholder="Ajouter une étiquette..."
             />
           </div>
 
           {/* Prices section */}
-          <div className="mt-2 p-4 rounded-lg border border-border-custom bg-zinc-50/50 dark:bg-zinc-900/30">
+          <Card variant="outline" className="mt-2 bg-zinc-50/50 dark:bg-zinc-900/30">
+            <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-3">
               <Euro size={16} className="text-zinc-500" />
               <h3 className="text-sm font-semibold text-zinc-600 dark:text-zinc-400">Tarification</h3>
@@ -617,22 +550,23 @@ export function ProductInfoSection() {
                 { key: 'partner' as const, label: 'Partenaire' },
               ]).map(({ key, label }) => (
                 <div key={key} className="space-y-1">
-                  <label className="text-xs text-zinc-500">{label}</label>
+                  <Label className="text-xs text-zinc-500 font-normal">{label}</Label>
                   <div className="relative">
-                    <input
+                    <Input
                       type="number"
                       step="0.01"
                       min="0"
                       value={product.prices[key]}
                       onChange={(e) => handlePriceChange(key, e.target.value)}
-                      className="w-full rounded-md border border-zinc-200 dark:border-zinc-700 bg-transparent px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-1 focus:ring-zinc-950 dark:focus:ring-zinc-300"
+                      fullWidth
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400">€</span>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -670,14 +604,16 @@ export function ProductInfoSection() {
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {variants.slice(0, 8).map(v => (
-              <div key={v.id} className="p-3 rounded-lg border border-border-custom bg-zinc-50/50 dark:bg-zinc-900/30">
+              <Card key={v.id} variant="outline" className="bg-zinc-50/50 dark:bg-zinc-900/30">
+                <CardContent className="p-3">
                 <p className="text-sm font-medium">
                   {v.size && v.color ? `${v.size} · ${v.color}` : v.size || v.color || 'Standard'}
                 </p>
                 <p className="text-xs text-zinc-500 mt-1">
                   Stock: <span className={cn('font-semibold', v.stock < 5 ? 'text-orange-500' : 'text-foreground')}>{v.stock}</span>
                 </p>
-              </div>
+                </CardContent>
+              </Card>
             ))}
             {variants.length > 8 && (
               <div className="p-3 rounded-lg border border-dashed border-border-custom flex items-center justify-center">

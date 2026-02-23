@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/molecules/Card';
 
 export default function ProductCardSkeleton() {
   return (
-    <Card className="overflow-hidden border-zinc-200 dark:border-zinc-800">
+    <Card variant="list" className="overflow-hidden">
       {/* Image Skeleton */}
       <div className="aspect-square bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
       

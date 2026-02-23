@@ -10,8 +10,21 @@ export type { SidebarProps, SidebarItem } from './Sidebar';
 export { ProfileHeader } from './ProfileHeader';
 export type { ProfileHeaderProps } from './ProfileHeader';
 
-export { PageToolbar } from './PageToolbar';
+export { PageToolbar, PageToolbarFilters, PageToolbarActions } from './PageToolbar';
 export type { PageToolbarProps } from './PageToolbar';
 
-export { Modal, ModalFooter } from './Modal';
-export type { ModalProps, ModalFooterProps } from './Modal';
+export { Modal, ModalHeader, ModalContent, ModalFooter, ModalThreeColumnLayout } from './Modal';
+export type { ModalProps, ModalHeaderProps, ModalContentProps, ModalFooterProps, ModalThreeColumnLayoutProps } from './Modal';
+
+export { PageSidebar } from './PageSidebar';
+export type {
+  PageSidebarProps,
+  PageSidebarSection,
+  PageSidebarSectionGroup,
+} from './PageSidebar';
+
+export { PageContentLayout } from './PageContentLayout';
+export type { PageContentLayoutProps, PageContentMaxWidth } from './PageContentLayout';
+
+export { DashboardShell } from './DashboardShell';
+export type { DashboardShellProps } from './DashboardShell';

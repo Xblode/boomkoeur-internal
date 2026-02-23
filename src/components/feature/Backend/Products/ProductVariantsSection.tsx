@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { SectionHeader } from '@/components/ui';
 import { useProductDetail } from './ProductDetailProvider';
 import { productDataService } from '@/lib/services/ProductDataService';
 import { ProductVariant, ProductVariantInput, VariantAvailability } from '@/types/product';
 import { Button, Input, Label } from '@/components/ui/atoms';
+import { EditableCard } from '@/components/ui/molecules';
 import { useToolbar } from '@/components/providers/ToolbarProvider';
-import { PageToolbar } from '@/components/ui/organisms';
+import { PageToolbar, PageToolbarFilters, PageToolbarActions } from '@/components/ui/organisms';
 import {
   Plus,
   Trash2,
@@ -69,18 +71,17 @@ export function ProductVariantsSection() {
   // Toolbar
   useEffect(() => {
     setToolbar(
-      <PageToolbar className="justify-between bg-[#171717] h-10 min-h-0 p-0 px-4 border-b border-zinc-200 dark:border-zinc-800">
-        <div className="flex items-center gap-4 flex-1 h-full">
-          <div className="flex-1" />
-          <button
-            onClick={() => { setIsAdding(true); setEditingId(null); }}
-            className="px-2 py-1 bg-white text-black rounded text-xs font-medium hover:bg-zinc-200 transition-colors flex items-center gap-1.5"
-          >
-            <Plus className="w-3 h-3" />
-            Nouvelle variante
-          </button>
-        </div>
-      </PageToolbar>
+      <PageToolbar
+        filters={<PageToolbarFilters />}
+        actions={
+          <PageToolbarActions>
+            <Button onClick={() => { setIsAdding(true); setEditingId(null); }}>
+              <Plus className="w-3 h-3 mr-1.5" />
+              Nouvelle variante
+            </Button>
+          </PageToolbarActions>
+        }
+      />
     );
     return () => { setToolbar(null); };
   }, [setToolbar]);
@@ -164,8 +165,8 @@ export function ProductVariantsSection() {
     }));
   };
 
-  // ── Shared edit form ──
-  const EditForm = ({
+  // ── Shared edit form (inner content only, wrapper provided by EditableCard) ──
+  const EditFormContent = ({
     data,
     setData,
     onSave,
@@ -176,11 +177,10 @@ export function ProductVariantsSection() {
     onSave: () => void;
     onCancel: () => void;
   }) => (
-    <div className="border-t-2 border-dashed border-zinc-200 dark:border-zinc-800 p-4 space-y-4 bg-white dark:bg-zinc-900/60">
-
+    <>
       <div className="grid grid-cols-12 gap-3">
         <div className="col-span-6 md:col-span-3">
-          <label className="text-xs font-medium text-zinc-500 mb-1.5 block uppercase tracking-wide">Taille</label>
+          <Label className="text-xs font-medium text-zinc-500 mb-1.5 block uppercase tracking-wide">Taille</Label>
           <Input
             value={data.size}
             onChange={(e) => setData(prev => ({ ...prev, size: e.target.value }))}
@@ -188,7 +188,7 @@ export function ProductVariantsSection() {
           />
         </div>
         <div className="col-span-6 md:col-span-3">
-          <label className="text-xs font-medium text-zinc-500 mb-1.5 block uppercase tracking-wide">Couleur</label>
+          <Label className="text-xs font-medium text-zinc-500 mb-1.5 block uppercase tracking-wide">Couleur</Label>
           <Input
             value={data.color}
             onChange={(e) => setData(prev => ({ ...prev, color: e.target.value }))}
@@ -196,7 +196,7 @@ export function ProductVariantsSection() {
           />
         </div>
         <div className="col-span-6 md:col-span-3">
-          <label className="text-xs font-medium text-zinc-500 mb-1.5 block uppercase tracking-wide">Prix d&apos;achat (€)</label>
+          <Label className="text-xs font-medium text-zinc-500 mb-1.5 block uppercase tracking-wide">Prix d&apos;achat (€)</Label>
           <Input
             type="number"
             step="0.01"
@@ -207,7 +207,7 @@ export function ProductVariantsSection() {
           />
         </div>
         <div className="col-span-6 md:col-span-3">
-          <label className="text-xs font-medium text-zinc-500 mb-1.5 block uppercase tracking-wide">Image URL</label>
+          <Label className="text-xs font-medium text-zinc-500 mb-1.5 block uppercase tracking-wide">Image URL</Label>
           <Input
             value={data.imageUrl}
             onChange={(e) => setData(prev => ({ ...prev, imageUrl: e.target.value }))}
@@ -218,14 +218,16 @@ export function ProductVariantsSection() {
 
       {/* Availability */}
       <div>
-        <label className="text-xs font-medium text-zinc-500 mb-2 block uppercase tracking-wide">Disponible pour</label>
+        <Label className="text-xs font-medium text-zinc-500 mb-2 block uppercase tracking-wide">Disponible pour</Label>
         <div className="flex gap-2 flex-wrap">
           {(Object.entries(AVAILABILITY_LABELS) as [VariantAvailability, string][]).map(([key, label]) => {
             const isOn = data.availableFor.includes(key);
             return (
-              <button
+              <Button
                 key={key}
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => toggleAvailability(data.availableFor, key, setData)}
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
@@ -236,7 +238,7 @@ export function ProductVariantsSection() {
               >
                 {isOn && <Check size={11} />}
                 {label}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -251,7 +253,7 @@ export function ProductVariantsSection() {
           {isSaving ? 'Enregistrement...' : <><Check size={13} /> Enregistrer</>}
         </Button>
       </div>
-    </div>
+    </>
   );
 
   // ── Empty state ──
@@ -278,22 +280,24 @@ export function ProductVariantsSection() {
 
   return (
     <div className="space-y-3">
-
+      <SectionHeader
+        icon={<Layers size={28} />}
+        title="Variantes"
+      />
       {/* ── Variant cards ── */}
       {variants.map((v, index) => {
         const isEditing = editingId === v.id;
         const availability = v.available_for || ['public', 'member', 'partner'];
 
         return (
-          <div
+          <EditableCard
             key={v.id}
-            className="group/card rounded-lg border border-border-custom bg-zinc-50 dark:bg-zinc-900/40 overflow-hidden"
-          >
-            {/* ── Header (always visible) ── */}
-            <div className="p-4">
-              <div className="flex items-start gap-3">
-
-                {/* Index or thumbnail */}
+            isEditing={isEditing}
+            onEdit={() => toggleEdit(v)}
+            onCloseEdit={() => setEditingId(null)}
+            onDelete={() => handleDelete(v.id)}
+            headerContent={
+              <>
                 {v.images?.[0] ? (
                   <div className="flex-shrink-0 w-10 h-10 rounded-md overflow-hidden border border-border-custom">
                     <img src={v.images[0]} alt={variantLabel(v)} className="w-full h-full object-cover" />
@@ -303,13 +307,10 @@ export function ProductVariantsSection() {
                     {index + 1}
                   </div>
                 )}
-
-                {/* Main info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-semibold leading-snug">{variantLabel(v)}</p>
                     <span className="text-xs font-mono text-zinc-400">{v.sku}</span>
-                    {/* Stock badge */}
                     <span className={cn(
                       'flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
                       isLowStock(v)
@@ -320,8 +321,6 @@ export function ProductVariantsSection() {
                       {v.stock} unités
                     </span>
                   </div>
-
-                  {/* Availability + price */}
                   <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                     <span className="text-xs text-zinc-500">{v.purchase_price.toFixed(2)}€ achat</span>
                     <span className="text-zinc-300 dark:text-zinc-600">·</span>
@@ -334,50 +333,17 @@ export function ProductVariantsSection() {
                     </div>
                   </div>
                 </div>
-
-                {/* Actions (hover) */}
-                {isEditing ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setEditingId(null)}
-                    className="shrink-0 h-7 w-7 p-0"
-                    aria-label="Fermer"
-                  >
-                    <X size={12} />
-                  </Button>
-                ) : (
-                  <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover/card:opacity-100 transition-opacity">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toggleEdit(v)}
-                      className="h-7 text-xs px-2"
-                    >
-                      <Edit size={12} /> Éditer
-                    </Button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(v.id)}
-                      className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors text-zinc-400 hover:text-red-600"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* ── Edit zone (expands below) ── */}
-            {isEditing && (
-              <EditForm
+              </>
+            }
+            editContent={
+              <EditFormContent
                 data={editingData}
                 setData={setEditingData}
                 onSave={() => handleSaveEdit(v.id)}
                 onCancel={() => setEditingId(null)}
               />
-            )}
-          </div>
+            }
+          />
         );
       })}
 
@@ -399,22 +365,26 @@ export function ProductVariantsSection() {
               <X size={12} />
             </Button>
           </div>
-          <EditForm
-            data={addData}
-            setData={setAddData}
-            onSave={handleSaveNew}
-            onCancel={() => { setIsAdding(false); setAddData(defaultEditingData()); }}
-          />
+          <div className="border-t-2 border-dashed border-zinc-200 dark:border-zinc-800 p-4 space-y-4 bg-white dark:bg-zinc-900/60">
+            <EditFormContent
+              data={addData}
+              setData={setAddData}
+              onSave={handleSaveNew}
+              onCancel={() => { setIsAdding(false); setAddData(defaultEditingData()); }}
+            />
+          </div>
         </div>
       ) : (
         /* ── Empty state inline (when variants exist) ── */
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => { setIsAdding(true); setEditingId(null); }}
           className="w-full flex items-center justify-center gap-2 py-4 rounded-lg border border-dashed border-border-custom text-sm text-zinc-500 hover:text-foreground hover:border-zinc-400 dark:hover:border-zinc-500 transition-colors"
         >
           <Plus size={16} />
           Ajouter une variante
-        </button>
+        </Button>
       )}
     </div>
   );

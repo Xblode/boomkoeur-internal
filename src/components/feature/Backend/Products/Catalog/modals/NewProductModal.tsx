@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Modal, ModalFooter } from '@/components/ui/organisms';
-import { Button, Input, Label, Textarea, Select } from '@/components/ui/atoms';
+import { Button, Input, Label, Textarea, Select, Checkbox } from '@/components/ui/atoms';
 import { ProductInput, ProductType, ProductStatus, Provider, ProductVariantInput, VariantAvailability } from '@/types/product';
 import { productDataService } from '@/lib/services/ProductDataService';
 import { useProduct } from '@/components/providers';
@@ -385,33 +385,30 @@ export default function NewProductModal({ isOpen, onClose }: NewProductModalProp
                     <div>
                       <Label className="text-xs mb-2 block">Disponible pour :</Label>
                       <div className="flex gap-4">
-                        <label className="flex items-center gap-2 text-sm cursor-pointer">
-                          <input
-                            type="checkbox"
+                        <Label className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
                             checked={variant.availableFor.includes('public')}
                             onChange={() => toggleAvailability(variant.id, 'public')}
                             className="rounded"
                           />
                           Public
-                        </label>
-                        <label className="flex items-center gap-2 text-sm cursor-pointer">
-                          <input
-                            type="checkbox"
+                        </Label>
+                        <Label className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
                             checked={variant.availableFor.includes('member')}
                             onChange={() => toggleAvailability(variant.id, 'member')}
                             className="rounded"
                           />
                           Membre
-                        </label>
-                        <label className="flex items-center gap-2 text-sm cursor-pointer">
-                          <input
-                            type="checkbox"
+                        </Label>
+                        <Label className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
                             checked={variant.availableFor.includes('partner')}
                             onChange={() => toggleAvailability(variant.id, 'partner')}
                             className="rounded"
                           />
                           Partenaire
-                        </label>
+                        </Label>
                       </div>
                     </div>
                   </div>
@@ -435,18 +432,16 @@ export default function NewProductModal({ isOpen, onClose }: NewProductModalProp
               <Label className="mb-2 block">Tailles</Label>
               <div className="flex flex-wrap gap-2">
                 {SIZES.map(size => (
-                  <button
+                  <Button
                     key={size}
                     type="button"
+                    variant={selectedSizes.includes(size) ? 'primary' : 'outline'}
+                    size="sm"
                     onClick={() => toggleSize(size)}
-                    className={`px-3 py-1 rounded text-sm border transition-colors ${
-                      selectedSizes.includes(size)
-                        ? 'bg-black text-white border-black dark:bg-white dark:text-black'
-                        : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700'
-                    }`}
+                    className={selectedSizes.includes(size) ? 'bg-black text-white border-black dark:bg-white dark:text-black dark:border-white' : ''}
                   >
                     {size}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>

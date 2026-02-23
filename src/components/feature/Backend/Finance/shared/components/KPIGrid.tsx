@@ -1,5 +1,4 @@
-import { Card, CardContent } from '@/components/ui/molecules'
-import KPICard from './KPICard'
+import { Card, CardContent, KPICard } from '@/components/ui/molecules'
 import { LucideIcon } from 'lucide-react'
 
 interface KPIData {
@@ -8,8 +7,8 @@ interface KPIData {
   value: string
   unit: string
   icon: LucideIcon
-  color: string
-  bgColor: string
+  color?: string
+  bgColor?: string
   subtext: string
   change?: number
 }
@@ -39,7 +38,16 @@ function KPIGrid({ kpis, loading = false, columns = 6, className = '' }: KPIGrid
   return (
     <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-${columns} gap-4 ${className}`}>
       {kpis.map((kpi) => (
-        <KPICard key={kpi.id} {...kpi} />
+        <KPICard
+          key={kpi.id}
+          label={kpi.label}
+          value={kpi.value}
+          unit={kpi.unit}
+          icon={kpi.icon}
+          trend={kpi.change}
+          trendLabel={kpi.change !== undefined ? 'vs mois précédent' : undefined}
+          subtext={kpi.change === undefined ? kpi.subtext : undefined}
+        />
       ))}
     </div>
   )

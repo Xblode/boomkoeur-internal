@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { CalendarLayout } from '@/components/feature/Backend/Calendar';
+import { CalendarLayoutConfig } from '@/components/feature/Backend/Calendar/CalendarLayoutConfig';
 import type { Meeting } from '@/types/meeting';
 
 class MeetingServiceHelper {
@@ -39,8 +39,8 @@ export default function CalendarLayoutRoute({ children }: { children: React.Reac
   }, []);
 
   return (
-    <CalendarLayout meetings={meetings}>
+    <CalendarLayoutConfig meetings={meetings}>
       {children}
-    </CalendarLayout>
+    </CalendarLayoutConfig>
   );
 }

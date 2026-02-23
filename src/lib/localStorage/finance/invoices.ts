@@ -4,7 +4,7 @@ import { getFromStorage, saveToStorage, generateId, generateInvoiceNumber, updat
 const INVOICES_KEY = 'finance_invoices'
 const INVOICE_LINES_KEY = 'finance_invoice_lines'
 
-export function getInvoices(filters?: { type?: string; status?: string }): (Invoice & { invoice_lines: InvoiceLine[] })[] {
+export function getInvoices(filters?: { type?: string; status?: string; year?: number }): (Invoice & { invoice_lines: InvoiceLine[] })[] {
   let invoices = getFromStorage<Invoice[]>(INVOICES_KEY, [])
   
   if (filters?.type && filters.type !== 'all') {
@@ -13,6 +13,13 @@ export function getInvoices(filters?: { type?: string; status?: string }): (Invo
   
   if (filters?.status && filters.status !== 'all') {
     invoices = invoices.filter((i) => i.status === filters.status)
+  }
+  
+  if (filters?.year != null) {
+    invoices = invoices.filter((i) => {
+      const date = i.issue_date ? new Date(i.issue_date) : null
+      return date && date.getFullYear() === filters.year
+    })
   }
   
   // Attach lines

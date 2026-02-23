@@ -6,7 +6,8 @@ import { ChevronLeft, ChevronRight, Clock, MapPin } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, getDay, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToolbar } from '@/components/providers/ToolbarProvider';
-import { PageToolbar } from '@/components/ui/organisms';
+import { PageToolbar, PageToolbarFilters, PageToolbarActions } from '@/components/ui/organisms';
+import { Button, IconButton } from '@/components/ui/atoms';
 
 import { getEvents } from '@/lib/localStorage/events';
 import { getCampaigns } from '@/lib/localStorage/communication';
@@ -14,6 +15,7 @@ import { getReminders } from '@/lib/localStorage/reminders';
 import type { Event as BKEvent } from '@/types/event';
 import type { Meeting } from '@/types/meeting';
 import type { Reminder } from '@/lib/localStorage/reminders';
+import { CALENDAR_EVENT_COLORS } from '@/lib/constants/chart-colors';
 
 // ── Types unifiés pour le calendrier ──
 
@@ -28,12 +30,7 @@ interface CalendarItem {
   type: CalendarItemType;
 }
 
-const dotColors: Record<CalendarItemType, string> = {
-  event: '#a855f7',
-  meeting: '#60a5fa',
-  reminder: '#f59e0b',
-  post: '#10b981',
-};
+const dotColors: Record<CalendarItemType, string> = CALENDAR_EVENT_COLORS as Record<CalendarItemType, string>;
 
 const typeLabels: Record<CalendarItemType, string> = {
   event: 'Événement',
@@ -49,10 +46,15 @@ interface CalendarViewProps {
 }
 
 export const CalendarView: React.FC<CalendarViewProps> = ({ meetings }) => {
+  const [mounted, setMounted] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { setToolbar } = useToolbar();
 
@@ -124,8 +126,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ meetings }) => {
   const getItemsForDate = (date: Date) =>
     calendarItems.filter((item) => isSameDay(item.date, date));
 
-  const selectedDateItems = getItemsForDate(selectedDate);
-  const hoveredDateItems = hoveredDate ? getItemsForDate(hoveredDate) : [];
+  const selectedDateItems = mounted ? getItemsForDate(selectedDate) : [];
+  const hoveredDateItems = mounted && hoveredDate ? getItemsForDate(hoveredDate) : [];
 
   // ── Navigation ──
 
@@ -163,33 +165,38 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ meetings }) => {
 
   useEffect(() => {
     setToolbar(
-      <PageToolbar className="justify-between bg-[#171717] h-10 min-h-0 p-0 px-4 border-b border-zinc-200 dark:border-zinc-800">
-        <div className="flex items-center gap-4 h-full">
-          <h2 className="text-sm font-bold uppercase text-white tracking-wide">
-            {format(currentDate, 'MMMM yyyy', { locale: fr })}
-          </h2>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={previousMonth}
-              className="flex items-center justify-center w-7 h-7 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <button
-              onClick={nextMonth}
-              className="flex items-center justify-center w-7 h-7 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
-        <button
-          onClick={todayMonth}
-          className="px-2.5 py-1 text-xs font-medium rounded-md border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 transition-colors"
-        >
-          Aujourd&apos;hui
-        </button>
-      </PageToolbar>
+      <PageToolbar
+        filters={
+          <PageToolbarFilters>
+            <h2 className="text-sm font-bold uppercase text-white tracking-wide">
+              {format(currentDate, 'MMMM yyyy', { locale: fr })}
+            </h2>
+            <div className="flex items-center gap-1">
+              <IconButton
+                icon={<ChevronLeft size={16} />}
+                ariaLabel="Mois précédent"
+                variant="ghost"
+                size="sm"
+                onClick={previousMonth}
+                className="flex items-center justify-center w-7 h-7 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+              />
+              <IconButton
+                icon={<ChevronRight size={16} />}
+                ariaLabel="Mois suivant"
+                variant="ghost"
+                size="sm"
+                onClick={nextMonth}
+                className="flex items-center justify-center w-7 h-7 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+              />
+            </div>
+          </PageToolbarFilters>
+        }
+        actions={
+          <PageToolbarActions>
+            <Button onClick={todayMonth}>Aujourd&apos;hui</Button>
+          </PageToolbarActions>
+        }
+      />
     );
     return () => setToolbar(null);
   }, [currentDate, setToolbar]);
@@ -218,13 +225,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ meetings }) => {
           ))}
 
           {daysInMonth.map((day) => {
-            const dayItems = getItemsForDate(day);
+            const dayItems = mounted ? getItemsForDate(day) : [];
             const hasItems = dayItems.length > 0;
             const isSelected = isSameDay(day, selectedDate);
 
             return (
               <div
-                key={day.toISOString()}
+                key={format(day, 'yyyy-MM-dd')}
                 className={cn(
                   'min-h-[90px] border rounded-lg p-2 relative cursor-pointer transition-all',
                   isToday(day) && 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/20',

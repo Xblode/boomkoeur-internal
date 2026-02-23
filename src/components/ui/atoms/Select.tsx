@@ -2,17 +2,43 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { ChevronDown } from 'lucide-react';
 
-export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+export interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
   error?: boolean;
   helperText?: string;
   label?: string;
   options?: { value: string; label: string }[];
+  /** default = standard, sm = compact, xs = toolbar */
+  size?: 'default' | 'sm' | 'xs';
 }
 
+const selectBase =
+  'w-full appearance-none rounded-md border bg-transparent placeholder:text-zinc-500 focus:outline-none focus:ring-1 disabled:cursor-not-allowed disabled:opacity-50 transition-colors [&>option]:bg-white dark:[&>option]:bg-zinc-900 [&>option]:text-zinc-900 dark:[&>option]:text-zinc-100';
+
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, children, error, helperText, label, options, ...props }, ref) => {
+  ({ className, children, error, helperText, label, options, size = 'default', ...props }, ref) => {
+    const isXs = size === 'xs';
+    const isSm = size === 'sm';
+
+    const selectStyles = isXs
+      ? cn(
+          selectBase,
+          "flex h-6 items-center px-2 py-0.5 text-xs pr-7 placeholder:text-zinc-500 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300",
+          error ? "border-red-500 focus:ring-red-500 dark:border-red-500 dark:focus:ring-red-500" : "border-zinc-200 dark:border-zinc-800"
+        )
+      : isSm
+        ? cn(
+            selectBase,
+            "flex h-8 items-center px-2.5 py-1 text-xs pr-8 placeholder:text-zinc-500 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300",
+            error ? "border-red-500 focus:ring-red-500 dark:border-red-500 dark:focus:ring-red-500" : "border-zinc-200 dark:border-zinc-800"
+          )
+        : cn(
+            selectBase,
+            "flex h-10 items-center justify-between px-3 py-2 text-sm pr-8 placeholder:text-zinc-500 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300",
+            error ? "border-red-500 focus:ring-red-500 dark:border-red-500 dark:focus:ring-red-500" : "border-zinc-200 dark:border-zinc-800"
+          );
+
     return (
-      <div className="w-full">
+      <div className={cn('w-full', (isSm || isXs) && 'min-w-0')}>
         {label && (
           <label className="block text-sm font-medium text-foreground mb-1.5">
             {label}
@@ -20,13 +46,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         )}
         <div className="relative w-full">
           <select
-            className={cn(
-              "flex h-9 w-full appearance-none items-center justify-between rounded-md border bg-card-bg px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-950 disabled:cursor-not-allowed disabled:opacity-50 dark:placeholder:text-zinc-400 dark:focus:ring-zinc-300 dark:bg-zinc-900 [&>option]:bg-white dark:[&>option]:bg-zinc-900 [&>option]:text-zinc-900 dark:[&>option]:text-zinc-100",
-              error 
-                ? "border-red-500 focus:ring-red-500 dark:border-red-500 dark:focus:ring-red-500" 
-                : "border-zinc-200 dark:border-zinc-800",
-              className
-            )}
+            className={cn(selectStyles, className)}
             ref={ref}
             {...props}
           >
@@ -40,7 +60,10 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
               children
             )}
           </select>
-          <ChevronDown className="absolute right-3 top-2.5 h-4 w-4 opacity-50 pointer-events-none" />
+          <ChevronDown className={cn(
+            "absolute top-1/2 -translate-y-1/2 opacity-50 pointer-events-none shrink-0",
+            isXs ? "right-1.5 h-3.5 w-3.5" : "right-2.5 h-4 w-4"
+          )} />
         </div>
         {helperText && (
           <p className={cn(

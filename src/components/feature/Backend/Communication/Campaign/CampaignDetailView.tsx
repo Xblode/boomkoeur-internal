@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Calendar, Plus, Settings, LayoutGrid, LayoutList, CalendarRange } from 'lucide-react';
 import { Campaign, SocialPost } from '@/types/communication';
 import { Button, Badge, IconButton } from '@/components/ui/atoms';
+import { EmptyState } from '@/components/ui/molecules';
 import { getCampaignById, saveCampaign, deleteCampaign } from '@/lib/localStorage/communication';
 import { PostCreationWizard } from '../PostWizard';
 import { CampaignSidebar } from './CampaignSidebar';
 import { PostDetailPanel } from './PostDetailPanel';
 import { PostKanbanBoard } from './PostKanbanBoard';
 import { CampaignSettingsModal } from './CampaignSettingsModal';
+import { Modal } from '@/components/ui/organisms';
 
 interface CampaignDetailViewProps {
   campaignId: string;
@@ -128,27 +130,33 @@ export const CampaignDetailView: React.FC<CampaignDetailViewProps> = ({ campaign
         <div className="flex items-center gap-2">
           {/* View Mode Toggle */}
           <div className="flex items-center bg-card-bg border border-border-custom rounded-lg overflow-hidden">
-            <button
+            <IconButton
+              icon={<LayoutList size={18} />}
+              ariaLabel="Vue Liste"
+              variant="ghost"
+              size="sm"
               onClick={() => setViewMode('list')}
               className={`p-2 transition-colors ${viewMode === 'list' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               title="Vue Liste"
-            >
-              <LayoutList size={18} />
-            </button>
-            <button
+            />
+            <IconButton
+              icon={<CalendarRange size={18} />}
+              ariaLabel="Vue Timeline"
+              variant="ghost"
+              size="sm"
               onClick={() => setViewMode('timeline')}
               className={`p-2 transition-colors ${viewMode === 'timeline' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               title="Vue Timeline"
-            >
-              <CalendarRange size={18} />
-            </button>
-            <button
+            />
+            <IconButton
+              icon={<LayoutGrid size={18} />}
+              ariaLabel="Vue Kanban"
+              variant="ghost"
+              size="sm"
               onClick={() => setViewMode('kanban')}
               className={`p-2 transition-colors ${viewMode === 'kanban' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               title="Vue Kanban"
-            >
-              <LayoutGrid size={18} />
-            </button>
+            />
           </div>
 
           <Button variant="outline" size="sm" onClick={() => setIsSettingsOpen(true)}>
@@ -202,14 +210,19 @@ export const CampaignDetailView: React.FC<CampaignDetailViewProps> = ({ campaign
           )}
 
           {campaign.posts.length === 0 && (
-            <div className="h-full bg-card-bg border border-border-custom rounded-xl flex flex-col items-center justify-center">
-              <Plus size={48} className="text-muted-foreground/50 mb-4" />
-              <h3 className="font-bold text-lg text-foreground mb-2">Aucun post</h3>
-              <p className="text-sm text-muted-foreground mb-6">Créez votre premier post pour cette campagne</p>
-              <Button variant="primary" onClick={handleCreatePost}>
-                <Plus size={16} className="mr-2" />
-                Créer un post
-              </Button>
+            <div className="h-full bg-card-bg border border-border-custom rounded-xl flex items-center justify-center p-8">
+              <EmptyState
+                icon={Plus}
+                title="Aucun post"
+                description="Créez votre premier post pour cette campagne"
+                action={
+                  <Button variant="primary" onClick={handleCreatePost}>
+                    <Plus size={16} className="mr-2" />
+                    Créer un post
+                  </Button>
+                }
+                variant="full"
+              />
             </div>
           )}
         </div>
@@ -227,18 +240,21 @@ export const CampaignDetailView: React.FC<CampaignDetailViewProps> = ({ campaign
       )}
 
       {/* Wizard Modal */}
-      {isWizardOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card-bg border border-border-custom rounded-xl w-full max-w-5xl h-[90vh] overflow-hidden shadow-2xl">
-            <PostCreationWizard 
-              campaignId={campaignId}
-              onSave={handleSavePost}
-              onCancel={() => setIsWizardOpen(false)}
-              initialData={editingPost}
-            />
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+        title=""
+        size="xl"
+        variant="fullBleed"
+        showCloseButton={false}
+      >
+        <PostCreationWizard
+          campaignId={campaignId}
+          onSave={handleSavePost}
+          onCancel={() => setIsWizardOpen(false)}
+          initialData={editingPost}
+        />
+      </Modal>
     </div>
   );
 };

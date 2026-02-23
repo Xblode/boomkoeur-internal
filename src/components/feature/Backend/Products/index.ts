@@ -1,5 +1,4 @@
-export { ProductsOverviewLayout } from './ProductsOverviewLayout';
-export { ProductDetailLayout } from './ProductDetailLayout';
+export { ProductDetailLayoutConfig } from './ProductDetailLayoutConfig';
 export { ProductDetailProvider, useProductDetail } from './ProductDetailProvider';
 export { ProductInfoSection } from './ProductInfoSection';
 export { ProductStockSection } from './ProductStockSection';

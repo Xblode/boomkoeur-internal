@@ -3,14 +3,14 @@
 import { useState, useEffect } from 'react'
 import { financeDataService } from '@/lib/services/FinanceDataService'
 import { Button } from '@/components/ui/atoms'
-import { Card, CardContent } from '@/components/ui/molecules'
-import { Plus, TrendingUp, Zap, Wallet, ArrowUpRight, ArrowDownRight, PieChart, CircleDollarSign, Users } from 'lucide-react'
+import { SectionHeader, Card, CardContent } from '@/components/ui/molecules'
+import { Plus, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, PieChart } from 'lucide-react'
 import { NewForecastModal } from '../modals'
 import { getTreasuryForecasts } from '@/lib/stubs/supabase-stubs'
 import type { TreasuryForecast } from '@/types/finance'
-import { TreasuryChartEnhanced, MonthlyComparisonCard, ForecastTimelineCard, CompactKPICard } from './'
+import { TreasuryChartEnhanced, MonthlyComparisonCard, ForecastTimelineCard } from './'
 import { LoadingState, EmptyState } from '@/components/feature/Backend/Finance/shared/components'
-import { safePadStart } from '@/lib/utils'
+import { safePadStart, cn } from '@/lib/utils'
 
 type PeriodType = 'month' | 'quarter' | 'year'
 
@@ -107,11 +107,12 @@ const getTreasuryEvolution = async (period: PeriodType, year: number) => {
 }
 
 interface TresorerieTabEnhancedProps {
+  selectedYear: number
   refreshTrigger?: number
   onAddTransaction?: () => void
 }
 
-export default function TresorerieTabEnhanced({ refreshTrigger, onAddTransaction }: TresorerieTabEnhancedProps) {
+export default function TresorerieTabEnhanced({ selectedYear, refreshTrigger, onAddTransaction }: TresorerieTabEnhancedProps) {
   const [showNewForecastModal, setShowNewForecastModal] = useState(false)
   const [forecasts, setForecasts] = useState<TreasuryForecast[]>([])
   const [treasuryData, setTreasuryData] = useState<any[]>([])
@@ -119,7 +120,6 @@ export default function TresorerieTabEnhanced({ refreshTrigger, onAddTransaction
   const [loading, setLoading] = useState(true)
   const [chartLoading, setChartLoading] = useState(true)
   const [period, setPeriod] = useState<PeriodType>('year')
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
 
   useEffect(() => {
     loadAllData()
@@ -227,6 +227,21 @@ export default function TresorerieTabEnhanced({ refreshTrigger, onAddTransaction
 
   const monthlyComparison = getMonthlyComparison()
 
+  const formatCurrency = (v: number) => `${(v ?? 0).toLocaleString('fr-FR')} EUR`
+  const fluxNet = (kpisData?.monthlyIncome ?? 0) - (kpisData?.monthlyExpenses ?? 0)
+
+  const tresorerieMetadata = [
+    [
+      { icon: Wallet, label: 'Trésorerie', value: <span className="text-sm font-semibold tabular-nums">{formatCurrency(kpisData?.currentBalance)}</span> },
+      { icon: ArrowUpRight, label: 'Revenus mois', value: <span className="text-sm font-semibold tabular-nums text-green-600 dark:text-green-400">{formatCurrency(kpisData?.monthlyIncome)}</span> },
+      { icon: ArrowDownRight, label: 'Dépenses mois', value: <span className="text-sm font-semibold tabular-nums text-red-600 dark:text-red-400">{formatCurrency(kpisData?.monthlyExpenses)}</span> },
+    ],
+    [
+      { icon: TrendingUp, label: 'Flux net', value: <span className={cn('text-sm font-semibold tabular-nums', fluxNet >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>{fluxNet >= 0 ? '+' : ''}{formatCurrency(fluxNet)}</span> },
+      { icon: PieChart, label: 'Budget restant', value: <span className="text-sm font-semibold tabular-nums">{formatCurrency(kpisData?.remainingBudget)}</span> },
+    ],
+  ]
+
   // Filtrer les previsions pour les categories
   const upcomingForecasts = forecasts
     .filter(f => new Date(f.date) >= new Date())
@@ -238,55 +253,15 @@ export default function TresorerieTabEnhanced({ refreshTrigger, onAddTransaction
   }
 
   return (
-    <div className="space-y-4">
-      {/* Section 1 : KPIs compacts en 6 colonnes */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <CompactKPICard
-          label="Tresorerie"
-          value={kpisData?.currentBalance || 0}
-          unit="EUR"
-          icon={Wallet}
-        />
-        
-        <CompactKPICard
-          label="Revenus mois"
-          value={kpisData?.monthlyIncome || 0}
-          unit="EUR"
-          icon={ArrowUpRight}
-          trend={kpisData?.incomeChange}
-          trendLabel="vs M-1"
-        />
-        
-        <CompactKPICard
-          label="Depenses mois"
-          value={kpisData?.monthlyExpenses || 0}
-          unit="EUR"
-          icon={ArrowDownRight}
-          trend={kpisData?.expensesChange}
-          trendLabel="vs M-1"
-        />
-        
-        <CompactKPICard
-          label="Flux net"
-          value={(kpisData?.monthlyIncome || 0) - (kpisData?.monthlyExpenses || 0)}
-          unit="EUR"
-          icon={TrendingUp}
-        />
-        
-        <CompactKPICard
-          label="Budget restant"
-          value={kpisData?.remainingBudget || 0}
-          unit="EUR"
-          icon={PieChart}
-        />
-        
-        <CompactKPICard
-          label="Adhesions"
-          value={kpisData?.membershipsCount || 0}
-          unit="memb."
-          icon={Users}
-        />
-      </div>
+    <div className="space-y-6">
+      {/* En-tête : titre + KPIs en métadonnées */}
+      <SectionHeader
+        title="Trésorerie"
+        icon={<Wallet size={28} />}
+        subtitle="Vue d'ensemble de votre trésorerie, graphique et prévisions."
+        metadata={tresorerieMetadata}
+        gridColumns="130px 1fr 130px 1fr 130px 1fr"
+      />
 
       {/* Section 2 : Graphique principal ameliore */}
       <section>
@@ -296,7 +271,6 @@ export default function TresorerieTabEnhanced({ refreshTrigger, onAddTransaction
           period={period}
           selectedYear={selectedYear}
           onPeriodChange={setPeriod}
-          onYearChange={setSelectedYear}
           onAddTransaction={onAddTransaction}
         />
       </section>
@@ -308,63 +282,44 @@ export default function TresorerieTabEnhanced({ refreshTrigger, onAddTransaction
       />
 
       {/* Section 4 : Previsions avec timeline */}
-      <section>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 mt-8">
-          <h3 className="font-heading text-2xl font-bold uppercase">
-            Previsions a venir
-          </h3>
-          
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-zinc-500">
-              {upcomingForecasts.length} prevision{upcomingForecasts.length > 1 ? 's' : ''}
-            </span>
+      {upcomingForecasts.length === 0 ? (
+        <EmptyState
+          icon={TrendingUp}
+          title="Aucune prevision a venir"
+          description="Creez des previsions pour anticiper les mouvements de tresorerie et mieux gerer votre cash-flow."
+          action={
             <Button
               variant="primary"
               size="sm"
               onClick={() => setShowNewForecastModal(true)}
-              className="bg-purple-500 hover:bg-purple-600 border-purple-500"
             >
               <Plus className="w-4 h-4 mr-2" />
               Nouvelle prevision
             </Button>
+          }
+          className="h-[300px]"
+        />
+      ) : (
+        <Card variant="outline">
+          <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+            <h4 className="text-sm font-semibold">
+              Previsions a venir
+            </h4>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-zinc-500">
+                {upcomingForecasts.length} prevision{upcomingForecasts.length > 1 ? 's' : ''}
+              </span>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setShowNewForecastModal(true)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Nouvelle prevision
+              </Button>
+            </div>
           </div>
-        </div>
-        
-        {upcomingForecasts.length === 0 ? (
-          <div className="space-y-4">
-            <EmptyState
-              icon={TrendingUp}
-              title="Aucune prevision a venir"
-              description="Creez des previsions pour anticiper les mouvements de tresorerie."
-            />
-            
-            <Card className="bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800">
-              <CardContent className="p-4 flex items-start gap-3">
-                <Zap className="w-5 h-5 text-amber-500 mt-0.5" />
-                <div>
-                  <h4 className="font-bold text-sm text-amber-700 dark:text-amber-400 uppercase mb-1">
-                    Conseil
-                  </h4>
-                  <p className="text-sm text-amber-600 dark:text-amber-500/90">
-                    Creez des previsions pour anticiper les entrees et sorties d'argent et mieux gerer votre tresorerie.
-                    Cela vous aidera a eviter les mauvaises surprises.
-                  </p>
-                  <div className="mt-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowNewForecastModal(true)}
-                      className="text-amber-700 border-amber-300 hover:bg-amber-100 dark:text-amber-400 dark:border-amber-700 dark:hover:bg-amber-900/30"
-                    >
-                      <Plus className="w-3.5 h-3.5 mr-1.5" />
-                      Ajouter une prevision
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {upcomingForecasts.map((forecast) => (
               <ForecastTimelineCard
@@ -373,8 +328,9 @@ export default function TresorerieTabEnhanced({ refreshTrigger, onAddTransaction
               />
             ))}
           </div>
-        )}
-      </section>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Modal Nouvelle Prevision */}
       <NewForecastModal

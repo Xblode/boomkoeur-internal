@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { financeDataService } from '@/lib/services/FinanceDataService'
-import { Modal } from '@/components/ui/organisms'
-import { Button } from '@/components/ui/atoms'
-import { Input } from '@/components/ui/atoms'
-import { Select } from '@/components/ui/atoms'
+import { Modal, ModalFooter } from '@/components/ui/organisms'
+import { Button, Input, Select } from '@/components/ui/atoms'
+import { EmptyState, LoadingState } from '@/components/ui/molecules'
 import { CheckCheck, Search } from 'lucide-react'
 import type { Transaction } from '@/types/finance'
 import { cn } from '@/lib/utils'
@@ -158,11 +157,12 @@ export default function BankReconciliationModal({
         {/* Liste des transactions */}
         <div className="space-y-2 max-h-96 overflow-y-auto">
           {loading ? (
-            <div className="text-center py-8 text-zinc-500">Chargement...</div>
+            <LoadingState message="Chargement..." />
           ) : filteredTransactions.length === 0 ? (
-            <div className="text-center py-8 text-zinc-500">
-              <p>Aucune transaction a rapprocher</p>
-            </div>
+            <EmptyState
+              title="Aucune transaction à rapprocher"
+              variant="compact"
+            />
           ) : (
             filteredTransactions.map((transaction) => (
               <div
@@ -226,13 +226,13 @@ export default function BankReconciliationModal({
           )}
         </div>
 
-        {/* Actions */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-border-custom">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
-            Fermer
-          </Button>
-        </div>
       </div>
+
+      <ModalFooter>
+        <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={loading}>
+          Fermer
+        </Button>
+      </ModalFooter>
     </Modal>
   )
 }

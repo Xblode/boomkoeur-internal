@@ -26,6 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/molecu
 import { Badge } from '@/components/ui/atoms';
 import { Button } from '@/components/ui/atoms';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { CHART_SERIES_COLORS } from '@/lib/constants/chart-colors';
 
 // Services
 import { meetingService } from '@/lib/services/MeetingService';
@@ -145,19 +146,10 @@ export const DashboardStats: React.FC = () => {
         revenueBySource[category] = (revenueBySource[category] || 0) + t.amount;
       });
 
-      const colors = {
-        'Billetterie': '#22c55e',
-        'Bar': '#3b82f6',
-        'Merchandising': '#a855f7',
-        'Adhésions': '#f59e0b',
-        'Subventions': '#ec4899',
-        'Autre': '#6b7280',
-      };
-
       const revenueBreakdown = Object.entries(revenueBySource).map(([source, amount]) => ({
         source,
         amount,
-        color: colors[source as keyof typeof colors] || colors['Autre'],
+        color: CHART_SERIES_COLORS[source] || CHART_SERIES_COLORS['Autre'],
       }));
 
       // Finance - Month comparison
@@ -315,7 +307,7 @@ export const DashboardStats: React.FC = () => {
           <CardContent className="p-4 flex flex-col justify-between h-full">
             <div className="flex justify-between items-start mb-2">
               <span className="text-xs font-medium text-muted-foreground uppercase">Revenus ({currentMonthName})</span>
-              <DollarSign className="w-4 h-4 text-[#939393]" />
+              <DollarSign className="w-4 h-4 text-text-tertiary" />
             </div>
             <div>
               <div className="text-2xl font-bold">{data.finance.monthComparison.current.revenue.toLocaleString('fr-FR')} €</div>
@@ -332,7 +324,7 @@ export const DashboardStats: React.FC = () => {
           <CardContent className="p-4 flex flex-col justify-between h-full">
             <div className="flex justify-between items-start mb-2">
               <span className="text-xs font-medium text-muted-foreground uppercase">Commandes</span>
-              <ShoppingCart className="w-4 h-4 text-[#939393]" />
+              <ShoppingCart className="w-4 h-4 text-text-tertiary" />
             </div>
             <div>
               <div className="text-2xl font-bold">{data.orders.count}</div>
@@ -348,7 +340,7 @@ export const DashboardStats: React.FC = () => {
           <CardContent className="p-4 flex flex-col justify-between h-full">
             <div className="flex justify-between items-start mb-2">
               <span className="text-xs font-medium text-muted-foreground uppercase">Événements</span>
-              <Music className="w-4 h-4 text-[#939393]" />
+              <Music className="w-4 h-4 text-text-tertiary" />
             </div>
             <div>
               <div className="text-2xl font-bold">{data.events.inPreparation.length}</div>
@@ -364,7 +356,7 @@ export const DashboardStats: React.FC = () => {
           <CardContent className="p-4 flex flex-col justify-between h-full">
             <div className="flex justify-between items-start mb-2">
               <span className="text-xs font-medium text-muted-foreground uppercase">Communication</span>
-              <MessageCircle className="w-4 h-4 text-[#939393]" />
+              <MessageCircle className="w-4 h-4 text-text-tertiary" />
             </div>
             <div>
               <div className="text-2xl font-bold">{data.communication.postsToValidate.length}</div>
@@ -479,8 +471,8 @@ export const DashboardStats: React.FC = () => {
                         formatter={(value: number | undefined) => [`${value ?? 0} €`, '']}
                       />
                       <Legend iconSize={8} wrapperStyle={{ fontSize: '10px' }} />
-                      <Bar dataKey="Revenus" fill="#22c55e" radius={[4, 4, 0, 0]} barSize={30} />
-                      <Bar dataKey="Dépenses" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={30} />
+                      <Bar dataKey="Revenus" fill={CHART_SERIES_COLORS.revenue} radius={[4, 4, 0, 0]} barSize={30} />
+                      <Bar dataKey="Dépenses" fill={CHART_SERIES_COLORS.expense} radius={[4, 4, 0, 0]} barSize={30} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -541,7 +533,7 @@ export const DashboardStats: React.FC = () => {
                       <li key={order.id}>
                         <Link 
                           href={`/dashboard/products?tab=orders&orderId=${order.id}`}
-                          className="flex items-center justify-between text-sm p-2 rounded-md transition-colors cursor-pointer group bg-[#262626] border border-[#313133] hover:bg-[#333333]"
+                          className="flex items-center justify-between text-sm p-2 rounded-md transition-colors cursor-pointer group bg-surface-elevated border border-border-custom hover:bg-surface-subtle"
                         >
                           <div className="flex items-center gap-2 overflow-hidden">
                             <Package className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 group-hover:text-primary transition-colors" />
@@ -578,7 +570,7 @@ export const DashboardStats: React.FC = () => {
                       <li key={post.id}>
                         <Link 
                           href={`/dashboard/communication/${post.id}`}
-                          className="flex items-center justify-between text-sm p-2 rounded-md transition-colors cursor-pointer group bg-[#262626] border border-[#313133] hover:bg-[#333333]"
+                          className="flex items-center justify-between text-sm p-2 rounded-md transition-colors cursor-pointer group bg-surface-elevated border border-border-custom hover:bg-surface-subtle"
                         >
                           <div className="flex items-center gap-2">
                             <span className="text-muted-foreground group-hover:text-primary transition-colors">{getPlatformIcon(post.platform)}</span>

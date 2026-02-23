@@ -6,6 +6,8 @@ import { orderDataService } from '@/lib/services/OrderDataService';
 import { OrderStats, OrderFilters } from '@/types/order';
 import OrderKPIs from './OrderKPIs';
 import OrdersList from './OrdersList';
+import { SectionHeader } from '@/components/ui/molecules';
+import { ShoppingCart } from 'lucide-react';
 
 interface OrdersDashboardProps {
   filters: OrderFilters;
@@ -34,6 +36,12 @@ export default function OrdersDashboard({ filters }: OrdersDashboardProps) {
 
   return (
     <div className="space-y-6">
+      <SectionHeader
+        icon={<ShoppingCart size={28} />}
+        title="Commandes"
+        subtitle="Suivez vos commandes et livraisons"
+      />
+
       {/* KPIs */}
       {isLoading ? (
         <div className="text-center py-12">Chargement...</div>

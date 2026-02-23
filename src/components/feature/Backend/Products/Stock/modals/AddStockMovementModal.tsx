@@ -138,13 +138,14 @@ export default function AddStockMovementModal({ isOpen, onClose }: AddStockMovem
         
         {/* Type de mouvement */}
         <div className="grid grid-cols-2 gap-4">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => {
               setType('out');
               setReason('sale');
             }}
-            className={`flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-colors ${
+            className={`flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-colors h-auto ${
               type === 'out'
                 ? 'border-red-500 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
                 : 'border-zinc-200 hover:border-red-200 dark:border-zinc-800'
@@ -152,15 +153,16 @@ export default function AddStockMovementModal({ isOpen, onClose }: AddStockMovem
           >
             <ArrowDownCircle size={24} />
             <span className="font-semibold">Sortie (Vente, Perte)</span>
-          </button>
+          </Button>
           
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => {
               setType('in');
               setReason('purchase');
             }}
-            className={`flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-colors ${
+            className={`flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-colors h-auto ${
               type === 'in'
                 ? 'border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
                 : 'border-zinc-200 hover:border-green-200 dark:border-zinc-800'
@@ -168,7 +170,7 @@ export default function AddStockMovementModal({ isOpen, onClose }: AddStockMovem
           >
             <ArrowUpCircle size={24} />
             <span className="font-semibold">Entrée (Achat, Retour)</span>
-          </button>
+          </Button>
         </div>
 
         {/* Sélection Produit */}

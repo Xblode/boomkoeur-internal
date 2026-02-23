@@ -12,6 +12,7 @@ export default function ProfileSecuritePage() {
       </div>
 
       <Card
+        variant="settings"
         title="Mot de passe"
         description="Gérez votre mot de passe et la sécurité de votre compte."
       >

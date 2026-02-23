@@ -1,11 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
-import { use } from 'react';
+import { useEffect, use } from 'react';
 import { ProductProvider } from '@/components/providers';
 import { initializeProductsDemoData } from '@/lib/mocks/products/demoData';
 import { initializeOrdersDemoData } from '@/lib/mocks/orders/demoData';
-import { ProductDetailLayout } from '@/components/feature/Backend/Products/ProductDetailLayout';
+import { ProductDetailLayoutConfig } from '@/components/feature/Backend/Products/ProductDetailLayoutConfig';
 
 interface ProductDetailLayoutRouteProps {
   children: React.ReactNode;
@@ -22,7 +21,7 @@ export default function ProductDetailLayoutRoute({ children, params }: ProductDe
 
   return (
     <ProductProvider>
-      <ProductDetailLayout productId={id}>{children}</ProductDetailLayout>
+      <ProductDetailLayoutConfig productId={id}>{children}</ProductDetailLayoutConfig>
     </ProductProvider>
   );
 }

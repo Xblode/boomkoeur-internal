@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Modal, ModalFooter } from '@/components/ui/organisms/Modal';
-import { Button, Input } from '@/components/ui/atoms';
+import { Button, Input, Select } from '@/components/ui/atoms';
 import { FormField } from '@/components/ui/molecules';
 import { User, UserInput } from '@/types/user';
 import { userService } from '@/lib/services/UserService';
@@ -120,27 +120,27 @@ export default function UserForm({ isOpen, onClose, onSuccess, user }: UserFormP
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label="Rôle" required>
-              <select
+              <Select
                 value={formData.role}
                 onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as 'admin' | 'member' }))}
-                className="w-full h-10 px-3 text-sm bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                options={[
+                  { value: 'member', label: 'Membre' },
+                  { value: 'admin', label: 'Administrateur' },
+                ]}
                 required
-              >
-                <option value="member">Membre</option>
-                <option value="admin">Administrateur</option>
-              </select>
+              />
             </FormField>
 
             <FormField label="Statut" required>
-              <select
+              <Select
                 value={formData.status}
                 onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as 'active' | 'inactive' }))}
-                className="w-full h-10 px-3 text-sm bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                options={[
+                  { value: 'active', label: 'Actif' },
+                  { value: 'inactive', label: 'Inactif' },
+                ]}
                 required
-              >
-                <option value="active">Actif</option>
-                <option value="inactive">Inactif</option>
-              </select>
+              />
             </FormField>
           </div>
 
@@ -172,10 +172,10 @@ export default function UserForm({ isOpen, onClose, onSuccess, user }: UserFormP
         </div>
 
         <ModalFooter>
-          <Button type="button" variant="secondary" onClick={onClose}>
+          <Button type="button" variant="outline" size="sm" onClick={onClose}>
             Annuler
           </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
+          <Button type="submit" variant="primary" size="sm" disabled={isSubmitting}>
             {isSubmitting ? 'Enregistrement...' : user ? 'Mettre à jour' : 'Créer'}
           </Button>
         </ModalFooter>

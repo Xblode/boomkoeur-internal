@@ -2,9 +2,9 @@
 
 import React from "react";
 import Image from "next/image";
-import { Card, CardContent } from "@/components/ui/molecules";
-import { Event } from "@/types/event";
-import { EventStatusBadge } from "./EventStatusBadge";
+import { Card, CardContent, CardMedia, CardFooter, CardDateBadge } from "@/components/ui/molecules";
+import { Badge, Chip, IconButton } from "@/components/ui/atoms";
+import { Event, EventStatus } from "@/types/event";
 import {
   MessageSquare,
   Edit,
@@ -48,6 +48,21 @@ export const EventCard: React.FC<EventCardProps> = ({
     }
   };
 
+  const STATUS_VARIANT: Record<EventStatus, 'warning' | 'info' | 'success' | 'secondary' | 'default'> = {
+    idea: 'warning',
+    preparation: 'info',
+    confirmed: 'success',
+    completed: 'secondary',
+    archived: 'default',
+  };
+  const STATUS_LABEL: Record<EventStatus, string> = {
+    idea: 'Idée',
+    preparation: 'Préparation',
+    confirmed: 'Confirmé',
+    completed: 'Terminé',
+    archived: 'Archivé',
+  };
+
   const hasImage = !!event.media?.posterShotgun;
   const artistsText =
     event.artists.length > 0
@@ -59,13 +74,14 @@ export const EventCard: React.FC<EventCardProps> = ({
 
   return (
     <Card
-      className="group relative overflow-hidden transition-all duration-300 cursor-pointer flex flex-col h-full bg-[#1f1f1f] border-zinc-800 hover:shadow-xl"
+      variant="list"
+      className="group relative overflow-hidden transition-all duration-300 cursor-pointer flex flex-col h-full hover:shadow-xl"
       onClick={() => onClick(event)}
     >
       <CardContent className="p-0 flex flex-col h-full">
         {/* Image d'en-tête - format paysage (16:9) avec padding et coins arrondis */}
         <div className="p-2 pt-2">
-          <div className="relative w-full aspect-video overflow-hidden rounded-lg bg-[#262626] border border-zinc-800 flex items-center justify-center">
+          <CardMedia aspectRatio="video" placeholder={!hasImage}>
             {hasImage ? (
               <Image
                 src={event.media!.posterShotgun!}
@@ -75,9 +91,9 @@ export const EventCard: React.FC<EventCardProps> = ({
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               />
             ) : (
-              <CalendarDays className="w-16 h-16 text-zinc-600" aria-hidden />
+              <CalendarDays size={48} className="text-zinc-600" aria-hidden />
             )}
-          </div>
+          </CardMedia>
         </div>
 
         {/* Section Titre, Statut, Lieu + Bloc Date */}
@@ -87,20 +103,19 @@ export const EventCard: React.FC<EventCardProps> = ({
               <h3 className="flex-1 font-bold text-lg text-white leading-tight line-clamp-2 group-hover:text-white/90 transition-colors min-w-0">
                 {event.name}
               </h3>
-              <EventStatusBadge status={event.status} className="flex-shrink-0 shadow-none rounded-full" />
+              <Badge variant={STATUS_VARIANT[event.status]} className="flex-shrink-0 shadow-none">
+                {STATUS_LABEL[event.status]}
+              </Badge>
             </div>
             <p className="text-sm text-zinc-400 font-medium">{event.location}</p>
           </div>
 
-          {/* Bloc Date - hauteur définie par le contenu, pas par la ligne */}
-          <div className="flex-shrink-0 self-start flex flex-col items-center justify-center bg-[#262626] border border-[#313133] rounded-lg px-3 py-2 min-w-[3.5rem]">
-            <span className="text-xs font-medium text-zinc-400 uppercase">
-              {format(event.date, "MMM", { locale: fr })}
-            </span>
-            <span className="text-2xl font-bold text-white leading-none mt-0.5">
-              {format(event.date, "dd", { locale: fr })}
-            </span>
-          </div>
+          {/* Bloc Date */}
+          <CardDateBadge
+            month={format(event.date, "MMM", { locale: fr })}
+            day={format(event.date, "dd", { locale: fr })}
+            className="self-start"
+          />
         </div>
 
         {/* Tags, Artistes, Horaires */}
@@ -108,64 +123,62 @@ export const EventCard: React.FC<EventCardProps> = ({
           {event.tags && event.tags.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {event.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-medium bg-[#262626] text-[#939393]"
-                >
-                  {tag}
-                </span>
+                <Chip key={tag} label={tag} variant="default" className="!bg-surface-elevated !text-text-tertiary !border-zinc-700" />
               ))}
             </div>
           )}
 
-          <div className="space-y-2 text-sm text-[#939393]">
+          <div className="space-y-2 text-sm text-text-tertiary">
             {artistsText && (
               <div className="flex items-center gap-2.5">
-                <Music className="h-4 w-4 text-[#939393] flex-shrink-0" />
+                <Music className="h-4 w-4 text-text-tertiary flex-shrink-0" />
                 <span className="line-clamp-1">{artistsText}</span>
               </div>
             )}
             <div className="flex items-center gap-2.5">
-              <Music className="h-4 w-4 text-[#939393] flex-shrink-0" />
+              <Music className="h-4 w-4 text-text-tertiary flex-shrink-0" />
               <span>{timeRange}</span>
             </div>
           </div>
         </div>
 
         {/* Pied de page */}
-        <div className="mt-auto px-4 py-3 border-t border-zinc-800 flex items-center justify-between">
+        <CardFooter variant="list" className="mt-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-sm text-white">
             <MessageSquare className="h-4 w-4 text-zinc-400" />
             <span className="font-medium">{event.comments.length}</span>
           </div>
 
           <div className="flex items-center gap-1">
-            <button
-              type="button"
+            <IconButton
+              icon={<Edit className="h-4 w-4" />}
+              ariaLabel="Éditer"
+              variant="ghost"
+              size="sm"
               onClick={handleEdit}
               className="p-2 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
               title="Éditer"
-            >
-              <Edit className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
+            />
+            <IconButton
+              icon={<Copy className="h-4 w-4" />}
+              ariaLabel="Dupliquer"
+              variant="ghost"
+              size="sm"
               onClick={handleDuplicate}
               className="p-2 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
               title="Dupliquer"
-            >
-              <Copy className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
+            />
+            <IconButton
+              icon={<Trash2 className="h-4 w-4" />}
+              ariaLabel="Supprimer"
+              variant="ghost"
+              size="sm"
               onClick={handleDelete}
               className="p-2 rounded-md text-zinc-400 hover:text-red-400 hover:bg-zinc-800 transition-colors"
               title="Supprimer"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
+            />
           </div>
-        </div>
+        </CardFooter>
       </CardContent>
     </Card>
   );

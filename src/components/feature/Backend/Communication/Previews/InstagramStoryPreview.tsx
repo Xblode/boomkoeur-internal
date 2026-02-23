@@ -3,7 +3,7 @@
 import React from 'react';
 import { Music, X } from 'lucide-react';
 import { SocialPost } from '@/types/communication';
-import { Avatar } from '@/components/ui/atoms';
+import { Avatar, IconButton } from '@/components/ui/atoms';
 
 interface InstagramStoryPreviewProps {
   post: SocialPost;
@@ -60,9 +60,13 @@ export const InstagramStoryPreview: React.FC<InstagramStoryPreviewProps> = ({
             </span>
             <span className="text-white/80 text-xs">Maintenant</span>
           </div>
-          <button className="text-white">
-            <X size={24} />
-          </button>
+          <IconButton
+            icon={<X size={24} />}
+            ariaLabel="Fermer"
+            variant="ghost"
+            size="lg"
+            className="text-white hover:bg-white/10"
+          />
         </div>
 
         {/* Musique si présente */}

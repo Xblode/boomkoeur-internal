@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createPortal } from 'react-dom';
-import { Button } from '../atoms/Button';
+import { Button, IconButton, Input } from '@/components/ui/atoms';
 import { cn } from '@/lib/utils';
 import { LogOut, User, Settings, Search, X, Calendar, Shield } from 'lucide-react';
 import { Breadcrumb } from '../molecules/Breadcrumb';
@@ -38,7 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
   if (variant === 'admin') {
     return (
       <header className={cn(
-        "fixed top-0 left-0 right-0 z-50 h-[60px] border-b border-zinc-200 bg-white backdrop-blur-md dark:border-zinc-800 dark:bg-[#171717] flex",
+        "fixed top-0 left-0 right-0 z-50 h-[60px] border-b border-zinc-200 bg-white backdrop-blur-md dark:border-zinc-800 dark:bg-backend flex",
         className
       )}>
         {/* Logo Area (60px width to match sidebar) */}
@@ -55,22 +55,26 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div className="flex items-center gap-2 sm:gap-2">
             {/* Search Trigger */}
-            <button
+            <Button
+              type="button"
+              variant="ghost"
               onClick={() => setIsSearchOpen(true)}
-              className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-sm text-zinc-500 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700/50 rounded-full transition-colors w-48 lg:w-64"
+              aria-label="Rechercher"
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-sm text-zinc-500 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700/50 rounded-full w-48 lg:w-64 border-0 h-auto"
             >
               <Search size={14} />
               <span className="flex-1 text-left">Rechercher...</span>
               <kbd className="hidden lg:inline-flex h-5 items-center gap-1 rounded border border-zinc-200 bg-zinc-50 px-1.5 font-mono text-[10px] font-medium text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 ml-auto opacity-50">
                 <span className="text-xs">⌘</span>K
               </kbd>
-            </button>
-            <button
-               onClick={() => setIsSearchOpen(true)}
-               className="sm:hidden p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
-            >
-               <Search size={18} />
-            </button>
+            </Button>
+            <IconButton
+              icon={Search}
+              ariaLabel="Rechercher"
+              variant="ghost"
+              onClick={() => setIsSearchOpen(true)}
+              className="sm:hidden p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full h-auto w-auto"
+            />
 
             {/* Calendar */}
             <Link
@@ -83,11 +87,15 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* User Menu */}
             <div className="relative">
-              <button 
+              <Button
+                type="button"
+                variant="ghost"
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="relative flex items-center justify-center rounded-full transition-colors group"
+                aria-label="Menu utilisateur"
+                aria-expanded={isUserMenuOpen}
+                className="relative flex items-center justify-center rounded-full p-0 h-8 w-8 min-w-8 border-0"
               >
-                <div className="h-8 w-8 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden relative">
+                <div className="h-8 w-8 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden relative group">
                    {user.avatar ? (
                      <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
                    ) : (
@@ -95,7 +103,7 @@ export const Header: React.FC<HeaderProps> = ({
                    )}
                    <div className="absolute inset-0 bg-white/0 group-hover:bg-white/20 transition-colors duration-200" />
                 </div>
-              </button>
+              </Button>
 
               {/* Dropdown */}
               {isUserMenuOpen && (
@@ -104,7 +112,7 @@ export const Header: React.FC<HeaderProps> = ({
                     className="fixed inset-0 z-40" 
                     onClick={() => setIsUserMenuOpen(false)} 
                   />
-                  <div className="absolute right-0 mt-2 w-56 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-[#171717] z-50 p-1 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="absolute right-0 mt-2 w-56 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-backend z-50 p-1 animate-in fade-in zoom-in-95 duration-200">
                     <div className="px-2 py-1.5 border-b border-zinc-100 dark:border-zinc-800 mb-1">
                       <p className="text-sm font-medium">{user.name}</p>
                       <p className="text-xs text-zinc-500">{user.email}</p>
@@ -133,13 +141,15 @@ export const Header: React.FC<HeaderProps> = ({
                       <Shield size={16} />
                       Administratif
                     </Link>
-                    <button 
-                      className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 mt-1"
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 mt-1 justify-start h-auto border-0"
                       onClick={() => setIsUserMenuOpen(false)}
                     >
                       <LogOut size={16} />
                       Déconnexion
-                    </button>
+                    </Button>
                   </div>
                 </>
               )}
@@ -151,23 +161,25 @@ export const Header: React.FC<HeaderProps> = ({
         {isSearchOpen && mounted && createPortal(
           <>
             <div 
-              className="fixed inset-0 z-[60] bg-black/20 backdrop-blur-sm animate-in fade-in duration-200"
+              className="fixed inset-0 z-[var(--z-overlay)] bg-black/20 backdrop-blur-sm animate-in fade-in duration-200"
               onClick={() => setIsSearchOpen(false)}
             />
-            <div className="fixed inset-x-4 top-[20%] z-[60] max-w-2xl mx-auto overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-[#171717] animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200">
+            <div className="fixed inset-x-4 top-[20%] z-[var(--z-overlay)] max-w-2xl mx-auto overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-backend animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200">
               <div className="flex items-center border-b border-zinc-100 dark:border-zinc-800 px-3">
                 <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                <input 
+                <Input
                   autoFocus
                   placeholder="Rechercher dans le site..."
-                  className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-zinc-500 disabled:cursor-not-allowed disabled:opacity-50 text-zinc-900 dark:text-zinc-100"
+                  className="flex-1 min-w-0 border-0 shadow-none focus-visible:ring-0 h-11 py-3 bg-transparent"
                 />
-                <button 
+                <IconButton
+                  icon={X}
+                  ariaLabel="Fermer la recherche"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setIsSearchOpen(false)}
-                  className="ml-2 p-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500"
-                >
-                  <X size={16} />
-                </button>
+                  className="ml-2 p-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 h-auto w-auto"
+                />
               </div>
               <div className="py-6 text-center text-sm text-zinc-500">
                 Aucun résultat trouvé.

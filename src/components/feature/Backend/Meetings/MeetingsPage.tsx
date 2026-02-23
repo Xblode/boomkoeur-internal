@@ -2,12 +2,17 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Meeting } from '@/types/meeting';
+import { Meeting, MeetingStatus } from '@/types/meeting';
 import MeetingsList from '@/components/feature/Backend/Meetings/MeetingsList';
 import MeetingForm from '@/components/feature/Backend/Meetings/MeetingForm';
+import { MeetingFilters } from '@/components/feature/Backend/Meetings/MeetingFilters';
 import { meetingService } from '@/lib/services/MeetingService';
 import { Button } from '@/components/ui/atoms';
-import { Plus } from 'lucide-react';
+import { SectionHeader } from '@/components/ui/molecules';
+import { Plus, CalendarDays } from 'lucide-react';
+
+type SortField = 'date' | 'title';
+type SortOrder = 'asc' | 'desc';
 
 export default function MeetingsPage() {
   const router = useRouter();
@@ -15,6 +20,9 @@ export default function MeetingsPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
+  const [statusFilter, setStatusFilter] = useState<MeetingStatus | 'all'>('upcoming');
+  const [sortField, setSortField] = useState<SortField>('date');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
@@ -61,25 +69,34 @@ export default function MeetingsPage() {
 
   return (
     <div className="w-full space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Réunions</h1>
-          <p className="text-muted-foreground">
-            Gérez vos réunions et comptes-rendus
-          </p>
-        </div>
-        <Button variant="primary" size="sm" onClick={handleCreateMeeting} disabled={isCreating}>
-          <Plus className="h-4 w-4 mr-2" />
-          {isCreating ? 'Création...' : 'Nouvelle réunion'}
-        </Button>
-      </div>
+      <SectionHeader
+        icon={<CalendarDays size={28} />}
+        title="Réunions"
+        subtitle="Gérez vos réunions et comptes-rendus"
+        actions={
+          <Button variant="primary" size="sm" onClick={handleCreateMeeting} disabled={isCreating}>
+            <Plus className="h-4 w-4 mr-2" />
+            {isCreating ? 'Création...' : 'Nouvelle réunion'}
+          </Button>
+        }
+        filters={
+          <MeetingFilters
+            statusFilter={statusFilter}
+            sortField={sortField}
+            sortOrder={sortOrder}
+            onStatusFilterChange={setStatusFilter}
+            onSortChange={(f, o) => { setSortField(f); setSortOrder(o); }}
+          />
+        }
+      />
 
-      {/* Meetings List */}
       <MeetingsList
         onEditMeeting={handleEditMeeting}
         onDeleteMeeting={handleDeleteMeeting}
         refreshTrigger={refreshKey}
+        statusFilter={statusFilter}
+        sortField={sortField}
+        sortOrder={sortOrder}
       />
 
       {/* Meeting Form Modal (edit only) */}

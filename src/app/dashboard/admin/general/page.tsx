@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { Card, CardContent, CardFooter } from '@/components/ui/molecules';
-import { Button, Input, Label } from '@/components/ui/atoms';
+import { Card, CardContent, CardFooter, SettingsCardRow } from '@/components/ui/molecules';
+import { Button, Input } from '@/components/ui/atoms';
 
 export default function AdminGeneralPage() {
   const [settings, setSettings] = useState({
@@ -31,65 +31,57 @@ export default function AdminGeneralPage() {
 
       <form onSubmit={handleSubmit}>
         <Card
+          variant="settings"
           title="Informations générales"
           description="Paramètres globaux du site."
         >
           <CardContent className="p-0 divide-y divide-border-custom">
 
-            <div className="flex flex-col md:flex-row gap-4 p-4">
-              <div className="w-full md:w-1/3 space-y-1">
-                <Label htmlFor="siteName" className="text-base font-medium">Nom du site</Label>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  Le nom qui apparaîtra dans l&apos;onglet du navigateur.
-                </p>
-              </div>
-              <div className="w-full md:w-2/3 flex justify-end">
-                <Input
-                  id="siteName"
-                  className="max-w-md"
-                  value={settings.siteName}
-                  onChange={(e) => setSettings({ ...settings, siteName: e.target.value })}
-                  placeholder="Nom de votre site"
-                />
-              </div>
-            </div>
+            <SettingsCardRow
+              label="Nom du site"
+              description="Le nom qui apparaîtra dans l'onglet du navigateur."
+              htmlFor="siteName"
+              controlClassName="w-full md:w-2/3 flex justify-end"
+            >
+              <Input
+                id="siteName"
+                className="max-w-md"
+                value={settings.siteName}
+                onChange={(e) => setSettings({ ...settings, siteName: e.target.value })}
+                placeholder="Nom de votre site"
+              />
+            </SettingsCardRow>
 
-            <div className="flex flex-col md:flex-row gap-4 p-4">
-              <div className="w-full md:w-1/3 space-y-1">
-                <Label htmlFor="siteDescription" className="text-base font-medium">Description</Label>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  Courte description utilisée pour le SEO.
-                </p>
-              </div>
-              <div className="w-full md:w-2/3 flex justify-end">
-                <Input
-                  id="siteDescription"
-                  className="max-w-md"
-                  value={settings.siteDescription}
-                  onChange={(e) => setSettings({ ...settings, siteDescription: e.target.value })}
-                  placeholder="Description de votre site"
-                />
-              </div>
-            </div>
+            <SettingsCardRow
+              label="Description"
+              description="Courte description utilisée pour le SEO."
+              htmlFor="siteDescription"
+              controlClassName="w-full md:w-2/3 flex justify-end"
+            >
+              <Input
+                id="siteDescription"
+                className="max-w-md"
+                value={settings.siteDescription}
+                onChange={(e) => setSettings({ ...settings, siteDescription: e.target.value })}
+                placeholder="Description de votre site"
+              />
+            </SettingsCardRow>
 
-            <div className="flex flex-col md:flex-row gap-4 p-4">
-              <div className="w-full md:w-1/3 space-y-1">
-                <Label htmlFor="adminEmail" className="text-base font-medium">Email administrateur</Label>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  Utilisé pour les notifications système.
-                </p>
-              </div>
-              <div className="w-full md:w-2/3 flex justify-end">
-                <Input
-                  id="adminEmail"
-                  type="email"
-                  className="max-w-md"
-                  value={settings.adminEmail}
-                  onChange={(e) => setSettings({ ...settings, adminEmail: e.target.value })}
-                  placeholder="admin@example.com"
-                />
-              </div>
-            </div>
+            <SettingsCardRow
+              label="Email administrateur"
+              description="Utilisé pour les notifications système."
+              htmlFor="adminEmail"
+              controlClassName="w-full md:w-2/3 flex justify-end"
+            >
+              <Input
+                id="adminEmail"
+                type="email"
+                className="max-w-md"
+                value={settings.adminEmail}
+                onChange={(e) => setSettings({ ...settings, adminEmail: e.target.value })}
+                placeholder="admin@example.com"
+              />
+            </SettingsCardRow>
 
           </CardContent>
 

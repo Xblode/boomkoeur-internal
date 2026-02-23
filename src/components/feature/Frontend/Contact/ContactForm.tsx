@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { FormField } from '@/components/ui/molecules';
-import { Button } from '@/components/ui/atoms';
+import { Button, Label, Textarea } from '@/components/ui/atoms';
 
 export const ContactForm: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -59,10 +59,10 @@ export const ContactForm: React.FC = () => {
           />
 
           <div className="flex flex-col">
-            <label htmlFor="message" className="block text-sm font-medium text-foreground mb-1.5">
+            <Label htmlFor="message" className="block text-sm font-medium text-foreground mb-1.5">
               Message <span className="text-red-500">*</span>
-            </label>
-            <textarea
+            </Label>
+            <Textarea
               id="message"
               value={formData.message}
               onChange={(e) => setFormData({ ...formData, message: e.target.value })}

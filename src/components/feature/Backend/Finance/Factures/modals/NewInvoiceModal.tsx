@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { financeDataService } from '@/lib/services/FinanceDataService'
-import { Modal } from '@/components/ui/organisms'
+import { Modal, ModalFooter } from '@/components/ui/organisms'
 import { Input, Select, Textarea } from '@/components/ui/atoms'
 import { FormField } from '@/components/ui/molecules'
-import { Button } from '@/components/ui/atoms'
+import { Button, IconButton } from '@/components/ui/atoms'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { Plus, Trash2 } from 'lucide-react'
 import type { InvoiceLine, TransactionCategory } from '@/types/finance'
@@ -242,7 +242,7 @@ export default function NewInvoiceModal({
       size="lg"
       scrollable
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form id="new-invoice-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Informations generales */}
         <div className="grid grid-cols-2 gap-4">
           <FormField label="Date d'émission *" required error={errors.issue_date?.message}>
@@ -350,13 +350,15 @@ export default function NewInvoiceModal({
                       Ligne {index + 1}
                     </span>
                     {fields.length > 1 && (
-                      <button
+                      <IconButton
+                        icon={<Trash2 className="w-4 h-4" />}
+                        ariaLabel="Supprimer la ligne"
+                        variant="ghost"
+                        size="sm"
                         type="button"
                         onClick={() => remove(index)}
                         className="text-red-400 hover:text-red-300 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      />
                     )}
                   </div>
 
@@ -496,17 +498,16 @@ export default function NewInvoiceModal({
         <FormField label="Notes">
           <Textarea id="notes" placeholder="Informations complémentaires..." rows={3} {...register('notes')} />
         </FormField>
-
-        {/* Actions */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-border-custom">
-          <Button type="button" variant="secondary" onClick={handleClose} disabled={loading}>
-            Annuler
-          </Button>
-          <Button type="submit" variant="primary" disabled={loading}>
-            {loading ? 'Creation...' : type === 'invoice' ? 'Creer la facture' : 'Creer le devis'}
-          </Button>
-        </div>
       </form>
+
+      <ModalFooter>
+        <Button type="button" variant="outline" size="sm" onClick={handleClose} disabled={loading}>
+          Annuler
+        </Button>
+        <Button type="submit" form="new-invoice-form" variant="primary" size="sm" disabled={loading}>
+          {loading ? 'Creation...' : type === 'invoice' ? 'Creer la facture' : 'Creer le devis'}
+        </Button>
+      </ModalFooter>
     </Modal>
   )
 }

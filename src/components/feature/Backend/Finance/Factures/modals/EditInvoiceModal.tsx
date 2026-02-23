@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { financeDataService } from '@/lib/services/FinanceDataService'
-import { Modal } from '@/components/ui/organisms'
+import { Modal, ModalFooter } from '@/components/ui/organisms'
 import { Input, Select, Textarea } from '@/components/ui/atoms'
 import { FormField } from '@/components/ui/molecules'
-import { Button } from '@/components/ui/atoms'
+import { Button, IconButton, Label, FormLabel } from '@/components/ui/atoms'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { Plus, Trash2 } from 'lucide-react'
 import type { Invoice, InvoiceLine, TransactionCategory } from '@/types/finance'
@@ -283,12 +283,12 @@ export default function EditInvoiceModal({
       size="lg"
       scrollable
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form id="edit-invoice-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Numero (lecture seule) */}
         <div className="p-3 bg-background-tertiary border-2 border-border-custom rounded">
-          <label className="block font-label text-[10px] uppercase tracking-widest text-zinc-500 mb-1">
+          <FormLabel className="mb-1">
             N° {invoice.type === 'invoice' ? 'Facture' : 'Devis'}
-          </label>
+          </FormLabel>
           <p className="font-mono text-sm text-zinc-900 dark:text-zinc-50 font-bold">{invoice.invoice_number}</p>
         </div>
 
@@ -407,13 +407,15 @@ export default function EditInvoiceModal({
                       Ligne {index + 1}
                     </span>
                     {fields.length > 1 && (
-                      <button
+                      <IconButton
+                        icon={<Trash2 className="w-4 h-4" />}
+                        ariaLabel="Supprimer la ligne"
+                        variant="ghost"
+                        size="sm"
                         type="button"
                         onClick={() => remove(index)}
                         className="text-red-400 hover:text-red-300 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      />
                     )}
                   </div>
 
@@ -561,17 +563,16 @@ export default function EditInvoiceModal({
             {...register('notes')}
           />
         </FormField>
-
-        {/* Actions */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-border-custom">
-          <Button type="button" variant="secondary" onClick={handleClose} disabled={loading}>
-            Annuler
-          </Button>
-          <Button type="submit" variant="primary" disabled={loading}>
-            {loading ? 'Modification...' : 'Enregistrer les modifications'}
-          </Button>
-        </div>
       </form>
+
+      <ModalFooter>
+        <Button type="button" variant="outline" size="sm" onClick={handleClose} disabled={loading}>
+          Annuler
+        </Button>
+        <Button type="submit" form="edit-invoice-form" variant="primary" size="sm" disabled={loading}>
+          {loading ? 'Modification...' : 'Enregistrer les modifications'}
+        </Button>
+      </ModalFooter>
     </Modal>
   )
 }

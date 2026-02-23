@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { SectionHeader } from '@/components/ui';
 import { useEventDetail } from './EventDetailProvider';
 import { ShotgunEvent, ShotgunDeal, ShotgunEventsResponse } from '@/types/shotgun';
 import { Badge, Button } from '@/components/ui/atoms';
+import { EmptyState, Card, CardContent } from '@/components/ui/molecules';
 import {
   ExternalLink,
   Ticket,
@@ -75,13 +77,12 @@ export function EventBilletterieSection() {
 
   if (!event.shotgunEventId) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <Ticket size={40} className="text-zinc-300 dark:text-zinc-600 mb-3" />
-        <p className="text-sm text-zinc-500 mb-1">Aucun event Shotgun lié</p>
-        <p className="text-xs text-zinc-400">
-          Liez cet événement à Shotgun pour afficher la billetterie
-        </p>
-      </div>
+      <EmptyState
+        icon={Ticket}
+        title="Aucun event Shotgun lié"
+        description="Liez cet événement à Shotgun pour afficher la billetterie"
+        variant="compact"
+      />
     );
   }
 
@@ -109,6 +110,11 @@ export function EventBilletterieSection() {
 
   return (
     <div className="space-y-6">
+      <SectionHeader
+        icon={<Ticket size={28} />}
+        title="Billetterie"
+        subtitle="Tarifs, capacités et statistiques de vente."
+      />
       {/* KPI bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -143,9 +149,12 @@ export function EventBilletterieSection() {
 
       {/* Deals grid */}
       {deals.length === 0 ? (
-        <div className="text-center py-8 text-sm text-zinc-500">
-          Aucun tarif configuré sur cet event Shotgun
-        </div>
+        <EmptyState
+          icon={Ticket}
+          title="Aucun tarif configuré"
+          description="Aucun tarif configuré sur cet event Shotgun"
+          variant="inline"
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {deals.map((deal, idx) => (
@@ -161,7 +170,8 @@ function DealCard({ deal }: { deal: ShotgunDeal }) {
   const totalPrice = deal.price + deal.user_fees;
 
   return (
-    <div className="rounded-lg border border-border-custom bg-zinc-50 dark:bg-zinc-900/40 p-4 space-y-3">
+    <Card variant="outline" className="bg-zinc-50 dark:bg-zinc-900/40">
+      <CardContent className="p-4 space-y-3">
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -204,6 +214,7 @@ function DealCard({ deal }: { deal: ShotgunDeal }) {
           Total: {formatPrice(totalPrice)}
         </span>
       </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

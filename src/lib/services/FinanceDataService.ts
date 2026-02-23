@@ -71,7 +71,7 @@ export interface IFinanceDataService {
   deleteProjectBudgetLines(projectId: string): Promise<void>
 
   // Invoices
-  getInvoices(filters?: { type?: string; status?: string }): Promise<(Invoice & { invoice_lines: InvoiceLine[] })[]>
+  getInvoices(filters?: { type?: string; status?: string; year?: number }): Promise<(Invoice & { invoice_lines: InvoiceLine[] })[]>
   getInvoiceById(id: string): Promise<(Invoice & { invoice_lines: InvoiceLine[] }) | null>
   createInvoice(data: { invoice: Omit<Invoice, 'id' | 'invoice_number' | 'created_at' | 'updated_at'>; lines: Omit<InvoiceLine, 'id' | 'invoice_id' | 'created_at'>[] }): Promise<Invoice & { invoice_lines: InvoiceLine[] }>
   updateInvoice(id: string, updates: { invoice?: Partial<Invoice>; lines?: Omit<InvoiceLine, 'id' | 'invoice_id' | 'created_at'>[] }): Promise<Invoice & { invoice_lines: InvoiceLine[] }>
@@ -208,7 +208,7 @@ class LocalStorageFinanceService implements IFinanceDataService {
   }
 
   // Invoices
-  async getInvoices(filters?: { type?: string; status?: string }): Promise<(Invoice & { invoice_lines: InvoiceLine[] })[]> {
+  async getInvoices(filters?: { type?: string; status?: string; year?: number }): Promise<(Invoice & { invoice_lines: InvoiceLine[] })[]> {
     return InvoicesLS.getInvoices(filters)
   }
 
@@ -263,9 +263,18 @@ class LocalStorageFinanceService implements IFinanceDataService {
     }
   }
 
-  async getProfitAndLoss(): Promise<ProfitAndLoss> {
+  async getProfitAndLoss(periodType?: 'month' | 'quarter' | 'semester' | 'year', year?: number, month?: number): Promise<ProfitAndLoss> {
+    const y = year ?? new Date().getFullYear()
+    const m = month ?? new Date().getMonth() + 1
+    const periodLabel = periodType === 'year' ? `Année ${y}` : periodType === 'month'
+      ? new Date(y, m - 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+      : periodType === 'quarter'
+        ? `T${Math.floor((m - 1) / 3) + 1} ${y}`
+        : periodType === 'semester'
+          ? `S${m <= 6 ? 1 : 2} ${y}`
+          : `${y}`
     return {
-      period: '2026',
+      period: periodLabel,
       revenue: {
         billetterie: 0,
         bar: 0,
@@ -290,9 +299,11 @@ class LocalStorageFinanceService implements IFinanceDataService {
     }
   }
 
-  async getBalanceSheet(): Promise<BalanceSheet> {
+  async getBalanceSheet(periodType?: 'month' | 'quarter' | 'semester' | 'year', year?: number): Promise<BalanceSheet> {
+    const y = year ?? new Date().getFullYear()
+    const periodLabel = periodType === 'year' ? `Année ${y}` : `${y}`
     return {
-      period: '2026',
+      period: periodLabel,
       assets: {
         cash: 0,
         receivables: 0,
@@ -310,7 +321,7 @@ class LocalStorageFinanceService implements IFinanceDataService {
     }
   }
 
-  async getFinancialRatios(): Promise<FinancialRatios> {
+  async getFinancialRatios(_periodType?: 'month' | 'quarter' | 'semester' | 'year', _year?: number): Promise<FinancialRatios> {
     return {
       liquidityRatio: 0,
       autonomyRatio: 0,

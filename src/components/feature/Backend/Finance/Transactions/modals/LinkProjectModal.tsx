@@ -2,9 +2,9 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { financeDataService } from '@/lib/services/FinanceDataService'
-import { Modal } from '@/components/ui/organisms'
-import { Button } from '@/components/ui/atoms'
-import { Input } from '@/components/ui/atoms'
+import { Modal, ModalFooter } from '@/components/ui/organisms'
+import { EmptyState, LoadingState } from '@/components/ui/molecules'
+import { Button, Input, Label } from '@/components/ui/atoms'
 import { Badge } from '@/components/ui/atoms'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -105,9 +105,9 @@ export function LinkProjectModal({ isOpen, onClose, transactionId, onLink }: Lin
       <div className="space-y-4">
         {/* Recherche */}
         <div>
-          <label className="block text-sm font-label uppercase mb-2">
+          <Label className="block text-sm font-label uppercase mb-2">
             Rechercher
-          </label>
+          </Label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-500" />
             <Input
@@ -121,14 +121,13 @@ export function LinkProjectModal({ isOpen, onClose, transactionId, onLink }: Lin
 
         {/* Liste des projets */}
         {isLoading ? (
-          <div className="text-center py-8 text-zinc-500">Chargement...</div>
+          <LoadingState message="Chargement..." />
         ) : filteredProjects.length === 0 ? (
-          <div className="text-center py-8 text-zinc-500">
-            <p>Aucun projet trouve</p>
-            {searchQuery && (
-              <p className="text-xs mt-2">Essayez de modifier votre recherche</p>
-            )}
-          </div>
+          <EmptyState
+            title="Aucun projet trouvé"
+            description={searchQuery ? 'Essayez de modifier votre recherche' : undefined}
+            variant="compact"
+          />
         ) : (
           <div className="space-y-2 max-h-[400px] overflow-y-auto">
             {filteredProjects.map((project) => (
@@ -182,11 +181,11 @@ export function LinkProjectModal({ isOpen, onClose, transactionId, onLink }: Lin
         )}
       </div>
 
-      <div className="flex items-center gap-2 justify-end mt-6">
-        <Button variant="secondary" onClick={onClose}>
+      <ModalFooter>
+        <Button variant="outline" size="sm" onClick={onClose}>
           Annuler
         </Button>
-      </div>
+      </ModalFooter>
     </Modal>
   )
 }

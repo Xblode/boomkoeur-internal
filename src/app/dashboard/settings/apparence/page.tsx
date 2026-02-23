@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useTheme } from 'next-themes';
-import { Card, CardContent, CardFooter } from '@/components/ui/molecules';
-import { Label, Button } from '@/components/ui/atoms';
+import { useTheme } from '@/components/providers';
+import { Card, CardContent, CardFooter, SettingsCardRow } from '@/components/ui/molecules';
+import { Button } from '@/components/ui/atoms';
 import { Moon, Sun, Monitor, PanelLeft, PanelLeftOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebarMode } from '@/hooks';
@@ -30,21 +30,17 @@ export default function SettingsApparencePage() {
       </div>
 
       <Card
+        variant="settings"
         title="Apparence"
         description="Personnalisez l'apparence de l'interface d'administration."
       >
         <CardContent className="p-0 divide-y divide-border-custom">
 
-          {/* Thème de l'interface */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4">
-            <div className="space-y-1">
-              <Label className="text-base font-medium">Thème de l&apos;interface</Label>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                Choisissez entre le mode clair, sombre ou système.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 p-1 bg-toggle rounded-lg w-fit border border-border-custom shrink-0">
+          <SettingsCardRow
+            label="Thème de l'interface"
+            description="Choisissez entre le mode clair, sombre, système ou la palette personnalisée."
+          >
+            <div className="flex items-center gap-2 p-1 bg-toggle rounded-lg w-fit border border-border-custom flex-wrap">
               <button
                 onClick={() => setTheme('light')}
                 className={cn(
@@ -81,19 +77,26 @@ export default function SettingsApparencePage() {
                 <Monitor size={16} />
                 Système
               </button>
+              <button
+                onClick={() => setTheme('custom')}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
+                  theme === 'custom'
+                    ? "bg-toggle-active text-foreground shadow-sm"
+                    : "text-zinc-500 hover:text-foreground"
+                )}
+              >
+                <span className="w-4 h-4 rounded-full bg-[var(--color-accent)]" aria-hidden />
+                Custom
+              </button>
             </div>
-          </div>
+          </SettingsCardRow>
 
-          {/* Mode de la sidebar */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4">
-            <div className="space-y-1">
-              <Label className="text-base font-medium">Mode de la sidebar</Label>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                Choisissez entre le mode compact (icônes seules) ou étendu (icônes + labels).
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 p-1 bg-toggle rounded-lg w-fit border border-border-custom shrink-0">
+          <SettingsCardRow
+            label="Mode de la sidebar"
+            description="Choisissez entre le mode compact (icônes seules) ou étendu (icônes + labels)."
+          >
+            <div className="flex items-center gap-2 p-1 bg-toggle rounded-lg w-fit border border-border-custom">
               <button
                 onClick={() => setSidebarMode('compact')}
                 className={cn(
@@ -119,30 +122,25 @@ export default function SettingsApparencePage() {
                 Étendu
               </button>
             </div>
-          </div>
+          </SettingsCardRow>
 
-          {/* Design System */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4">
-            <div className="space-y-1">
-              <Label className="text-base font-medium">Design System</Label>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                Accédez à la bibliothèque de composants.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
+          <SettingsCardRow
+            label="Design System"
+            description="Accédez à la bibliothèque de composants."
+          >
+            <div className="flex items-center gap-2">
               <Link href="/dashboard/design-system">
                 <Button variant="outline" size="md">
                   Voir le design system
                 </Button>
               </Link>
             </div>
-          </div>
+          </SettingsCardRow>
 
         </CardContent>
 
         <CardFooter className="border-t border-border-custom p-4 flex justify-end rounded-b-md">
-          <p className="text-xs text-zinc-500">Les changements d&apos;apparence sont appliqués immédiatement.</p>
+          <p className="text-xs text-text-tertiary">Les changements d&apos;apparence sont appliqués immédiatement.</p>
         </CardFooter>
       </Card>
     </div>

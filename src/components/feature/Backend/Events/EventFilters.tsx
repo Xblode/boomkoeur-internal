@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Select } from '@/components/ui/atoms';
+import { SearchInput, FilterField } from '@/components/ui/molecules';
 import { EventFilters as EventFiltersType, EventStatus, SortField, SortOrder } from '@/types/event';
 
 interface EventFiltersProps {
@@ -45,13 +46,15 @@ export const EventFilters: React.FC<EventFiltersProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Filtres principaux */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Statut */}
-        <div>
-          <label className="text-xs text-zinc-600 dark:text-zinc-400 mb-1.5 block">
-            Statut
-          </label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <SearchInput
+          label="Recherche"
+          placeholder="Nom, lieu, description..."
+          value={filters.search}
+          onChange={(v) => onFiltersChange({ ...filters, search: v })}
+        />
+
+        <FilterField label="Statut">
           <Select value={filters.status} onChange={handleStatusChange}>
             <option value="all">Tous les statuts</option>
             <option value="idea">Idée</option>
@@ -60,13 +63,9 @@ export const EventFilters: React.FC<EventFiltersProps> = ({
             <option value="completed">Terminé</option>
             <option value="archived">Archivé</option>
           </Select>
-        </div>
+        </FilterField>
 
-        {/* Lieu */}
-        <div>
-          <label className="text-xs text-zinc-600 dark:text-zinc-400 mb-1.5 block">
-            Lieu
-          </label>
+        <FilterField label="Lieu">
           <Select value={filters.location} onChange={handleLocationChange}>
             <option value="">Tous les lieux</option>
             {locations.map((location) => (
@@ -75,13 +74,9 @@ export const EventFilters: React.FC<EventFiltersProps> = ({
               </option>
             ))}
           </Select>
-        </div>
+        </FilterField>
 
-        {/* Artiste */}
-        <div>
-          <label className="text-xs text-zinc-600 dark:text-zinc-400 mb-1.5 block">
-            Artiste
-          </label>
+        <FilterField label="Artiste">
           <Select value={filters.artist} onChange={handleArtistChange}>
             <option value="">Tous les artistes</option>
             {artists.map((artist) => (
@@ -90,29 +85,22 @@ export const EventFilters: React.FC<EventFiltersProps> = ({
               </option>
             ))}
           </Select>
-        </div>
+        </FilterField>
 
-        {/* Tri */}
         <div className="flex gap-2">
-          <div className="flex-1">
-            <label className="text-xs text-zinc-600 dark:text-zinc-400 mb-1.5 block">
-              Trier par
-            </label>
+          <FilterField label="Trier par" className="flex-1">
             <Select value={sortField} onChange={handleSortFieldChange}>
               <option value="date">Date</option>
               <option value="name">Nom</option>
               <option value="status">Statut</option>
             </Select>
-          </div>
-          <div className="w-24">
-            <label className="text-xs text-zinc-600 dark:text-zinc-400 mb-1.5 block">
-              Ordre
-            </label>
+          </FilterField>
+          <FilterField label="Ordre" className="w-24">
             <Select value={sortOrder} onChange={handleSortOrderChange}>
               <option value="asc">↑ Asc</option>
               <option value="desc">↓ Desc</option>
             </Select>
-          </div>
+          </FilterField>
         </div>
       </div>
     </div>

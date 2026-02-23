@@ -1,5 +1,6 @@
 import { Select } from '@/components/ui/atoms'
-import { SearchBar, FilterBar } from '../../shared/components'
+import { SearchInput, FilterField } from '@/components/ui/molecules'
+import { FilterBar } from '../../shared/components'
 
 interface TransactionFiltersProps {
   searchQuery: string
@@ -52,7 +53,8 @@ export default function TransactionFilters({
 }: TransactionFiltersProps) {
   return (
     <div className="space-y-4">
-      <SearchBar
+      <SearchInput
+        label="Recherche"
         value={searchQuery}
         onChange={onSearchChange}
         placeholder="Rechercher une transaction..."
@@ -65,10 +67,7 @@ export default function TransactionFilters({
         activeFiltersCount={activeFiltersCount}
         onResetFilters={onResetFilters}
       >
-        <div>
-          <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-2">
-            Type
-          </label>
+        <FilterField label="Type">
           <Select
             value={filterType}
             onChange={(e) => onFilterTypeChange(e.target.value as any)}
@@ -78,12 +77,9 @@ export default function TransactionFilters({
               { value: 'expense', label: 'Sorties' },
             ]}
           />
-        </div>
+        </FilterField>
 
-        <div>
-          <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-2">
-            Categorie
-          </label>
+        <FilterField label="Categorie">
           <Select
             value={filterCategory}
             onChange={(e) => onFilterCategoryChange(e.target.value)}
@@ -92,12 +88,9 @@ export default function TransactionFilters({
               ...categories.map((cat) => ({ value: cat, label: cat })),
             ]}
           />
-        </div>
+        </FilterField>
 
-        <div>
-          <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-2">
-            Statut
-          </label>
+        <FilterField label="Statut">
           <Select
             value={filterStatus}
             onChange={(e) => onFilterStatusChange(e.target.value as any)}
@@ -108,12 +101,9 @@ export default function TransactionFilters({
               { value: 'reconciled', label: 'Rapproche' },
             ]}
           />
-        </div>
+        </FilterField>
 
-        <div>
-          <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-2">
-            Evenement
-          </label>
+        <FilterField label="Evenement">
           <Select
             value={filterEventId}
             onChange={(e) => onFilterEventIdChange(e.target.value)}
@@ -122,12 +112,9 @@ export default function TransactionFilters({
               ...events.map((e) => ({ value: e.id, label: e.title })),
             ]}
           />
-        </div>
+        </FilterField>
 
-        <div>
-          <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-2">
-            Projet
-          </label>
+        <FilterField label="Projet">
           <Select
             value={filterProjectId}
             onChange={(e) => onFilterProjectIdChange(e.target.value)}
@@ -136,12 +123,9 @@ export default function TransactionFilters({
               ...projects.map((p) => ({ value: p.id, label: p.title })),
             ]}
           />
-        </div>
+        </FilterField>
 
-        <div>
-          <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-2">
-            Contact
-          </label>
+        <FilterField label="Contact">
           <Select
             value={filterContactId}
             onChange={(e) => onFilterContactIdChange(e.target.value)}
@@ -150,7 +134,7 @@ export default function TransactionFilters({
               ...contacts.map((c) => ({ value: c.id, label: c.name })),
             ]}
           />
-        </div>
+        </FilterField>
       </FilterBar>
     </div>
   )

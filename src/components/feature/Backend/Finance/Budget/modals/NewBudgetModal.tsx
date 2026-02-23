@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { financeDataService } from '@/lib/services/FinanceDataService'
-import { Modal } from '@/components/ui/organisms'
+import { Modal, ModalFooter } from '@/components/ui/organisms'
 import { Input, Textarea } from '@/components/ui/atoms'
-import { FormField } from '@/components/ui/molecules'
-import { Button } from '@/components/ui/atoms'
+import { FormField, EmptyState } from '@/components/ui/molecules'
+import { Button, IconButton, Label, Select, FormLabel } from '@/components/ui/atoms'
 import { Plus, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -206,7 +206,7 @@ export default function NewBudgetModal({
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form id="new-budget-form" onSubmit={handleSubmit} className="space-y-6">
         {/* Informations generales */}
         <div className="space-y-4">
           <h3 className="font-heading text-sm uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
@@ -286,44 +286,34 @@ export default function NewBudgetModal({
                     Categorie {index + 1}
                   </span>
                   {formData.categories.length > 1 && (
-                    <button
+                    <IconButton
+                      icon={<Trash2 className="w-4 h-4" />}
+                      ariaLabel="Supprimer la catégorie"
+                      variant="ghost"
+                      size="sm"
                       type="button"
                       onClick={() => handleRemoveCategory(index)}
                       className="text-red-400 hover:text-red-300 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    />
                   )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-label text-[10px] uppercase tracking-widest text-zinc-500 mb-2">
+                    <FormLabel className="mb-2">
                       Categorie *
-                    </label>
-                    <select
+                    </FormLabel>
+                    <Select
                       value={category.category}
                       onChange={(e) => handleCategoryChange(index, 'category', e.target.value)}
-                      className={cn(
-                        'w-full bg-zinc-100 dark:bg-zinc-800 border-2 border-border-custom text-foreground px-4 py-2',
-                        'font-body text-sm',
-                        'focus:outline-none focus:border-accent',
-                        'transition-colors duration-300',
-                        'cursor-pointer appearance-none',
-                        'bg-[url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23ffffff\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:16px] pr-10',
-                        'h-[38px]'
-                      )}
+                      options={[
+                        { value: '', label: 'Selectionner une categorie' },
+                        ...availableCategories
+                          .filter((cat) => !formData.categories.some((c, i) => c.category === cat && i !== index))
+                          .map((cat) => ({ value: cat, label: cat })),
+                      ]}
                       required
-                    >
-                      <option value="">Selectionner une categorie</option>
-                      {availableCategories
-                        .filter((cat) => !formData.categories.some((c, i) => c.category === cat && i !== index))
-                        .map((cat) => (
-                          <option key={cat} value={cat}>
-                            {cat}
-                          </option>
-                        ))}
-                    </select>
+                    />
                   </div>
 
                   <FormField label="Montant alloué (EUR) *" required>
@@ -344,10 +334,11 @@ export default function NewBudgetModal({
           </div>
 
           {formData.categories.length === 0 && (
-            <div className="text-center py-8 text-zinc-500 border-2 border-dashed border-border-custom rounded-lg">
-              <p className="mb-2">Aucune categorie ajoutee</p>
-              <p className="text-sm">Cliquez sur "Ajouter une categorie" pour commencer</p>
-            </div>
+            <EmptyState
+              title="Aucune catégorie ajoutée"
+              description='Cliquez sur "Ajouter une catégorie" pour commencer'
+              variant="compact"
+            />
           )}
         </div>
 
@@ -382,23 +373,22 @@ export default function NewBudgetModal({
             </div>
           </div>
         )}
-
-        {/* Actions */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-border-custom">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
-            Annuler
-          </Button>
-          <Button type="submit" variant="primary" disabled={loading}>
-            {loading
-              ? existingBudget
-                ? 'Modification...'
-                : 'Creation...'
-              : existingBudget
-              ? 'Enregistrer les modifications'
-              : 'Creer le budget'}
-          </Button>
-        </div>
       </form>
+
+      <ModalFooter>
+        <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={loading}>
+          Annuler
+        </Button>
+        <Button type="submit" form="new-budget-form" variant="primary" size="sm" disabled={loading}>
+          {loading
+            ? existingBudget
+              ? 'Modification...'
+              : 'Creation...'
+            : existingBudget
+            ? 'Enregistrer les modifications'
+            : 'Creer le budget'}
+        </Button>
+      </ModalFooter>
     </Modal>
   )
 }

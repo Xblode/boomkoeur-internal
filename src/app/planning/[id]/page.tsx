@@ -191,7 +191,7 @@ export default function PublicPlanningPage({ params }: { params: Promise<{ id: s
             >
               <thead>
                 <tr className="bg-zinc-50">
-                  <th className="sticky left-0 z-10 bg-zinc-50 px-3 sm:px-4 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider min-w-[100px] sm:min-w-[160px] whitespace-nowrap border-b border-r border-zinc-200" style={{ boxShadow: '1px 0 0 0 #e4e4e7' }}>
+                  <th className="sticky left-0 z-10 bg-zinc-50 px-3 sm:px-4 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider min-w-[100px] sm:min-w-[160px] whitespace-nowrap border-b border-r border-zinc-200" style={{ boxShadow: '1px 0 0 0 var(--color-neutral-200)' }}>
                     Bénévole
                   </th>
                   {shiftKeys.map((shift) => (
@@ -217,7 +217,7 @@ export default function PublicPlanningPage({ params }: { params: Promise<{ id: s
                         'sticky left-0 z-10 px-3 sm:px-4 py-3 border-b border-zinc-100 last-of-type:border-b-0 w-[100px] sm:w-[160px]',
                         idx % 2 === 0 ? 'bg-white' : 'bg-zinc-50'
                       )}
-                      style={{ boxShadow: '1px 0 0 0 #e4e4e7' }}
+                      style={{ boxShadow: '1px 0 0 0 var(--color-neutral-200)' }}
                     >
                       <div>
                         <div className="font-semibold text-zinc-900 text-sm leading-tight">

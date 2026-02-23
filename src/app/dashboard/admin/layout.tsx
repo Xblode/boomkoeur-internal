@@ -1,5 +1,5 @@
-import { AdminLayout } from '@/components/feature/Backend/Admin/AdminLayout';
+import { AdminLayoutConfig } from '@/components/feature/Backend/Admin/AdminLayoutConfig';
 
 export default function AdminRootLayout({ children }: { children: React.ReactNode }) {
-  return <AdminLayout>{children}</AdminLayout>;
+  return <AdminLayoutConfig>{children}</AdminLayoutConfig>;
 }

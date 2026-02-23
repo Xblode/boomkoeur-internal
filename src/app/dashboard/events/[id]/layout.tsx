@@ -1,5 +1,5 @@
 import React from 'react';
-import { EventDetailLayout } from '@/components/feature/Backend/Events/EventDetailLayout';
+import { EventDetailLayoutConfig } from '@/components/feature/Backend/Events/EventDetailLayoutConfig';
 
 interface EventDetailLayoutRouteProps {
   children: React.ReactNode;
@@ -13,5 +13,5 @@ export const metadata = {
 
 export default async function EventDetailLayoutRoute({ children, params }: EventDetailLayoutRouteProps) {
   const { id } = await params;
-  return <EventDetailLayout eventId={id}>{children}</EventDetailLayout>;
+  return <EventDetailLayoutConfig eventId={id}>{children}</EventDetailLayoutConfig>;
 }

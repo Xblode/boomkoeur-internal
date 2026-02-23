@@ -248,10 +248,10 @@ export default function ContactForm({ isOpen, onClose, onSuccess, contact }: Con
         </div>
 
         <ModalFooter>
-          <Button type="button" variant="secondary" onClick={onClose}>
+          <Button type="button" variant="outline" size="sm" onClick={onClose}>
             Annuler
           </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
+          <Button type="submit" variant="primary" size="sm" disabled={isSubmitting}>
             {isSubmitting ? 'Enregistrement...' : contact ? 'Mettre à jour' : 'Créer'}
           </Button>
         </ModalFooter>

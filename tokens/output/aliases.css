@@ -1,0 +1,42 @@
+/* Alias de compatibilité (généré) */
+
+:root {
+  --spacing-1: var(--space-1);
+  --spacing-2: var(--space-2);
+  --spacing-3: var(--space-3);
+  --spacing-4: var(--space-4);
+  --spacing-5: var(--space-5);
+  --spacing-6: var(--space-6);
+  --spacing-8: var(--space-8);
+  --spacing-10: var(--space-10);
+  --spacing-12: var(--space-12);
+  --spacing-16: var(--space-16);
+  --spacing-xs: var(--space-1);
+  --spacing-sm: var(--space-2);
+  --spacing-md: var(--space-4);
+  --spacing-lg: var(--space-6);
+  --spacing-xl: var(--space-8);
+  --spacing-2xl: var(--space-12);
+  --spacing-3xl: var(--space-16);
+  --shadow-sm: var(--shadow-1);
+  --shadow-md: var(--shadow-2);
+  --shadow-lg: var(--shadow-3);
+  --shadow-xl: var(--shadow-4);
+  --transition-fast: var(--motion-duration-fast);
+  --transition-normal: var(--motion-duration-normal);
+  --transition-slow: var(--motion-duration-slow);
+  --z-overlay: var(--zIndex-overlay);
+  --z-dropdown-panel: var(--zIndex-dropdownPanel);
+  --z-dropdown: var(--zIndex-dropdown);
+  --z-sticky: var(--zIndex-sticky);
+  --z-fixed: var(--zIndex-fixed);
+  --z-modal-backdrop: var(--zIndex-modalBackdrop);
+  --z-modal: var(--zIndex-modal);
+  --z-popover: var(--zIndex-popover);
+  --z-tooltip: var(--zIndex-tooltip);
+  --max-width-sm: var(--maxWidth-sm);
+  --max-width-md: var(--maxWidth-md);
+  --max-width-lg: var(--maxWidth-lg);
+  --max-width-xl: var(--maxWidth-xl);
+  --max-width-2xl: var(--maxWidth-2xl);
+}

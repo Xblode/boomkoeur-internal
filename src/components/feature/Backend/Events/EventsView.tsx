@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/atoms';
+import { Button, IconButton } from '@/components/ui/atoms';
+import { SectionHeader } from '@/components/ui/molecules';
 import { Event, EventFilters as EventFiltersType, SortField, SortOrder } from '@/types/event';
 import { ShotgunEvent } from '@/types/shotgun';
 import { EventsList } from './EventsList';
@@ -17,7 +18,7 @@ import {
   getArtistsList,
   initializeStorage,
 } from '@/lib/localStorage/events';
-import { Plus, History, X, Ticket, FileText } from 'lucide-react';
+import { Plus, History, X, Ticket, FileText, CalendarDays } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
 export const EventsView: React.FC = () => {
@@ -246,29 +247,27 @@ export const EventsView: React.FC = () => {
 
   return (
     <div className="w-full space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Events</h1>
-          <p className="text-muted-foreground">
-            Gérez vos événements et soirées musicales
-          </p>
-        </div>
-        <Button variant="primary" size="sm" onClick={handleCreateEvent}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nouvel événement
-        </Button>
-      </div>
-
-      {/* Filtres */}
-      <EventFilters
-        filters={filters}
-        sortField={sortField}
-        sortOrder={sortOrder}
-        onFiltersChange={setFilters}
-        onSortChange={handleSortChange}
-        locations={locations}
-        artists={artists}
+      <SectionHeader
+        icon={<CalendarDays size={28} />}
+        title="Events"
+        subtitle="Gérez vos événements et soirées musicales"
+        actions={
+          <Button variant="primary" size="sm" onClick={handleCreateEvent}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nouvel événement
+          </Button>
+        }
+        filters={
+          <EventFilters
+            filters={filters}
+            sortField={sortField}
+            sortOrder={sortOrder}
+            onFiltersChange={setFilters}
+            onSortChange={handleSortChange}
+            locations={locations}
+            artists={artists}
+          />
+        }
       />
 
       {/* Compteur */}
@@ -324,23 +323,27 @@ export const EventsView: React.FC = () => {
       {isChoiceOpen && mounted && createPortal(
         <>
           <div
-            className="fixed inset-0 z-[60] bg-black/20 backdrop-blur-sm animate-in fade-in duration-200"
+            className="fixed inset-0 z-[var(--z-overlay)] bg-black/20 backdrop-blur-sm animate-in fade-in duration-200"
             onClick={() => setIsChoiceOpen(false)}
           />
-          <div className="fixed inset-x-4 top-[25%] z-[60] max-w-md mx-auto rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-[#171717] animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+          <div className="fixed inset-x-4 top-[25%] z-[var(--z-overlay)] max-w-md mx-auto rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-backend animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 dark:border-zinc-800">
               <h3 className="text-sm font-semibold">Créer un événement</h3>
-              <button
+              <IconButton
+                icon={<X size={15} />}
+                ariaLabel="Fermer"
+                variant="ghost"
+                size="sm"
                 onClick={() => setIsChoiceOpen(false)}
                 className="p-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500"
-              >
-                <X size={15} />
-              </button>
+              />
             </div>
             <div className="p-3 space-y-2">
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={handleCreateEmpty}
-                className="w-full flex items-start gap-3 px-3 py-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors text-left border border-border-custom"
+                className="w-full flex items-start gap-3 px-3 py-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors text-left border border-border-custom justify-start h-auto"
               >
                 <div className="w-8 h-8 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 mt-0.5">
                   <FileText size={15} className="text-zinc-600 dark:text-zinc-400" />
@@ -349,10 +352,12 @@ export const EventsView: React.FC = () => {
                   <p className="text-sm font-medium">Créer un event vide</p>
                   <p className="text-xs text-zinc-500 mt-0.5">Tu remplis les infos toi-même depuis la page</p>
                 </div>
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={handleOpenShotgunSearch}
-                className="w-full flex items-start gap-3 px-3 py-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors text-left border border-border-custom"
+                className="w-full flex items-start gap-3 px-3 py-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors text-left border border-border-custom justify-start h-auto"
               >
                 <div className="w-8 h-8 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 mt-0.5">
                   <Ticket size={15} className="text-zinc-600 dark:text-zinc-400" />
@@ -361,7 +366,7 @@ export const EventsView: React.FC = () => {
                   <p className="text-sm font-medium">Importer depuis Shotgun</p>
                   <p className="text-xs text-zinc-500 mt-0.5">Pré-rempli automatiquement depuis un event Shotgun existant</p>
                 </div>
-              </button>
+              </Button>
             </div>
           </div>
         </>,
@@ -378,7 +383,7 @@ export const EventsView: React.FC = () => {
       {/* Modal de formulaire (edition uniquement) */}
       {isFormOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="border border-zinc-800 rounded-lg max-w-7xl w-full max-h-[90vh] overflow-hidden flex flex-col" style={{ backgroundColor: '#18181a' }}>
+          <div className="border border-zinc-800 rounded-lg max-w-7xl w-full max-h-[90vh] overflow-hidden flex flex-col bg-card-bg">
             <div className="p-6 pb-4 border-b border-zinc-200 dark:border-zinc-800 flex-shrink-0 flex items-center justify-between">
               <h2 className="text-2xl font-bold">
                 {editingEvent ? 'Modifier l\'événement' : 'Créer un événement'}

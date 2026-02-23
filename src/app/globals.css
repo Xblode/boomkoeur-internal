@@ -1,45 +1,46 @@
 @import "tailwindcss";
-@import "../styles/variables.css";
+
+/* Design Tokens - ordre d'import important */
+@import "../../tokens/output/primitives.css";
+@import "../../tokens/output/themes/neutral.css";
+@import "../../tokens/output/themes/custom.css";
+@import "../../tokens/output/aliases.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-
-  /* Variables Backend & UI */
-  --bg-backend: #f9fafb; /* zinc-50 */
-  --bg-card: #ffffff;
-  --bg-toggle: #f4f4f5; /* zinc-100 */
-  --bg-toggle-active: #ffffff;
-  --border-color: #aeaeb1; /* zinc-300 (plus contrasté que 200) */
-}
-
-.dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-
-  /* Variables Backend & UI Dark */
-  --bg-backend: #171717;
-  --bg-card: #1f1f1f;
-  --bg-toggle: #27272a; /* zinc-800 */
-  --bg-toggle-active: #3f3f46; /* zinc-700 */
-  --border-color: #2e2e33; /* Gris foncé subtil (moins clair que zinc-700) */
-}
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-
-  /* Mapping des nouvelles couleurs */
   --color-backend: var(--bg-backend);
   --color-card-bg: var(--bg-card);
   --color-toggle: var(--bg-toggle);
   --color-toggle-active: var(--bg-toggle-active);
   --color-border-custom: var(--border-color);
-
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-tertiary: var(--color-text-tertiary);
+  --color-surface-elevated: var(--surface-elevated-1);
+  --color-surface-subtle: var(--surface-subtle);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+  --radius-full: var(--radius-full);
+
+  --spacing-1: var(--space-1);
+  --spacing-2: var(--space-2);
+  --spacing-3: var(--space-3);
+  --spacing-4: var(--space-4);
+  --spacing-5: var(--space-5);
+  --spacing-6: var(--space-6);
+  --spacing-8: var(--space-8);
+  --spacing-10: var(--space-10);
+  --spacing-12: var(--space-12);
+  --spacing-16: var(--space-16);
 }
 
 body {
@@ -95,47 +96,43 @@ html {
 }
 
 [data-sonner-toast] [data-description] {
-  color: #71717a !important;
-}
-
-.dark [data-sonner-toast] [data-description] {
-  color: #a1a1aa !important;
+  color: var(--color-text-tertiary) !important;
 }
 
 /* Toast Success */
 [data-sonner-toast][data-type="success"] {
-  border-color: #16a34a !important;
+  border-color: var(--color-success) !important;
 }
 
 [data-sonner-toast][data-type="success"] [data-icon] {
-  color: #16a34a !important;
+  color: var(--color-success) !important;
 }
 
 /* Toast Error */
 [data-sonner-toast][data-type="error"] {
-  border-color: #dc2626 !important;
+  border-color: var(--color-error) !important;
 }
 
 [data-sonner-toast][data-type="error"] [data-icon] {
-  color: #dc2626 !important;
+  color: var(--color-error) !important;
 }
 
 /* Toast Warning */
 [data-sonner-toast][data-type="warning"] {
-  border-color: #ea580c !important;
+  border-color: var(--color-warning) !important;
 }
 
 [data-sonner-toast][data-type="warning"] [data-icon] {
-  color: #ea580c !important;
+  color: var(--color-warning) !important;
 }
 
 /* Toast Info */
 [data-sonner-toast][data-type="info"] {
-  border-color: #2563eb !important;
+  border-color: var(--color-info) !important;
 }
 
 [data-sonner-toast][data-type="info"] [data-icon] {
-  color: #2563eb !important;
+  color: var(--color-info) !important;
 }
 
 /* Autofill Fix */
@@ -224,4 +221,3 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
-

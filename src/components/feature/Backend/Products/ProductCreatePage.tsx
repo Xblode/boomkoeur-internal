@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ProductInput, ProductType, ProductStatus, Provider, ProductProvider, ProductVariantInput, VariantAvailability } from '@/types/product';
 import { productDataService } from '@/lib/services/ProductDataService';
 import { useProduct } from '@/components/providers';
-import { Button, Input, Label, Textarea, Select } from '@/components/ui/atoms';
+import { Button, Input, Label, Textarea, Select, IconButton, Checkbox } from '@/components/ui/atoms';
 import { ArrowLeft, Plus, X, Truck } from 'lucide-react';
 
 const PROVIDER_ROLE_SUGGESTIONS = [
@@ -171,13 +171,15 @@ export function ProductCreatePage() {
     <div className="min-h-[calc(100vh-60px)] bg-backend">
       <div className="max-w-4xl mx-auto p-8 md:p-12">
 
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => router.push('/dashboard/products')}
-          className="flex items-center gap-2 text-sm text-zinc-500 hover:text-foreground transition-colors mb-6"
+          className="flex items-center gap-2 text-sm text-zinc-500 hover:text-foreground transition-colors mb-6 justify-start"
         >
           <ArrowLeft size={16} />
           Retour aux produits
-        </button>
+        </Button>
 
         <h1 className="text-3xl font-bold mb-8">Nouveau Produit</h1>
 
@@ -252,45 +254,51 @@ export function ProductCreatePage() {
                               <span className="font-medium">{p?.name}</span>
                               <span className="text-xs text-zinc-400 border border-zinc-300 dark:border-zinc-600 px-1.5 py-0.5 rounded-full">{role}</span>
                             </div>
-                            <button type="button" onClick={() => handleRemoveProvider(provider_id)}>
-                              <X size={12} className="text-zinc-400 hover:text-red-500" />
-                            </button>
+                            <IconButton
+                              icon={<X size={12} className="text-zinc-400 hover:text-red-500" />}
+                              ariaLabel="Retirer le fournisseur"
+                              variant="ghost"
+                              size="xs"
+                              type="button"
+                              onClick={() => handleRemoveProvider(provider_id)}
+                            />
                           </div>
                         );
                       })}
                     </div>
                   )}
                   <div className="flex gap-2">
-                    <select
+                    <Select
                       value={newProviderId}
                       onChange={(e) => setNewProviderId(e.target.value)}
-                      className="flex-1 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md px-2 py-2 bg-background text-foreground"
-                    >
-                      <option value="">Choisir un fournisseur...</option>
-                      {providers
-                        .filter(p => !(formData.providers || []).find((x: ProductProvider) => x.provider_id === p.id))
-                        .map(p => <option key={p.id} value={p.id}>{p.name}</option>)
-                      }
-                    </select>
-                    <input
+                      options={[
+                        { value: '', label: 'Choisir un fournisseur...' },
+                        ...providers
+                          .filter(p => !(formData.providers || []).find((x: ProductProvider) => x.provider_id === p.id))
+                          .map(p => ({ value: p.id, label: p.name })),
+                      ]}
+                      className="flex-1"
+                    />
+                    <Input
                       value={newProviderRole}
                       onChange={(e) => setNewProviderRole(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddProvider(); } }}
                       placeholder="Rôle"
                       list="provider-roles-create"
-                      className="w-32 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md px-2 py-2 bg-background text-foreground outline-none focus:ring-1 focus:ring-zinc-400"
+                      className="w-32"
                     />
                     <datalist id="provider-roles-create">
                       {PROVIDER_ROLE_SUGGESTIONS.map(r => <option key={r} value={r} />)}
                     </datalist>
-                    <button
+                    <Button
                       type="button"
+                      variant="primary"
+                      size="sm"
                       onClick={handleAddProvider}
                       disabled={!newProviderId || !newProviderRole.trim()}
-                      className="px-3 py-2 text-sm font-medium bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 rounded-md hover:bg-zinc-700 dark:hover:bg-zinc-300 transition-colors disabled:opacity-40"
                     >
                       <Plus size={14} />
-                    </button>
+                    </Button>
                   </div>
                   {providers.length === 0 && (
                     <p className="text-xs text-zinc-500 mt-1.5">
@@ -338,10 +346,10 @@ export function ProductCreatePage() {
                         <Label className="text-xs mb-2 block">Disponible pour :</Label>
                         <div className="flex gap-4">
                           {(['public', 'member', 'partner'] as VariantAvailability[]).map(type => (
-                            <label key={type} className="flex items-center gap-2 text-sm cursor-pointer">
-                              <input type="checkbox" checked={variant.availableFor.includes(type)} onChange={() => toggleAvailability(variant.id, type)} className="rounded" />
+                            <Label key={type} className="flex items-center gap-2 text-sm cursor-pointer">
+                              <Checkbox checked={variant.availableFor.includes(type)} onChange={() => toggleAvailability(variant.id, type)} className="rounded" />
                               {type === 'public' ? 'Public' : type === 'member' ? 'Membre' : 'Partenaire'}
-                            </label>
+                            </Label>
                           ))}
                         </div>
                       </div>
@@ -359,9 +367,9 @@ export function ProductCreatePage() {
                 <Label className="mb-2 block">Tailles</Label>
                 <div className="flex flex-wrap gap-2">
                   {SIZES.map(size => (
-                    <button key={size} type="button" onClick={() => toggleSize(size)} className={`px-3 py-1 rounded text-sm border transition-colors ${selectedSizes.includes(size) ? 'bg-black text-white border-black dark:bg-white dark:text-black' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700'}`}>
+                    <Button key={size} type="button" variant={selectedSizes.includes(size) ? 'primary' : 'outline'} size="sm" onClick={() => toggleSize(size)} className={selectedSizes.includes(size) ? 'bg-black text-white border-black dark:bg-white dark:text-black dark:border-white' : ''}>
                       {size}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>

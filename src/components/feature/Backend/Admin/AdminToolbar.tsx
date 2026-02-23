@@ -1,6 +1,7 @@
 'use client';
 
 import { PageToolbar } from '@/components/ui/organisms/PageToolbar';
+import { Button } from '@/components/ui/atoms';
 import { Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -16,7 +17,7 @@ export default function AdminToolbar({ activeSection, onSectionChange }: AdminTo
   ];
 
   return (
-    <PageToolbar className="justify-between bg-[#171717] h-10 min-h-0 p-0 px-4 border-b border-zinc-200 dark:border-zinc-800">
+    <PageToolbar className="justify-between bg-backend h-10 min-h-0 p-0 px-4 border-b border-zinc-200 dark:border-zinc-800">
       <div className="flex items-center gap-4 flex-1 h-full">
         <div className="flex items-center gap-6 px-2 h-full">
           {sections.map(section => {
@@ -24,8 +25,10 @@ export default function AdminToolbar({ activeSection, onSectionChange }: AdminTo
             const isActive = activeSection === section.id;
             
             return (
-              <button
+              <Button
                 key={section.id}
+                variant="ghost"
+                size="sm"
                 onClick={() => onSectionChange(section.id)}
                 className={cn(
                   "relative flex items-center gap-2 h-full text-xs font-medium transition-colors uppercase",
@@ -45,7 +48,7 @@ export default function AdminToolbar({ activeSection, onSectionChange }: AdminTo
                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                   />
                 )}
-              </button>
+              </Button>
             );
           })}
         </div>

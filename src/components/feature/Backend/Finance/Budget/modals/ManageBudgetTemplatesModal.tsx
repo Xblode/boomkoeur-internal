@@ -439,17 +439,17 @@ export default function ManageBudgetTemplatesModal({
       <ModalFooter>
         {showForm ? (
           <>
-            <Button variant="secondary" onClick={cancelForm} disabled={loading}>
+            <Button variant="outline" size="sm" onClick={cancelForm} disabled={loading}>
               <X className="w-4 h-4 mr-2" />
               Annuler
             </Button>
-            <Button variant="primary" onClick={handleSave} disabled={loading}>
+            <Button variant="primary" size="sm" onClick={handleSave} disabled={loading}>
               <Save className="w-4 h-4 mr-2" />
               {loading ? 'Enregistrement...' : editingTemplate ? 'Mettre a jour' : 'Creer le template'}
             </Button>
           </>
         ) : (
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="outline" size="sm" onClick={onClose}>
             Fermer
           </Button>
         )}

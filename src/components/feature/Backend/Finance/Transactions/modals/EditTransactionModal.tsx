@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { financeDataService } from '@/lib/services/FinanceDataService'
 import { Modal, ModalFooter } from '@/components/ui/organisms'
-import { Button, Input, Select, Textarea } from '@/components/ui/atoms'
+import { Button, Input, Select, Textarea, Label, Checkbox, FormLabel } from '@/components/ui/atoms'
 import { TagMultiSelect, AssetUploaderPanel, FormField } from '@/components/ui/molecules'
 import type { Transaction, TransactionCategory, BankAccount } from '@/types/finance'
 import { useUpdateTransactionTags } from '@/lib/stubs/supabase-stubs'
@@ -242,20 +242,21 @@ export default function EditTransactionModal({
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Numero d'ecriture (lecture seule) */}
         <div className="p-3 bg-background-tertiary border-2 border-border-custom rounded">
-          <label className="block font-label text-[10px] uppercase tracking-widest text-zinc-500 mb-1">
+          <FormLabel className="mb-1">
             N° Ecriture
-          </label>
+          </FormLabel>
           <p className="font-mono text-sm text-zinc-900 dark:text-zinc-50 font-bold">{transaction.entry_number}</p>
         </div>
 
         {/* Type */}
         <div>
-          <label className="block font-label text-[10px] uppercase tracking-widest text-zinc-500 mb-3">
+          <FormLabel>
             Type *
-          </label>
+          </FormLabel>
           <div className="grid grid-cols-2 gap-3">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => setFormData({ ...formData, type: 'income', category: '' })}
               className={`
                 py-3 px-4 rounded border-2 font-heading text-sm uppercase tracking-wide transition-all
@@ -266,9 +267,10 @@ export default function EditTransactionModal({
               `}
             >
               ⬆️ Entree
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
               onClick={() => setFormData({ ...formData, type: 'expense', category: '' })}
               className={`
                 py-3 px-4 rounded border-2 font-heading text-sm uppercase tracking-wide transition-all
@@ -279,7 +281,7 @@ export default function EditTransactionModal({
               `}
             >
               ⬇️ Sortie
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -373,8 +375,7 @@ export default function EditTransactionModal({
         {formData.type === 'expense' && (
           <div className="border-2 border-purple-500/30 rounded p-4 bg-purple-500/5">
             <div className="flex items-center gap-3 mb-3">
-              <input
-                type="checkbox"
+              <Checkbox
                 id="paid-by-member-checkbox-edit"
                 checked={formData.paid_by_member}
                 onChange={(e) => setFormData({ 
@@ -384,12 +385,12 @@ export default function EditTransactionModal({
                 })}
                 className="w-4 h-4 rounded border-2 border-border-custom bg-zinc-100 dark:bg-zinc-800 checked:bg-purple-500"
               />
-              <label
+              <Label
                 htmlFor="paid-by-member-checkbox-edit"
                 className="font-label text-[10px] uppercase tracking-widest text-foreground cursor-pointer"
               >
                 💰 Avance personnelle d'un membre
-              </label>
+              </Label>
             </div>
             
             {formData.paid_by_member && (
@@ -437,19 +438,18 @@ export default function EditTransactionModal({
         {/* TVA */}
         <div className="border-2 border-border-custom rounded p-4">
           <div className="flex items-center gap-3 mb-3">
-            <input
-              type="checkbox"
+            <Checkbox
               id="vat-checkbox-edit"
               checked={formData.vat_applicable}
               onChange={(e) => setFormData({ ...formData, vat_applicable: e.target.checked })}
               className="w-4 h-4 rounded border-2 border-border-custom bg-zinc-100 dark:bg-zinc-800 checked:bg-accent"
             />
-            <label
+            <Label
               htmlFor="vat-checkbox-edit"
               className="font-label text-[10px] uppercase tracking-widest text-foreground cursor-pointer"
             >
               TVA applicable
-            </label>
+            </Label>
           </div>
           {formData.vat_applicable && (
             <div className="space-y-3">
@@ -497,9 +497,9 @@ export default function EditTransactionModal({
 
         {/* Tags */}
         <div>
-          <label className="block font-label text-[10px] uppercase tracking-widest text-zinc-500 mb-3">
+          <FormLabel>
             Tags
-          </label>
+          </FormLabel>
           <TagMultiSelect
             selectedTagIds={selectedTagIds}
             onChange={setSelectedTagIds}
@@ -510,7 +510,8 @@ export default function EditTransactionModal({
 
       <ModalFooter>
         <Button
-          variant="secondary"
+          variant="outline"
+          size="sm"
           onClick={onClose}
           disabled={loading}
           type="button"
@@ -519,6 +520,7 @@ export default function EditTransactionModal({
         </Button>
         <Button
           variant="primary"
+          size="sm"
           onClick={(e) => {
             e.preventDefault()
             handleSubmit(e)

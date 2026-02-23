@@ -1,7 +1,7 @@
 'use client';
 
 import CommercialList from '@/components/feature/Backend/Commercial/CommercialList';
-import { useCommercialLayout } from '@/components/feature/Backend/Commercial/CommercialLayout';
+import { useCommercialLayout } from '@/components/feature/Backend/Commercial/CommercialLayoutConfig';
 
 export default function CommercialPage() {
   const { activeSection } = useCommercialLayout();

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Popover, PopoverContent, PopoverTrigger, Button, Input, Chip, Checkbox } from '@/components/ui/atoms';
+import { Popover, PopoverContent, PopoverTrigger, Button, Input, Chip, Checkbox, IconButton } from '@/components/ui/atoms';
 import { ChevronDown, Calendar as CalendarIcon, MapPin, Search, X } from 'lucide-react';
 import { Event } from '@/types/event';
 import { format } from 'date-fns';
@@ -15,6 +15,7 @@ export interface EventSelectorProps {
   className?: string;
 }
 
+/** Sélecteur pour lier des événements (ex: campagnes). Pas pour Shotgun — utiliser ShotgunSearchModal. */
 export const EventSelector: React.FC<EventSelectorProps> = ({
   availableEvents,
   selectedEventIds,
@@ -69,10 +70,10 @@ export const EventSelector: React.FC<EventSelectorProps> = ({
                 ? `${selectedEventIds.length} événement${selectedEventIds.length > 1 ? 's' : ''} lié${selectedEventIds.length > 1 ? 's' : ''}`
                 : placeholder}
             </span>
-            <ChevronDown className={cn("ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform", open && "rotate-180")} />
+            <ChevronDown className={cn("ml-2 h-4 w-4 shrink-0 opacity-50", open && "rotate-180")} />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[400px] p-0" align="start">
+        <PopoverContent className="w-[400px] p-0 !animate-none" align="start">
           <div className="flex flex-col">
             {/* Barre de recherche */}
             <div className="p-3 border-b border-border-custom">
@@ -85,13 +86,14 @@ export const EventSelector: React.FC<EventSelectorProps> = ({
                   className="pl-9 pr-8"
                 />
                 {searchQuery && (
-                  <button
-                    type="button"
+                  <IconButton
+                    icon={X}
+                    ariaLabel="Effacer la recherche"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground h-8 w-8"
+                  />
                 )}
               </div>
             </div>

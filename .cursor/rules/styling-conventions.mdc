@@ -56,39 +56,61 @@ className={`base ${isActive ? 'active' : ''} ${className}`}
 className={cn('base', isActive && 'active', className)}
 ```
 
-## Variables CSS Personnalisées
+## Design Tokens
 
-Le projet utilise des variables CSS définies dans `styles/variables.css`.
+Le projet utilise un système de design tokens à 3 couches (voir `tokens/README.md`).
 
-### Utilisation
+### Règle : Aucune couleur hardcodée
+
+**Utiliser uniquement les tokens** : variables CSS, classes Tailwind issues du thème. Aucune couleur hex/rgb en dur.
+
+### Classes Tailwind issues du thème
 
 ```tsx
-// ✅ Utiliser les variables
-<div className="bg-[var(--color-bg-primary)]" />
+// ✅ Surfaces
+<div className="bg-background bg-backend bg-card-bg bg-surface-elevated" />
+
+// ✅ Texte
+<span className="text-foreground text-text-primary text-text-tertiary" />
+
+// ✅ Bordures
+<div className="border-border-custom" />
+```
+
+### Variables CSS (si nécessaire)
+
+```tsx
+<div className="bg-[var(--bg-card)]" />
 <div style={{ color: 'var(--color-text-primary)' }} />
 ```
 
-**Variables disponibles** :
-- Couleurs : `--color-primary`, `--color-bg-primary`, `--color-text-primary`
-- Espacements : `--spacing-sm`, `--spacing-md`, `--spacing-lg`
-- Rayons : `--radius-sm`, `--radius-md`, `--radius-lg`
-- Ombres : `--shadow-sm`, `--shadow-md`, `--shadow-lg`
-- Z-index : `--z-modal`, `--z-dropdown`, `--z-tooltip`
+### Graphiques Recharts
+
+```tsx
+import { CHART_SERIES_COLORS, CALENDAR_EVENT_COLORS } from '@/lib/constants/chart-colors';
+// Utiliser CHART_SERIES_COLORS.revenue, etc.
+```
+
+### Génération des tokens
+
+```bash
+pnpm tokens:generate
+```
 
 ## Mode Sombre
 
-Le mode sombre est géré automatiquement via `prefers-color-scheme`.
+Le mode sombre est géré par next-themes (classe `.dark` sur `html`). Les tokens s'adaptent automatiquement.
 
 ### Styling pour le Dark Mode
 
 ```tsx
 // ✅ Classes Tailwind avec dark:
-<div className="bg-white dark:bg-black text-black dark:text-white">
+<div className="bg-background text-foreground dark:bg-backend">
   Contenu
 </div>
 ```
 
-**Les variables CSS s'adaptent automatiquement au mode sombre.**
+**Les variables CSS et tokens s'adaptent automatiquement au mode sombre.**
 
 ## Nouveau Composant avec Styling
 

@@ -88,9 +88,9 @@ export default function StockTab() {
         <h3 className="text-lg font-semibold text-foreground mb-4">
           Derniers mouvements
         </h3>
-        <div className="bg-white dark:bg-[#1f1f1f] rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+        <div className="bg-white dark:bg-card-bg rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
           <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
-            <thead className="bg-zinc-50 dark:bg-[#1f1f1f]">
+            <thead className="bg-zinc-50 dark:bg-card-bg">
               <tr>
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                   Date
@@ -112,7 +112,7 @@ export default function StockTab() {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-[#1f1f1f] divide-y divide-zinc-200 dark:divide-zinc-800">
+            <tbody className="bg-white dark:bg-card-bg divide-y divide-zinc-200 dark:divide-zinc-800">
               {movements.map((movement) => {
                 const product = productsMap[movement.product_id];
                 return (

@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
-import { Input, Label, Select, Textarea, Button, Badge } from '@/components/ui/atoms';
-import { DatePicker, TimePicker } from '@/components/ui/molecules';
+import { Input, Label, Select, Textarea, Button } from '@/components/ui/atoms';
+import { DatePicker, TimePicker, TagMultiSelect } from '@/components/ui/molecules';
 import { Event, EventStatus, Artist } from '@/types/event';
 import { Plus, X } from 'lucide-react';
 
@@ -39,7 +39,6 @@ export const EventForm: React.FC<EventFormProps> = ({
   });
 
   const [tags, setTags] = useState<string[]>(event?.tags || []);
-  const [currentTag, setCurrentTag] = useState('');
 
   const [artists, setArtists] = useState<Artist[]>(event?.artists || []);
   const [newArtist, setNewArtist] = useState({
@@ -59,25 +58,6 @@ export const EventForm: React.FC<EventFormProps> = ({
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
-  };
-
-  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      addTag();
-    }
-  };
-
-  const addTag = () => {
-    const tag = currentTag.trim();
-    if (tag && !tags.includes(tag)) {
-      setTags([...tags, tag]);
-      setCurrentTag('');
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
   const handleArtistChange = (
@@ -248,31 +228,12 @@ export const EventForm: React.FC<EventFormProps> = ({
 
         <div>
           <Label>Tags</Label>
-          <div className="flex gap-2 my-3 flex-wrap">
-            {tags.map(tag => (
-              <Badge key={tag} variant="secondary" className="gap-1 pr-1">
-                {tag}
-                <button
-                  type="button"
-                  onClick={() => removeTag(tag)}
-                  className="hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded p-0.5"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <Input
-              value={currentTag}
-              onChange={(e) => setCurrentTag(e.target.value)}
-              onKeyDown={handleTagKeyDown}
-              placeholder="Ajouter un tag et appuyer sur Entrée..."
-              fullWidth
+          <div className="mt-2">
+            <TagMultiSelect
+              value={tags}
+              onChange={setTags}
+              placeholder="Ajouter une étiquette..."
             />
-            <Button type="button" variant="outline" onClick={addTag}>
-              <Plus className="h-4 w-4" />
-            </Button>
           </div>
         </div>
 

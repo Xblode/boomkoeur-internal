@@ -1,5 +1,5 @@
-import { SettingsLayout } from '@/components/feature/Backend/Settings/SettingsLayout';
+import { SettingsLayoutConfig } from '@/components/feature/Backend/Settings/SettingsLayoutConfig';
 
 export default function SettingsRootLayout({ children }: { children: React.ReactNode }) {
-  return <SettingsLayout>{children}</SettingsLayout>;
+  return <SettingsLayoutConfig>{children}</SettingsLayoutConfig>;
 }

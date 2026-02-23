@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Trash2 } from 'lucide-react';
-import { Button, Input } from '@/components/ui/atoms';
+import { Trash2 } from 'lucide-react';
+import { Button, Input, Label, Textarea } from '@/components/ui/atoms';
 import { EventSelector } from '@/components/ui/molecules';
+import { Modal, ModalFooter } from '@/components/ui/organisms';
 import { Campaign } from '@/types/communication';
 import { getEvents } from '@/lib/localStorage/events';
 import { Event } from '@/types/event';
@@ -46,8 +47,6 @@ export const CampaignSettingsModal: React.FC<CampaignSettingsModalProps> = ({
     }
   }, [isOpen, campaign.eventIds]);
 
-  if (!isOpen) return null;
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name) return;
@@ -83,21 +82,13 @@ export const CampaignSettingsModal: React.FC<CampaignSettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl bg-card-bg border border-border-custom rounded-xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between p-4 border-b border-border-custom">
-          <h2 className="text-lg font-semibold text-foreground">Paramètres de la campagne</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <X size={20} />
-          </button>
-        </div>
-        
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-6">
+    <Modal isOpen={isOpen} onClose={onClose} title="Paramètres de la campagne" size="md" scrollable>
+      <form id="campaign-settings-form" onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="name" className="text-sm font-medium text-foreground">
+              <Label htmlFor="name" className="text-sm font-medium text-foreground">
                 Nom de la campagne
-              </label>
+              </Label>
               <Input
                 id="name"
                 value={name}
@@ -108,23 +99,23 @@ export const CampaignSettingsModal: React.FC<CampaignSettingsModalProps> = ({
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="description" className="text-sm font-medium text-foreground">
+              <Label htmlFor="description" className="text-sm font-medium text-foreground">
                 Description
-              </label>
-              <textarea
+              </Label>
+              <Textarea
                 id="description"
                 placeholder="Objectif de la campagne..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full min-h-[80px] rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full min-h-[80px]"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label htmlFor="startDate" className="text-sm font-medium text-foreground">
+                <Label htmlFor="startDate" className="text-sm font-medium text-foreground">
                   Date de début
-                </label>
+                </Label>
                 <Input
                   id="startDate"
                   type="date"
@@ -134,9 +125,9 @@ export const CampaignSettingsModal: React.FC<CampaignSettingsModalProps> = ({
                 />
               </div>
               <div className="space-y-2">
-                <label htmlFor="endDate" className="text-sm font-medium text-foreground">
+                <Label htmlFor="endDate" className="text-sm font-medium text-foreground">
                   Date de fin
-                </label>
+                </Label>
                 <Input
                   id="endDate"
                   type="date"
@@ -148,9 +139,9 @@ export const CampaignSettingsModal: React.FC<CampaignSettingsModalProps> = ({
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground block">
+              <Label className="text-sm font-medium text-foreground block">
                 Événements liés
-              </label>
+              </Label>
               <EventSelector
                 availableEvents={availableEvents}
                 selectedEventIds={selectedEventIds}
@@ -172,21 +163,22 @@ export const CampaignSettingsModal: React.FC<CampaignSettingsModalProps> = ({
               Supprimer la campagne
             </Button>
           </div>
-        </form>
+      </form>
 
-        <div className="p-4 border-t border-border-custom bg-card-bg flex justify-end gap-3">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Annuler
-          </Button>
-          <Button 
-            onClick={handleSubmit} 
-            variant="primary" 
-            disabled={isSubmitting || !name}
-          >
-            Enregistrer
-          </Button>
-        </div>
-      </div>
-    </div>
+      <ModalFooter>
+        <Button type="button" variant="outline" size="sm" onClick={onClose}>
+          Annuler
+        </Button>
+        <Button
+          type="submit"
+          form="campaign-settings-form"
+          variant="primary"
+          size="sm"
+          disabled={isSubmitting || !name}
+        >
+          Enregistrer
+        </Button>
+      </ModalFooter>
+    </Modal>
   );
 };

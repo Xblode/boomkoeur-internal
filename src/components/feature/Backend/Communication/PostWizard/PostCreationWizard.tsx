@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ArrowRight, Check, X, Copy } from 'lucide-react';
 import { SocialPost, PostBrainstorming, InstagramPostType } from '@/types/communication';
-import { Button, Badge } from '@/components/ui/atoms';
+import { Button, Badge, IconButton } from '@/components/ui/atoms';
 import { StepBrainstorming } from './StepBrainstorming';
 import { StepContent } from './StepContent';
 import { InstagramPostPreview, InstagramStoryPreview } from '../Previews';
@@ -138,12 +138,14 @@ export const PostCreationWizard: React.FC<PostCreationWizardProps> = ({
           <h2 className="text-xl font-bold text-foreground">
             {initialData ? 'Modifier le post' : 'Créer un post'}
           </h2>
-          <button
+          <IconButton
+            icon={<X size={24} />}
+            ariaLabel="Annuler"
+            variant="ghost"
+            size="lg"
             onClick={onCancel}
             className="text-muted-foreground hover:text-foreground"
-          >
-            <X size={24} />
-          </button>
+          />
         </div>
 
         {/* Steps indicator */}

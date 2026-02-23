@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Component, Layers, LayoutTemplate, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SectionHeader } from '@/components/ui/molecules';
 import dynamic from 'next/dynamic';
 
 // Dynamic Imports with Loading State
@@ -80,6 +81,15 @@ const ColorsDemo = dynamic(() => import('@/components/feature/DesignSystem/demos
 const CardDemo = dynamic(() => import('@/components/feature/DesignSystem/demos/CardDemo'), {
   loading: () => <div className="h-64 flex items-center justify-center"><Loader2 className="animate-spin text-zinc-400" /></div>
 });
+const EmptyStateDemo = dynamic(() => import('@/components/feature/DesignSystem/demos/EmptyStateDemo'), {
+  loading: () => <div className="h-64 flex items-center justify-center"><Loader2 className="animate-spin text-zinc-400" /></div>
+});
+const DetailHeaderDemo = dynamic(() => import('@/components/feature/DesignSystem/demos/DetailHeaderDemo'), {
+  loading: () => <div className="h-64 flex items-center justify-center"><Loader2 className="animate-spin text-zinc-400" /></div>
+});
+const SearchInputDemo = dynamic(() => import('@/components/feature/DesignSystem/demos/SearchInputDemo'), {
+  loading: () => <div className="h-64 flex items-center justify-center"><Loader2 className="animate-spin text-zinc-400" /></div>
+});
 const OrganismsDemo = dynamic(() => import('@/components/feature/DesignSystem/demos/OrganismsDemo'), {
   loading: () => <div className="h-64 flex items-center justify-center"><Loader2 className="animate-spin text-zinc-400" /></div>
 });
@@ -144,9 +154,11 @@ const NAV_SECTIONS: NavSection[] = [
     icon: <Layers size={18} />,
     items: [
       { id: 'card', label: 'Card' },
+      { id: 'section-header', label: 'SectionHeader' },
+      { id: 'empty-state', label: 'EmptyState' },
       { id: 'breadcrumb', label: 'Breadcrumb' },
       { id: 'form-field', label: 'FormField' },
-      { id: 'search-bar', label: 'SearchBar' },
+      { id: 'search-input', label: 'SearchInput' },
     ]
   },
   {
@@ -213,6 +225,9 @@ export default function DesignSystemPage() {
       
       // Molecules
       case 'card': return <CardDemo />;
+      case 'section-header': return <DetailHeaderDemo />;
+      case 'empty-state': return <EmptyStateDemo />;
+      case 'search-input': return <SearchInputDemo />;
       
       // Organisms
       case 'header': 
@@ -228,28 +243,31 @@ export default function DesignSystemPage() {
       case 'atoms':
         return (
           <div className="pb-4 border-b border-border-custom mb-8">
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <Component className="text-zinc-500" /> Atoms
-            </h2>
-            <p className="text-zinc-500 mt-1">Les briques élémentaires de l'interface.</p>
+            <SectionHeader
+              icon={<Component size={28} className="text-zinc-500" />}
+              title="Atoms"
+              subtitle="Les briques élémentaires de l'interface."
+            />
           </div>
         );
       case 'molecules':
         return (
           <div className="pb-4 border-b border-border-custom mb-8">
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <Layers className="text-zinc-500" /> Molecules
-            </h2>
-            <p className="text-zinc-500 mt-1">Des composants plus complexes formés d'atomes.</p>
+            <SectionHeader
+              icon={<Layers size={28} className="text-zinc-500" />}
+              title="Molecules"
+              subtitle="Des composants plus complexes formés d'atomes."
+            />
           </div>
         );
       case 'organisms':
         return (
           <div className="pb-4 border-b border-border-custom mb-8">
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <LayoutTemplate className="text-zinc-500" /> Organisms
-            </h2>
-            <p className="text-zinc-500 mt-1">Les sections majeures de l'interface.</p>
+            <SectionHeader
+              icon={<LayoutTemplate size={28} className="text-zinc-500" />}
+              title="Organisms"
+              subtitle="Les sections majeures de l'interface."
+            />
           </div>
         );
     }

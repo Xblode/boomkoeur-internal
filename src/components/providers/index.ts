@@ -1,4 +1,4 @@
-export { ThemeProvider } from './ThemeProvider'
+export { ThemeProvider, useTheme } from './ThemeProvider'
 export { ToolbarProvider, useToolbar } from './ToolbarProvider'
 export { FinanceProvider, useFinance } from './FinanceProvider'
 export { ProductProvider, useProduct } from './ProductProvider'

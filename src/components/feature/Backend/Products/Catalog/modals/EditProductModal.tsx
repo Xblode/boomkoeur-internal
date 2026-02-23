@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Modal, ModalFooter } from '@/components/ui/organisms';
-import { Button, Input, Label, Textarea, Select } from '@/components/ui/atoms';
+import { Button, Input, Label, Textarea, Select, Checkbox } from '@/components/ui/atoms';
 import { Product, ProductType, ProductStatus, Provider, ProductVariant, VariantAvailability } from '@/types/product';
 import { productDataService } from '@/lib/services/ProductDataService';
 import { useProduct } from '@/components/providers';
@@ -426,33 +426,30 @@ export default function EditProductModal({ isOpen, onClose, product }: EditProdu
                   <div>
                     <Label className="text-xs mb-2 block">Disponible pour :</Label>
                     <div className="flex gap-4">
-                        <label className="flex items-center gap-2 text-sm cursor-pointer">
-                          <input
-                            type="checkbox"
+                        <Label className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
                             checked={(variant.available_for || ['public', 'member', 'partner']).includes('public')}
                             onChange={() => toggleVariantAvailability(variant.id, 'public')}
                             className="rounded"
                           />
                           Public
-                        </label>
-                        <label className="flex items-center gap-2 text-sm cursor-pointer">
-                          <input
-                            type="checkbox"
+                        </Label>
+                        <Label className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
                             checked={(variant.available_for || ['public', 'member', 'partner']).includes('member')}
                             onChange={() => toggleVariantAvailability(variant.id, 'member')}
                             className="rounded"
                           />
                           Membre
-                        </label>
-                        <label className="flex items-center gap-2 text-sm cursor-pointer">
-                          <input
-                            type="checkbox"
+                        </Label>
+                        <Label className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
                             checked={(variant.available_for || ['public', 'member', 'partner']).includes('partner')}
                             onChange={() => toggleVariantAvailability(variant.id, 'partner')}
                             className="rounded"
                           />
                           Partenaire
-                        </label>
+                        </Label>
                       </div>
                     </div>
                   </div>

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardFooter } from '@/components/ui/molecules';
-import { Button, Input, Label } from '@/components/ui/atoms';
+import { Button, Input, Label, Textarea } from '@/components/ui/atoms';
 import { Mail, User, Globe } from 'lucide-react';
 
 export default function ProfileInformationsPage() {
@@ -36,6 +36,7 @@ export default function ProfileInformationsPage() {
 
       <form onSubmit={handleSubmit} suppressHydrationWarning>
         <Card
+          variant="settings"
           title="Informations personnelles"
           description="Mettez à jour vos coordonnées et informations publiques."
         >
@@ -70,9 +71,9 @@ export default function ProfileInformationsPage() {
 
             <div className="space-y-2">
               <Label htmlFor="bio">Bio</Label>
-              <textarea
+              <Textarea
                 id="bio"
-                className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-h-[100px]"
                 placeholder="Parlez-nous de vous..."
                 value={user.bio}
                 onChange={(e) => setUser({ ...user, bio: e.target.value })}

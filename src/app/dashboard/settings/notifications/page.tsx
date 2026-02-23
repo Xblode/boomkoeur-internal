@@ -11,6 +11,7 @@ export default function SettingsNotificationsPage() {
       </div>
 
       <Card
+        variant="settings"
         title="Préférences de notifications"
         description="Choisissez les types de notifications que vous souhaitez recevoir."
       >

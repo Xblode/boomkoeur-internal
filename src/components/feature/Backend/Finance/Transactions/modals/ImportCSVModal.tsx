@@ -2,10 +2,8 @@
 
 import { useState, useRef } from 'react'
 import { financeDataService } from '@/lib/services/FinanceDataService'
-import { Modal } from '@/components/ui/organisms'
-import { Button } from '@/components/ui/atoms'
-import { Input } from '@/components/ui/atoms'
-import { Select } from '@/components/ui/atoms'
+import { Modal, ModalFooter } from '@/components/ui/organisms'
+import { Button, FileInput, Label, Select, FormLabel } from '@/components/ui/atoms'
 import { FileUp, Upload, AlertCircle } from 'lucide-react'
 import Papa from 'papaparse'
 
@@ -173,16 +171,15 @@ export default function ImportCSVModal({ isOpen, onClose, onSuccess }: ImportCSV
       <div className="space-y-6">
         {/* Upload */}
         <div>
-          <label className="block font-label text-[10px] uppercase tracking-widest text-zinc-500 mb-2">
+          <FormLabel className="mb-2">
             Fichier CSV *
-          </label>
+          </FormLabel>
           <div className="border-2 border-dashed border-border-custom rounded-lg p-8 text-center">
-            <input
+            <FileInput
               ref={fileInputRef}
-              type="file"
+              variant="hidden"
               accept=".csv"
               onChange={handleFileSelect}
-              className="hidden"
               id="csv-upload"
             />
             <label
@@ -210,9 +207,9 @@ export default function ImportCSVModal({ isOpen, onClose, onSuccess }: ImportCSV
             <div className="space-y-3">
               {availableFields.map((field) => (
                 <div key={field}>
-                  <label className="block font-label text-[10px] uppercase tracking-widest text-zinc-500 mb-2">
+                  <FormLabel className="mb-2">
                     {field === 'date' ? 'Date' : field === 'label' ? 'Libelle' : field === 'amount' ? 'Montant' : field === 'type' ? 'Type' : field === 'category' ? 'Categorie' : 'Moyen de paiement'}
-                  </label>
+                  </FormLabel>
                   <Select
                     value={mapping[field] || ''}
                     onChange={(e) => setMapping({ ...mapping, [field]: e.target.value })}
@@ -275,23 +272,23 @@ export default function ImportCSVModal({ isOpen, onClose, onSuccess }: ImportCSV
             </div>
           </div>
         )}
-
-        {/* Actions */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-border-custom">
-          <Button type="button" variant="secondary" onClick={handleClose} disabled={loading}>
-            Annuler
-          </Button>
-          <Button
-            type="button"
-            variant="primary"
-            onClick={handleImport}
-            disabled={loading || !file || preview.length === 0}
-          >
-            <FileUp className="w-4 h-4 mr-2" />
-            {loading ? 'Import en cours...' : 'Importer'}
-          </Button>
-        </div>
       </div>
+
+      <ModalFooter>
+        <Button type="button" variant="outline" size="sm" onClick={handleClose} disabled={loading}>
+          Annuler
+        </Button>
+        <Button
+          type="button"
+          variant="primary"
+          size="sm"
+          onClick={handleImport}
+          disabled={loading || !file || preview.length === 0}
+        >
+          <FileUp className="w-4 h-4 mr-2" />
+          {loading ? 'Import en cours...' : 'Importer'}
+        </Button>
+      </ModalFooter>
     </Modal>
   )
 }

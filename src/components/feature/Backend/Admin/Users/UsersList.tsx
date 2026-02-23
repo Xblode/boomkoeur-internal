@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { userService } from '@/lib/services/UserService';
 import { User, UserRole, UserStatus } from '@/types/user';
 import { Plus, Search, Mail, Phone, Briefcase, Eye, Edit, Trash2, Key } from 'lucide-react';
-import { Button, Badge, Input, Select, Skeleton, Avatar } from '@/components/ui/atoms';
+import { Button, Badge, Input, Select, Skeleton, Avatar, Label } from '@/components/ui/atoms';
 import { Card, CardContent } from '@/components/ui/molecules/Card';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -149,10 +149,10 @@ export default function UsersList({
         </div>
 
         {/* Table Skeleton */}
-        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-[#1f1f1f]">
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-card-bg">
           <table className="w-full">
             {/* Table Header */}
-            <thead className="bg-zinc-50 dark:bg-[#1f1f1f] border-b border-zinc-200 dark:border-zinc-800">
+            <thead className="bg-zinc-50 dark:bg-card-bg border-b border-zinc-200 dark:border-zinc-800">
               <tr>
                 <th className="text-left px-4 py-2 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                   Utilisateur
@@ -228,7 +228,7 @@ export default function UsersList({
       {/* Filtres — grille 3 colonnes avec labels */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label className="text-xs text-zinc-600 dark:text-zinc-400 mb-1.5 block">Recherche</label>
+          <Label className="text-xs text-zinc-600 dark:text-zinc-400 mb-1.5 block">Recherche</Label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={15} />
             <Input
@@ -240,7 +240,7 @@ export default function UsersList({
           </div>
         </div>
         <div>
-          <label className="text-xs text-zinc-600 dark:text-zinc-400 mb-1.5 block">Rôle</label>
+          <Label className="text-xs text-zinc-600 dark:text-zinc-400 mb-1.5 block">Rôle</Label>
           <Select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value as UserRole | 'all')}
@@ -252,7 +252,7 @@ export default function UsersList({
           />
         </div>
         <div>
-          <label className="text-xs text-zinc-600 dark:text-zinc-400 mb-1.5 block">Statut</label>
+          <Label className="text-xs text-zinc-600 dark:text-zinc-400 mb-1.5 block">Statut</Label>
           <Select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as UserStatus | 'all')}
@@ -288,9 +288,9 @@ export default function UsersList({
           </CardContent>
         </Card>
       ) : (
-        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-[#1f1f1f]">
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-card-bg">
           <table className="w-full">
-            <thead className="bg-zinc-50 dark:bg-[#1f1f1f] border-b border-zinc-200 dark:border-zinc-800">
+            <thead className="bg-zinc-50 dark:bg-card-bg border-b border-zinc-200 dark:border-zinc-800">
               <tr>
                 <th className="text-left px-4 py-2 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                   Utilisateur
@@ -313,7 +313,7 @@ export default function UsersList({
               {filteredUsers.map((user) => (
                 <tr 
                   key={user.id} 
-                  className="hover:bg-zinc-50 dark:hover:bg-[#272727] transition-colors group/row"
+                  className="hover:bg-zinc-50 dark:hover:bg-surface-subtle transition-colors group/row"
                 >
                   <td className="px-4 py-2.5">
                     <div className="flex items-center justify-between gap-2 h-full">

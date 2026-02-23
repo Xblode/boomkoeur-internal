@@ -2,15 +2,16 @@
 
 import { Product } from '@/types/product';
 import { Package, AlertCircle, Edit, Trash2, MessageSquare, Tag, Euro } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/molecules/Card';
+import { Card, CardContent, CardMedia, CardFooter } from '@/components/ui/molecules';
+import { Badge, IconButton } from '@/components/ui/atoms';
 import { cn } from '@/lib/utils';
 
-const STATUS_CONFIG = {
-  idea:          { label: 'Idée',          className: 'bg-zinc-700 text-zinc-300' },
-  in_production: { label: 'En production', className: 'bg-blue-900/60 text-blue-300' },
-  available:     { label: 'Disponible',    className: 'bg-green-900/60 text-green-300' },
-  out_of_stock:  { label: 'Rupture',       className: 'bg-red-900/60 text-red-300' },
-  archived:      { label: 'Archivé',       className: 'bg-zinc-800 text-zinc-500' },
+const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'info' | 'success' | 'destructive' | 'secondary' }> = {
+  idea:          { label: 'Idée',          variant: 'default' },
+  in_production: { label: 'En production', variant: 'info' },
+  available:     { label: 'Disponible',    variant: 'success' },
+  out_of_stock:  { label: 'Rupture',       variant: 'destructive' },
+  archived:      { label: 'Archivé',       variant: 'secondary' },
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -46,14 +47,15 @@ export default function ProductCard({ product, onClick, onEdit, onDelete }: Prod
 
   return (
     <Card
-      className="group relative overflow-hidden transition-all duration-300 cursor-pointer flex flex-col h-full bg-[#1f1f1f] border-zinc-800 hover:shadow-xl"
+      variant="list"
+      className="group relative overflow-hidden transition-all duration-300 cursor-pointer flex flex-col h-full hover:shadow-xl"
       onClick={() => onClick?.(product)}
     >
       <CardContent className="p-0 flex flex-col h-full">
 
         {/* Image carrée avec padding + coins arrondis */}
         <div className="p-2">
-          <div className="relative w-full aspect-square overflow-hidden rounded-lg bg-zinc-800">
+          <CardMedia aspectRatio="square" placeholder={!product.main_image}>
             {product.main_image ? (
               <img
                 src={product.main_image}
@@ -65,7 +67,7 @@ export default function ProductCard({ product, onClick, onEdit, onDelete }: Prod
                 <Package size={48} className="text-zinc-600" />
               </div>
             )}
-          </div>
+          </CardMedia>
         </div>
 
         {/* Titre + Statut + SKU */}
@@ -74,9 +76,9 @@ export default function ProductCard({ product, onClick, onEdit, onDelete }: Prod
             <h3 className="flex-1 font-bold text-base text-white leading-tight line-clamp-2 group-hover:text-white/90 transition-colors min-w-0">
               {product.name}
             </h3>
-            <span className={cn('flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full', statusCfg.className)}>
+            <Badge variant={statusCfg.variant} className="flex-shrink-0 shadow-none">
               {statusCfg.label}
-            </span>
+            </Badge>
           </div>
           <p className="text-xs text-zinc-500 font-mono">{product.sku} · {TYPE_LABELS[product.type] || product.type}</p>
         </div>
@@ -89,13 +91,13 @@ export default function ProductCard({ product, onClick, onEdit, onDelete }: Prod
               {product.tags.slice(0, 3).map((tag) => (
                 <span
                   key={tag}
-                  className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-[#262626] text-[#939393]"
+                  className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-surface-elevated text-text-tertiary"
                 >
                   {tag}
                 </span>
               ))}
               {product.tags.length > 3 && (
-                <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-[#262626] text-[#939393]">
+                <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-surface-elevated text-text-tertiary">
                   +{product.tags.length - 3}
                 </span>
               )}
@@ -132,31 +134,33 @@ export default function ProductCard({ product, onClick, onEdit, onDelete }: Prod
         </div>
 
         {/* Footer avec actions */}
-        <div className="mt-auto px-4 py-3 border-t border-zinc-800 flex items-center justify-between">
+        <CardFooter variant="list" className="mt-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-sm text-white">
             <MessageSquare className="h-4 w-4 text-zinc-400" />
             <span className="font-medium text-zinc-400">{product.comments?.length ?? 0}</span>
           </div>
 
           <div className="flex items-center gap-1">
-            <button
-              type="button"
+            <IconButton
+              icon={<Edit className="h-4 w-4" />}
+              ariaLabel="Éditer"
+              variant="ghost"
+              size="sm"
               onClick={handleEdit}
               className="p-2 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
               title="Éditer"
-            >
-              <Edit className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
+            />
+            <IconButton
+              icon={<Trash2 className="h-4 w-4" />}
+              ariaLabel="Supprimer"
+              variant="ghost"
+              size="sm"
               onClick={handleDelete}
               className="p-2 rounded-md text-zinc-400 hover:text-red-400 hover:bg-zinc-700 transition-colors"
               title="Supprimer"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
+            />
           </div>
-        </div>
+        </CardFooter>
 
       </CardContent>
     </Card>

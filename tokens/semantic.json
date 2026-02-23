@@ -1,0 +1,104 @@
+{
+  "description": "Mapping des primitives vers des rôles sémantiques. Les valeurs réelles sont définies par thème dans themes/*.json",
+  "surface": {
+    "canvas": "Fond global (body)",
+    "base": "Zone principale",
+    "subtle": "Sections alternées",
+    "elevated": {
+      "1": "Cards, panels",
+      "2": "Popover, dropdown",
+      "3": "Modal"
+    },
+    "sidebar": "Sidebar backend",
+    "header": "Header"
+  },
+  "content": {
+    "primary": "Texte principal",
+    "secondary": "Texte secondaire",
+    "muted": "Placeholders, hints",
+    "disabled": "État désactivé",
+    "inverse": {
+      "primary": "Texte sur fond inverse"
+    }
+  },
+  "border": {
+    "default": "Bordure standard",
+    "subtle": "Séparateurs légers",
+    "strong": "Emphasis"
+  },
+  "brand": {
+    "primary": "Identité primary",
+    "secondary": "Identité secondary",
+    "accent": "Identité accent",
+    "onPrimary": "Texte sur fond primary",
+    "onAccent": "Texte sur fond accent"
+  },
+  "action": {
+    "primary": {
+      "bg": "Bouton primary",
+      "fg": "Texte bouton primary",
+      "hover": { "bg": "Hover primary" },
+      "active": { "bg": "Active primary" }
+    },
+    "secondary": {
+      "bg": "Bouton secondary",
+      "fg": "Texte bouton secondary",
+      "hover": { "bg": "Hover secondary" },
+      "active": { "bg": "Active secondary" }
+    },
+    "destructive": {
+      "bg": "Bouton destructive",
+      "fg": "Texte bouton destructive",
+      "hover": { "bg": "Hover destructive" },
+      "active": { "bg": "Active destructive" }
+    },
+    "ghost": {
+      "bg": "Bouton ghost",
+      "fg": "Texte bouton ghost",
+      "hover": { "bg": "Hover ghost" },
+      "active": { "bg": "Active ghost" }
+    },
+    "outline": {
+      "bg": "Bouton outline",
+      "fg": "Texte bouton outline",
+      "border": "Bordure outline",
+      "hover": { "bg": "Hover outline" },
+      "active": { "bg": "Active outline" }
+    }
+  },
+  "status": {
+    "success": {
+      "surface": "Fond success",
+      "content": "Texte success",
+      "border": "Bordure success"
+    },
+    "error": {
+      "surface": "Fond error",
+      "content": "Texte error",
+      "border": "Bordure error"
+    },
+    "warning": {
+      "surface": "Fond warning",
+      "content": "Texte warning",
+      "border": "Bordure warning"
+    },
+    "info": {
+      "surface": "Fond info",
+      "content": "Texte info",
+      "border": "Bordure info"
+    }
+  },
+  "focus": {
+    "ring": "Anneau focus (accessibilité)",
+    "ringOffset": "Offset"
+  },
+  "input": {
+    "bg": "Fond champ formulaire",
+    "border": "Bordure champ",
+    "borderFocus": "Bordure focus"
+  },
+  "toggle": {
+    "bg": "Fond toggle",
+    "active": "Fond toggle actif"
+  }
+}

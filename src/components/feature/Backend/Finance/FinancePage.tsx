@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { TresorerieTabEnhanced } from './Tresorerie/components'
 import { TransactionsTab } from './Transactions/components'
@@ -8,10 +8,13 @@ import { FacturesTab } from './Factures/components'
 import { BilanTab } from './Bilan/components'
 import { BudgetTab } from './Budget/components'
 import { financeDataService } from '@/lib/services/FinanceDataService'
-import { Plus, FileUp, FileDown, CheckCheck, Settings, Filter, ChevronDown, Package, FileText as FileTextIcon } from 'lucide-react'
+import { Plus, FileUp, FileDown, CheckCheck, Settings, Filter, ChevronDown, Package, FileText as FileTextIcon, Receipt, PieChart, FileText, BarChart3 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToolbar } from '@/components/providers/ToolbarProvider'
-import { PageToolbar } from '@/components/ui/organisms'
+import { PageToolbar, PageToolbarFilters, PageToolbarActions } from '@/components/ui/organisms'
+import { DropdownPanel } from '@/components/ui/molecules'
+import { Button, Input, Label } from '@/components/ui/atoms'
+import { SectionHeader } from '@/components/ui'
 import {
   NewTransactionModal,
   ImportCSVModal,
@@ -26,7 +29,7 @@ import {
   ManageBudgetTemplatesModal
 } from './Budget/modals'
 import { NewInvoiceModal } from './Factures/modals'
-import { useFinanceLayout } from './FinanceLayout'
+import { useFinanceLayout } from './FinanceLayoutConfig'
 
 export default function FinancePage() {
   const { activeSection, selectedYear } = useFinanceLayout()
@@ -156,21 +159,19 @@ export default function FinancePage() {
 
     if (activeSection === 'transactions') {
       setToolbar(
-        <PageToolbar className="justify-between bg-[#171717] h-10 min-h-0 p-0 px-4 border-b border-zinc-200 dark:border-zinc-800">
-          <div className="flex items-center gap-4 flex-1 h-full">
-            <div className="flex-1" />
-
-            <div className="flex items-center gap-2">
-              {/* Filter button */}
+        <PageToolbar
+          filters={
+            <PageToolbarFilters>
               <div className="relative">
-                <button
+                <Button
                   ref={filterButtonRef}
+                  variant="outline"
+                  size="sm"
                   onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
                   className={cn(
-                    "px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1.5",
-                    "bg-transparent border border-zinc-700 text-zinc-400",
-                    "hover:text-white hover:border-zinc-500",
-                    "focus:outline-none focus:border-accent"
+                    "px-2 py-1 rounded text-xs font-medium flex items-center gap-1.5",
+                    "bg-transparent border-zinc-700 text-zinc-400",
+                    "hover:text-white hover:border-zinc-500"
                   )}
                 >
                   <Filter className="w-3 h-3" />
@@ -184,7 +185,7 @@ export default function FinancePage() {
                     "w-3 h-3 transition-transform",
                     isFilterDropdownOpen && "rotate-180"
                   )} />
-                </button>
+                </Button>
 
                 <AnimatePresence>
                   {isFilterDropdownOpen && (
@@ -193,34 +194,30 @@ export default function FinancePage() {
                         className="fixed inset-0 z-[100]"
                         onClick={() => setIsFilterDropdownOpen(false)}
                       />
-                      <motion.div
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        transition={{ duration: 0.15 }}
-                        className="fixed z-[101] bg-card-bg border border-border-custom rounded shadow-lg min-w-[300px] max-w-[400px] max-h-[600px] overflow-y-auto p-4"
+                      <DropdownPanel
                         style={getDropdownPosition(filterButtonRef)}
-                        data-filter-dropdown
-                        onClick={(e) => e.stopPropagation()}
+                        className="min-w-[300px] max-w-[400px] max-h-[600px] overflow-y-auto p-4"
+                        data-filter-dropdown={true}
                       >
                         <div className="space-y-4">
                           <div>
-                            <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">
+                            <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">
                               Recherche
-                            </label>
-                            <input
+                            </Label>
+                            <Input
                               type="text"
                               value={searchQuery}
                               onChange={(e) => setSearchQuery(e.target.value)}
                               placeholder="Rechercher une transaction..."
-                              className="w-full bg-zinc-100 dark:bg-zinc-800 border border-border-custom rounded px-3 py-2 text-sm focus:outline-none focus:border-accent"
+                              fullWidth
+                              className="bg-zinc-100 dark:bg-zinc-800 border-border-custom"
                             />
                           </div>
 
                           <div>
-                            <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">
+                            <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">
                               Type
-                            </label>
+                            </Label>
                             <Select
                               value={filterType}
                               onChange={(e) => setFilterType(e.target.value as any)}
@@ -233,9 +230,9 @@ export default function FinancePage() {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">
+                            <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">
                               Catégorie
-                            </label>
+                            </Label>
                             <Select
                               value={filterCategory}
                               onChange={(e) => setFilterCategory(e.target.value)}
@@ -247,9 +244,9 @@ export default function FinancePage() {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">
+                            <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">
                               Statut
-                            </label>
+                            </Label>
                             <Select
                               value={filterStatus}
                               onChange={(e) => setFilterStatus(e.target.value as any)}
@@ -263,9 +260,9 @@ export default function FinancePage() {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">
+                            <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">
                               Événement
-                            </label>
+                            </Label>
                             <Select
                               value={filterEventId}
                               onChange={(e) => setFilterEventId(e.target.value)}
@@ -277,9 +274,9 @@ export default function FinancePage() {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">
+                            <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">
                               Projet
-                            </label>
+                            </Label>
                             <Select
                               value={filterProjectId}
                               onChange={(e) => setFilterProjectId(e.target.value)}
@@ -291,9 +288,9 @@ export default function FinancePage() {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">
+                            <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">
                               Contact
-                            </label>
+                            </Label>
                             <Select
                               value={filterContactId}
                               onChange={(e) => setFilterContactId(e.target.value)}
@@ -305,7 +302,9 @@ export default function FinancePage() {
                           </div>
 
                           {(activeFiltersCount > 0 || searchQuery) && (
-                            <button
+                            <Button
+                              variant="secondary"
+                              size="sm"
                               onClick={() => {
                                 setFilterType('all')
                                 setFilterCategory('all')
@@ -315,77 +314,59 @@ export default function FinancePage() {
                                 setFilterContactId('all')
                                 setSearchQuery('')
                               }}
-                              className="w-full px-3 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded text-xs font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-foreground transition-colors"
+                              className="w-full"
                             >
                               Réinitialiser les filtres
-                            </button>
+                            </Button>
                           )}
                         </div>
-                      </motion.div>
+                      </DropdownPanel>
                     </>
                   )}
                 </AnimatePresence>
               </div>
-            </div>
-
-            <div className="text-zinc-500">|</div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowCategoriesModal(true)}
-                className="px-2 py-1 bg-transparent border border-zinc-700 text-zinc-400 rounded text-xs font-medium hover:text-white hover:border-zinc-500 transition-colors flex items-center gap-1.5"
-              >
-                <Settings className="w-3 h-3" />
+            </PageToolbarFilters>
+          }
+          actions={
+            <PageToolbarActions>
+              <Button onClick={() => setShowCategoriesModal(true)}>
+                <Settings className="w-3 h-3 mr-1.5" />
                 Catégories
-              </button>
-              <button
-                onClick={() => setShowReconciliationModal(true)}
-                className="px-2 py-1 bg-transparent border border-zinc-700 text-zinc-400 rounded text-xs font-medium hover:text-white hover:border-zinc-500 transition-colors flex items-center gap-1.5"
-              >
-                <CheckCheck className="w-3 h-3" />
+              </Button>
+              <Button onClick={() => setShowReconciliationModal(true)}>
+                <CheckCheck className="w-3 h-3 mr-1.5" />
                 Rapprochement
-              </button>
-              <button
-                onClick={() => {
-                  exportTransactionsExcel(transactions, selectedYear)
-                }}
-                className="px-2 py-1 bg-transparent border border-zinc-700 text-zinc-400 rounded text-xs font-medium hover:text-white hover:border-zinc-500 transition-colors flex items-center gap-1.5"
-              >
-                <FileDown className="w-3 h-3" />
+              </Button>
+              <Button onClick={() => exportTransactionsExcel(transactions, selectedYear)}>
+                <FileDown className="w-3 h-3 mr-1.5" />
                 Export Excel
-              </button>
-              <button
-                onClick={() => setShowImportCSVModal(true)}
-                className="px-2 py-1 bg-transparent border border-zinc-700 text-zinc-400 rounded text-xs font-medium hover:text-white hover:border-zinc-500 transition-colors flex items-center gap-1.5"
-              >
-                <FileUp className="w-3 h-3" />
+              </Button>
+              <Button onClick={() => setShowImportCSVModal(true)}>
+                <FileUp className="w-3 h-3 mr-1.5" />
                 Import CSV
-              </button>
-              <button
-                onClick={() => setShowNewTransactionModal(true)}
-                className="px-2 py-1 bg-white text-black rounded text-xs font-medium hover:bg-zinc-200 transition-colors flex items-center gap-1.5"
-              >
-                <Plus className="w-3 h-3" />
+              </Button>
+              <Button onClick={() => setShowNewTransactionModal(true)}>
+                <Plus className="w-3 h-3 mr-1.5" />
                 Nouvelle transaction
-              </button>
-            </div>
-          </div>
-        </PageToolbar>
+              </Button>
+            </PageToolbarActions>
+          }
+        />
       )
       return () => { setToolbar(null) }
     }
 
     if (activeSection === 'budget') {
       setToolbar(
-        <PageToolbar className="justify-between bg-[#171717] h-10 min-h-0 p-0 px-4 border-b border-zinc-200 dark:border-zinc-800">
-          <div className="flex items-center gap-4 flex-1 h-full">
-            <div className="flex-1" />
-
-            <div className="flex items-center gap-2">
+        <PageToolbar
+          filters={
+            <PageToolbarFilters>
               {/* Status dropdown */}
               <div className="relative">
-                <button
+                <Button
                   ref={budgetStatusButtonRef}
+                  variant="outline"
+                  size="sm"
                   onClick={() => setIsBudgetStatusDropdownOpen(!isBudgetStatusDropdownOpen)}
                   className={cn(
                     "px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1.5",
@@ -399,7 +380,7 @@ export default function FinancePage() {
                     "w-3 h-3 transition-transform",
                     isBudgetStatusDropdownOpen && "rotate-180"
                   )} />
-                </button>
+                </Button>
 
                 <AnimatePresence>
                   {isBudgetStatusDropdownOpen && (
@@ -408,14 +389,9 @@ export default function FinancePage() {
                         className="fixed inset-0 z-[100]"
                         onClick={() => setIsBudgetStatusDropdownOpen(false)}
                       />
-                      <motion.div
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        transition={{ duration: 0.15 }}
-                        className="fixed z-[101] bg-card-bg border border-border-custom rounded shadow-lg min-w-[120px]"
+                      <DropdownPanel
                         style={getDropdownPosition(budgetStatusButtonRef)}
-                        onClick={(e) => e.stopPropagation()}
+                        className="min-w-[120px]"
                       >
                         <div className="py-1">
                           {[
@@ -424,65 +400,59 @@ export default function FinancePage() {
                             { value: 'ongoing', label: 'En cours' },
                             { value: 'completed', label: 'Terminés' },
                           ].map((option) => (
-                            <button
+                            <Button
                               key={option.value}
+                              variant="ghost"
+                              size="sm"
                               onClick={() => {
                                 setBudgetFilterStatus(option.value as any)
                                 setIsBudgetStatusDropdownOpen(false)
                               }}
                               className={cn(
-                                "w-full px-3 py-1.5 text-xs font-medium text-left transition-colors",
+                                "w-full justify-start px-3 py-1.5 text-xs font-medium transition-colors",
                                 budgetFilterStatus === option.value
                                   ? "bg-accent text-white"
                                   : "text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-foreground"
                               )}
                             >
                               {option.label}
-                            </button>
+                            </Button>
                           ))}
                         </div>
-                      </motion.div>
+                      </DropdownPanel>
                     </>
                   )}
                 </AnimatePresence>
               </div>
-            </div>
-
-            <div className="text-zinc-500">|</div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowManageTemplatesModal(true)}
-                className="px-2 py-1 bg-transparent border border-zinc-700 text-zinc-400 rounded text-xs font-medium hover:text-white hover:border-zinc-500 transition-colors flex items-center gap-1.5"
-              >
-                <Settings className="w-3 h-3" />
+            </PageToolbarFilters>
+          }
+          actions={
+            <PageToolbarActions>
+              <Button onClick={() => setShowManageTemplatesModal(true)}>
+                <Settings className="w-3 h-3 mr-1.5" />
                 Templates
-              </button>
-              <button
-                onClick={() => setShowCreateProjectModal(true)}
-                className="px-2 py-1 bg-white text-black rounded text-xs font-medium hover:bg-zinc-200 transition-colors flex items-center gap-1.5"
-              >
-                <Package className="w-3 h-3" />
+              </Button>
+              <Button onClick={() => setShowCreateProjectModal(true)}>
+                <Package className="w-3 h-3 mr-1.5" />
                 Nouveau projet
-              </button>
-            </div>
-          </div>
-        </PageToolbar>
+              </Button>
+            </PageToolbarActions>
+          }
+        />
       )
       return () => { setToolbar(null) }
     }
 
     if (activeSection === 'factures') {
       setToolbar(
-        <PageToolbar className="justify-between bg-[#171717] h-10 min-h-0 p-0 px-4 border-b border-zinc-200 dark:border-zinc-800">
-          <div className="flex items-center gap-4 flex-1 h-full">
-            <div className="flex-1" />
-
-            <div className="flex items-center gap-2">
-              {/* Status dropdown */}
+        <PageToolbar
+          filters={
+            <PageToolbarFilters>
               <div className="relative">
-                <button
+                <Button
                   ref={invoiceStatusButtonRef}
+                  variant="outline"
+                  size="sm"
                   onClick={() => setIsInvoiceStatusDropdownOpen(!isInvoiceStatusDropdownOpen)}
                   className={cn(
                     "px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1.5",
@@ -496,7 +466,7 @@ export default function FinancePage() {
                     "w-3 h-3 transition-transform",
                     isInvoiceStatusDropdownOpen && "rotate-180"
                   )} />
-                </button>
+                </Button>
 
                 <AnimatePresence>
                   {isInvoiceStatusDropdownOpen && (
@@ -505,14 +475,9 @@ export default function FinancePage() {
                         className="fixed inset-0 z-[100]"
                         onClick={() => setIsInvoiceStatusDropdownOpen(false)}
                       />
-                      <motion.div
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        transition={{ duration: 0.15 }}
-                        className="fixed z-[101] bg-card-bg border border-border-custom rounded shadow-lg min-w-[120px]"
+                      <DropdownPanel
                         style={getDropdownPosition(invoiceStatusButtonRef)}
-                        onClick={(e) => e.stopPropagation()}
+                        className="min-w-[120px]"
                       >
                         <div className="py-1">
                           {[
@@ -522,71 +487,123 @@ export default function FinancePage() {
                             { value: 'paid', label: 'Payées' },
                             { value: 'overdue', label: 'En retard' },
                           ].map((option) => (
-                            <button
+                            <Button
                               key={option.value}
+                              variant="ghost"
+                              size="sm"
                               onClick={() => {
                                 setInvoiceFilterStatus(option.value as any)
                                 setIsInvoiceStatusDropdownOpen(false)
                               }}
                               className={cn(
-                                "w-full px-3 py-1.5 text-xs font-medium text-left transition-colors",
+                                "w-full justify-start px-3 py-1.5 text-xs font-medium transition-colors",
                                 invoiceFilterStatus === option.value
                                   ? "bg-accent text-white"
                                   : "text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-foreground"
                               )}
                             >
                               {option.label}
-                            </button>
+                            </Button>
                           ))}
                         </div>
-                      </motion.div>
+                      </DropdownPanel>
                     </>
                   )}
                 </AnimatePresence>
               </div>
-            </div>
-
-            <div className="text-zinc-500">|</div>
-
-            <div className="flex items-center gap-2">
-              <button
+            </PageToolbarFilters>
+          }
+          actions={
+            <PageToolbarActions>
+              <Button
                 onClick={() => {
                   setInvoiceType('quote')
                   setShowNewInvoiceModal(true)
                 }}
-                className="px-2 py-1 bg-transparent border border-zinc-700 text-zinc-400 rounded text-xs font-medium hover:text-white hover:border-zinc-500 transition-colors flex items-center gap-1.5"
               >
-                <Plus className="w-3 h-3" />
+                <Plus className="w-3 h-3 mr-1.5" />
                 Nouveau devis
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => {
                   setInvoiceType('invoice')
                   setShowNewInvoiceModal(true)
                 }}
-                className="px-2 py-1 bg-white text-black rounded text-xs font-medium hover:bg-zinc-200 transition-colors flex items-center gap-1.5"
               >
-                <Plus className="w-3 h-3" />
+                <Plus className="w-3 h-3 mr-1.5" />
                 Nouvelle facture
-              </button>
-            </div>
-          </div>
-        </PageToolbar>
+              </Button>
+            </PageToolbarActions>
+          }
+        />
       )
       return () => { setToolbar(null) }
     }
 
     if (activeSection === 'bilan') {
+      const exportBilanPdf = async () => {
+        try {
+          const [pl, bs, r] = await Promise.all([
+            financeDataService.getProfitAndLoss(bilanPeriodType, selectedYear, bilanMonth),
+            financeDataService.getBalanceSheet(bilanPeriodType, selectedYear),
+            financeDataService.getFinancialRatios(bilanPeriodType, selectedYear),
+          ])
+          const getPeriodLabel = () => {
+            switch (bilanPeriodType) {
+              case 'month':
+                return `Mois de ${new Date(selectedYear, bilanMonth - 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`
+              case 'quarter':
+                return `T${Math.floor((bilanMonth - 1) / 3) + 1} ${selectedYear}`
+              case 'semester':
+                return `S${bilanMonth <= 6 ? 1 : 2} ${selectedYear}`
+              case 'year':
+                return `Année ${selectedYear}`
+              default:
+                return `Période ${selectedYear}`
+            }
+          }
+          await exportBilanPDF(pl, bs, r, getPeriodLabel())
+        } catch (error) {
+          console.error('Erreur lors de l\'export PDF:', error)
+          alert('Erreur lors de l\'export PDF')
+        }
+      }
+      const exportBilanExcelFn = async () => {
+        try {
+          const [pl, bs, r] = await Promise.all([
+            financeDataService.getProfitAndLoss(bilanPeriodType, selectedYear, bilanMonth),
+            financeDataService.getBalanceSheet(bilanPeriodType, selectedYear),
+            financeDataService.getFinancialRatios(bilanPeriodType, selectedYear),
+          ])
+          const getPeriodLabel = () => {
+            switch (bilanPeriodType) {
+              case 'month':
+                return `Mois de ${new Date(selectedYear, bilanMonth - 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`
+              case 'quarter':
+                return `T${Math.floor((bilanMonth - 1) / 3) + 1} ${selectedYear}`
+              case 'semester':
+                return `S${bilanMonth <= 6 ? 1 : 2} ${selectedYear}`
+              case 'year':
+                return `Année ${selectedYear}`
+              default:
+                return `Période ${selectedYear}`
+            }
+          }
+          await exportBilanExcel(pl, bs, r, getPeriodLabel())
+        } catch (error) {
+          console.error('Erreur lors de l\'export Excel:', error)
+          alert('Erreur lors de l\'export Excel')
+        }
+      }
       setToolbar(
-        <PageToolbar className="justify-between bg-[#171717] h-10 min-h-0 p-0 px-4 border-b border-zinc-200 dark:border-zinc-800">
-          <div className="flex items-center gap-4 flex-1 h-full">
-            <div className="flex-1" />
-
-            <div className="flex items-center gap-2">
-              {/* Period dropdown */}
+        <PageToolbar
+          filters={
+            <PageToolbarFilters>
               <div className="relative">
-                <button
+                <Button
                   ref={bilanPeriodButtonRef}
+                  variant="outline"
+                  size="sm"
                   onClick={() => setIsBilanPeriodDropdownOpen(!isBilanPeriodDropdownOpen)}
                   className={cn(
                     "px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1.5",
@@ -600,7 +617,7 @@ export default function FinancePage() {
                     "w-3 h-3 transition-transform",
                     isBilanPeriodDropdownOpen && "rotate-180"
                   )} />
-                </button>
+                </Button>
 
                 <AnimatePresence>
                   {isBilanPeriodDropdownOpen && (
@@ -609,14 +626,9 @@ export default function FinancePage() {
                         className="fixed inset-0 z-[100]"
                         onClick={() => setIsBilanPeriodDropdownOpen(false)}
                       />
-                      <motion.div
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        transition={{ duration: 0.15 }}
-                        className="fixed z-[101] bg-card-bg border border-border-custom rounded shadow-lg min-w-[120px]"
+                      <DropdownPanel
                         style={getDropdownPosition(bilanPeriodButtonRef)}
-                        onClick={(e) => e.stopPropagation()}
+                        className="min-w-[120px]"
                       >
                         <div className="py-1">
                           {[
@@ -625,24 +637,26 @@ export default function FinancePage() {
                             { value: 'semester', label: 'Semestre' },
                             { value: 'year', label: 'Année' },
                           ].map((option) => (
-                            <button
+                            <Button
                               key={option.value}
+                              variant="ghost"
+                              size="sm"
                               onClick={() => {
                                 setBilanPeriodType(option.value as any)
                                 setIsBilanPeriodDropdownOpen(false)
                               }}
                               className={cn(
-                                "w-full px-3 py-1.5 text-xs font-medium text-left transition-colors",
+                                "w-full justify-start px-3 py-1.5 text-xs font-medium transition-colors",
                                 bilanPeriodType === option.value
                                   ? "bg-accent text-white"
                                   : "text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-foreground"
                               )}
                             >
                               {option.label}
-                            </button>
+                            </Button>
                           ))}
                         </div>
-                      </motion.div>
+                      </DropdownPanel>
                     </>
                   )}
                 </AnimatePresence>
@@ -651,8 +665,10 @@ export default function FinancePage() {
               {/* Month dropdown (when period is month/quarter/semester) */}
               {(bilanPeriodType === 'month' || bilanPeriodType === 'quarter' || bilanPeriodType === 'semester') && (
                 <div className="relative">
-                  <button
+                  <Button
                     ref={bilanMonthButtonRef}
+                    variant="outline"
+                    size="sm"
                     onClick={() => setIsBilanMonthDropdownOpen(!isBilanMonthDropdownOpen)}
                     className={cn(
                       "px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1.5",
@@ -666,7 +682,7 @@ export default function FinancePage() {
                       "w-3 h-3 transition-transform",
                       isBilanMonthDropdownOpen && "rotate-180"
                     )} />
-                  </button>
+                  </Button>
 
                   <AnimatePresence>
                     {isBilanMonthDropdownOpen && (
@@ -675,118 +691,52 @@ export default function FinancePage() {
                           className="fixed inset-0 z-[100]"
                           onClick={() => setIsBilanMonthDropdownOpen(false)}
                         />
-                        <motion.div
-                          initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                          transition={{ duration: 0.15 }}
-                          className="fixed z-[101] bg-card-bg border border-border-custom rounded shadow-lg min-w-[150px]"
+                        <DropdownPanel
                           style={getDropdownPosition(bilanMonthButtonRef)}
-                          onClick={(e) => e.stopPropagation()}
+                          className="min-w-[150px]"
                         >
                           <div className="py-1">
                             {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                              <button
+                              <Button
                                 key={month}
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => {
                                   setBilanMonth(month)
                                   setIsBilanMonthDropdownOpen(false)
                                 }}
                                 className={cn(
-                                  "w-full px-3 py-1.5 text-xs font-medium text-left transition-colors",
+                                  "w-full justify-start px-3 py-1.5 text-xs font-medium transition-colors",
                                   bilanMonth === month
                                     ? "bg-accent text-white"
                                     : "text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-foreground"
                                 )}
                               >
                                 {new Date(selectedYear, month - 1).toLocaleDateString('fr-FR', { month: 'long' })}
-                              </button>
+                              </Button>
                             ))}
                           </div>
-                        </motion.div>
+                        </DropdownPanel>
                       </>
                     )}
                   </AnimatePresence>
                 </div>
               )}
-            </div>
-
-            <div className="text-zinc-500">|</div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={async () => {
-                  try {
-                    const [pl, bs, r] = await Promise.all([
-                      financeDataService.getProfitAndLoss(bilanPeriodType, selectedYear, bilanMonth),
-                      financeDataService.getBalanceSheet(bilanPeriodType, selectedYear),
-                      financeDataService.getFinancialRatios(bilanPeriodType, selectedYear),
-                    ])
-                    const getPeriodLabel = () => {
-                      switch (bilanPeriodType) {
-                        case 'month':
-                          return `Mois de ${new Date(selectedYear, bilanMonth - 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`
-                        case 'quarter':
-                          const quarter = Math.floor((bilanMonth - 1) / 3) + 1
-                          return `T${quarter} ${selectedYear}`
-                        case 'semester':
-                          const semester = bilanMonth <= 6 ? 1 : 2
-                          return `S${semester} ${selectedYear}`
-                        case 'year':
-                          return `Année ${selectedYear}`
-                        default:
-                          return `Période ${selectedYear}`
-                      }
-                    }
-                    await exportBilanPDF(pl, bs, r, getPeriodLabel())
-                  } catch (error) {
-                    console.error('Erreur lors de l\'export PDF:', error)
-                    alert('Erreur lors de l\'export PDF')
-                  }
-                }}
-                className="px-2 py-1 bg-transparent border border-zinc-700 text-zinc-400 rounded text-xs font-medium hover:text-white hover:border-zinc-500 transition-colors flex items-center gap-1.5"
-              >
-                <FileTextIcon className="w-3 h-3" />
+            </PageToolbarFilters>
+          }
+          actions={
+            <PageToolbarActions>
+              <Button onClick={exportBilanPdf}>
+                <FileTextIcon className="w-3 h-3 mr-1.5" />
                 Export PDF
-              </button>
-              <button
-                onClick={async () => {
-                  try {
-                    const [pl, bs, r] = await Promise.all([
-                      financeDataService.getProfitAndLoss(bilanPeriodType, selectedYear, bilanMonth),
-                      financeDataService.getBalanceSheet(bilanPeriodType, selectedYear),
-                      financeDataService.getFinancialRatios(bilanPeriodType, selectedYear),
-                    ])
-                    const getPeriodLabel = () => {
-                      switch (bilanPeriodType) {
-                        case 'month':
-                          return `Mois de ${new Date(selectedYear, bilanMonth - 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`
-                        case 'quarter':
-                          const quarter = Math.floor((bilanMonth - 1) / 3) + 1
-                          return `T${quarter} ${selectedYear}`
-                        case 'semester':
-                          const semester = bilanMonth <= 6 ? 1 : 2
-                          return `S${semester} ${selectedYear}`
-                        case 'year':
-                          return `Année ${selectedYear}`
-                        default:
-                          return `Période ${selectedYear}`
-                      }
-                    }
-                    await exportBilanExcel(pl, bs, r, getPeriodLabel())
-                  } catch (error) {
-                    console.error('Erreur lors de l\'export Excel:', error)
-                    alert('Erreur lors de l\'export Excel')
-                  }
-                }}
-                className="px-2 py-1 bg-transparent border border-zinc-700 text-zinc-400 rounded text-xs font-medium hover:text-white hover:border-zinc-500 transition-colors flex items-center gap-1.5"
-              >
-                <FileDown className="w-3 h-3" />
+              </Button>
+              <Button onClick={exportBilanExcelFn}>
+                <FileDown className="w-3 h-3 mr-1.5" />
                 Export Excel
-              </button>
-            </div>
-          </div>
-        </PageToolbar>
+              </Button>
+            </PageToolbarActions>
+          }
+        />
       )
       return () => { setToolbar(null) }
     }
@@ -806,12 +756,30 @@ export default function FinancePage() {
     }
   }
 
+  const SECTION_HEADERS: Record<string, { icon: React.ReactNode; title: string; subtitle?: string }> = {
+    transactions: { icon: <Receipt size={28} />, title: 'Transactions', subtitle: 'Gérez vos entrées et sorties, importez et rapprochez vos opérations.' },
+    budget: { icon: <PieChart size={28} />, title: 'Budget', subtitle: 'Planifiez et suivez vos budgets par événement ou projet.' },
+    factures: { icon: <FileText size={28} />, title: 'Factures', subtitle: 'Créez et suivez vos factures et devis.' },
+    bilan: { icon: <BarChart3 size={28} />, title: 'Bilan', subtitle: 'Compte de résultat, bilan et ratios financiers.' },
+  }
+  const sectionHeaderConfig = activeSection !== 'tresorerie' ? SECTION_HEADERS[activeSection] : null
+
   return (
     <>
+      {sectionHeaderConfig && (
+        <div className="mb-6">
+          <SectionHeader
+            icon={sectionHeaderConfig.icon}
+            title={sectionHeaderConfig.title}
+            subtitle={sectionHeaderConfig.subtitle}
+          />
+        </div>
+      )}
       {/* Section content */}
       <div className="min-h-[500px]">
         {activeSection === 'tresorerie' && (
           <TresorerieTabEnhanced
+            selectedYear={selectedYear}
             refreshTrigger={refreshTrigger}
             onAddTransaction={() => setShowNewTransactionModal(true)}
           />
@@ -852,6 +820,7 @@ export default function FinancePage() {
         {activeSection === 'factures' && (
           <FacturesTab
             filterStatus={invoiceFilterStatus}
+            selectedYear={selectedYear}
             onCreateInvoice={() => {
               setInvoiceType('invoice')
               setShowNewInvoiceModal(true)

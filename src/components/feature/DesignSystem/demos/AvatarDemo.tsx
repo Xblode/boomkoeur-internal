@@ -6,7 +6,7 @@ export const AvatarDemo = () => {
   return (
     <div className="space-y-4 p-4">
       <h3 className="text-xl font-semibold">Avatar</h3>
-      <Card>
+      <Card variant="outline">
         <CardContent className="space-y-6">
           <div className="flex items-center gap-4">
             <div className="flex flex-col items-center gap-2">

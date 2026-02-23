@@ -8,7 +8,9 @@ import {
   setShotgunTicketsCache,
 } from '@/lib/localStorage/shotgun';
 import { Button } from '@/components/ui/atoms';
+import { EmptyState, Card, CardContent } from '@/components/ui/molecules';
 import { cn } from '@/lib/utils';
+import { CHART_SERIES_COLORS, CHART_UI_COLORS } from '@/lib/constants/chart-colors';
 import {
   RefreshCw,
   Loader2,
@@ -237,10 +239,12 @@ export function EventShotgunStats() {
 
   if (!event.shotgunEventId) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <BarChart3 size={40} className="text-zinc-300 dark:text-zinc-600 mb-3" />
-        <p className="text-sm text-zinc-500">Aucun event Shotgun lié</p>
-      </div>
+      <EmptyState
+        icon={BarChart3}
+        title="Aucun event Shotgun lié"
+        description="Liez cet événement à Shotgun pour afficher les statistiques"
+        variant="compact"
+      />
     );
   }
 
@@ -312,25 +316,26 @@ export function EventShotgunStats() {
 
       {/* Sales chart */}
       {stats.dailySales.length >= 1 && (
-        <div className="rounded-lg border border-border-custom p-4">
+        <Card variant="outline">
+          <CardContent className="p-4">
           <h4 className="text-sm font-semibold mb-4">Évolution des ventes</h4>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={stats.dailySales} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="shotgunTicketsGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0.02} />
+                  <stop offset="5%" stopColor={CHART_SERIES_COLORS.balanceChart} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={CHART_SERIES_COLORS.balanceChart} stopOpacity={0.02} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(113,113,122,0.2)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke={CHART_UI_COLORS.gridStroke} vertical={false} />
               <XAxis
                 dataKey="label"
-                tick={{ fontSize: 11, fill: '#71717a' }}
+                tick={{ fontSize: 11, fill: CHART_UI_COLORS.tickFill }}
                 tickLine={false}
                 axisLine={false}
               />
               <YAxis
-                tick={{ fontSize: 11, fill: '#71717a' }}
+                tick={{ fontSize: 11, fill: CHART_UI_COLORS.tickFill }}
                 tickLine={false}
                 axisLine={false}
                 width={32}
@@ -339,9 +344,9 @@ export function EventShotgunStats() {
               <Tooltip
                 contentStyle={{
                   borderRadius: '8px',
-                  border: '1px solid #e4e4e7',
+                  border: `1px solid ${CHART_UI_COLORS.tooltipBorder}`,
                   fontSize: '12px',
-                  backgroundColor: '#fff',
+                  backgroundColor: CHART_UI_COLORS.tooltipBg,
                 }}
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 formatter={((value: number, name: string) => {
@@ -352,16 +357,17 @@ export function EventShotgunStats() {
               <Area
                 type="monotone"
                 dataKey="tickets"
-                stroke="#6366f1"
+                stroke={CHART_SERIES_COLORS.balanceChart}
                 strokeWidth={2.5}
                 fill="url(#shotgunTicketsGradient)"
-                dot={{ r: 4, fill: '#6366f1', strokeWidth: 0 }}
-                activeDot={{ r: 6, fill: '#6366f1', strokeWidth: 0 }}
+                dot={{ r: 4, fill: CHART_SERIES_COLORS.balanceChart, strokeWidth: 0 }}
+                activeDot={{ r: 6, fill: CHART_SERIES_COLORS.balanceChart, strokeWidth: 0 }}
                 isAnimationActive={true}
               />
             </AreaChart>
           </ResponsiveContainer>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Breakdowns */}
@@ -426,11 +432,13 @@ function KpiCard({
   sub?: string;
 }) {
   return (
-    <div className="rounded-lg border border-border-custom p-4 space-y-1">
+    <Card variant="outline">
+      <CardContent className="p-4 space-y-1">
       <div className="flex items-center gap-2 text-zinc-500">{icon}<span className="text-xs">{label}</span></div>
       <p className="text-xl font-bold tabular-nums">{value}</p>
       {sub && <p className="text-[11px] text-zinc-400">{sub}</p>}
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -446,7 +454,8 @@ function BreakdownTable({
   if (rows.length === 0) return null;
 
   return (
-    <div className="rounded-lg border border-border-custom p-4">
+    <Card variant="outline">
+      <CardContent className="p-4">
       <h4 className="text-sm font-semibold mb-3">{title}</h4>
       <div className="space-y-2">
         {rows.map((row, i) => (
@@ -464,6 +473,7 @@ function BreakdownTable({
           </div>
         ))}
       </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/molecules';
-import { Label, Input } from '@/components/ui/atoms';
+import { Label, Input, FileInput } from '@/components/ui/atoms';
 import { DatePicker, TimePicker } from '@/components/ui/molecules';
 import { Mail, Lock, Search } from 'lucide-react';
 
@@ -54,8 +54,7 @@ export const InputDemo = () => {
                 <Input type="number" placeholder="0" />
               </div>
               <div className="space-y-2">
-                <Label>Fichier</Label>
-                <Input type="file" className="text-sm file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200 dark:file:bg-zinc-800 dark:file:text-zinc-300 dark:hover:file:bg-zinc-700" />
+                <FileInput label="Fichier" />
               </div>
             </div>
             

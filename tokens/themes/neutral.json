@@ -1,0 +1,210 @@
+{
+  "name": "neutral",
+  "description": "Thème neutre (light/dark) - palette zinc/gray, accent bleu",
+  "light": {
+    "surface": {
+      "canvas": "color.neutral.0",
+      "base": "color.neutral.50",
+      "subtle": "color.neutral.100",
+      "elevated": {
+        "1": "color.neutral.0",
+        "2": "color.neutral.0",
+        "3": "color.neutral.0"
+      },
+      "sidebar": "color.neutral.100",
+      "header": "color.neutral.0"
+    },
+    "content": {
+      "primary": "color.neutral.900",
+      "secondary": "color.neutral.600",
+      "muted": "color.neutral.500",
+      "disabled": "color.neutral.400",
+      "inverse": {
+        "primary": "color.neutral.0"
+      }
+    },
+    "border": {
+      "default": "color.neutral.350",
+      "subtle": "color.neutral.200",
+      "strong": "color.neutral.500"
+    },
+    "brand": {
+      "primary": "color.neutral.900",
+      "secondary": "color.neutral.600",
+      "accent": "color.brand.accent.500",
+      "onPrimary": "color.neutral.0",
+      "onAccent": "color.neutral.0"
+    },
+    "action": {
+      "primary": {
+        "bg": "color.neutral.900",
+        "fg": "color.neutral.0",
+        "hover": { "bg": "color.neutral.800" },
+        "active": { "bg": "color.neutral.950" }
+      },
+      "secondary": {
+        "bg": "color.neutral.100",
+        "fg": "color.neutral.900",
+        "hover": { "bg": "color.neutral.200" },
+        "active": { "bg": "color.neutral.300" }
+      },
+      "destructive": {
+        "bg": "color.status.error.500",
+        "fg": "color.neutral.0",
+        "hover": { "bg": "color.status.error.600" },
+        "active": { "bg": "color.status.error.700" }
+      },
+      "ghost": {
+        "bg": "transparent",
+        "fg": "color.neutral.900",
+        "hover": { "bg": "color.neutral.100" },
+        "active": { "bg": "color.neutral.200" }
+      },
+      "outline": {
+        "bg": "transparent",
+        "fg": "color.neutral.900",
+        "border": "color.neutral.300",
+        "hover": { "bg": "color.neutral.50" },
+        "active": { "bg": "color.neutral.100" }
+      }
+    },
+    "status": {
+      "success": {
+        "surface": "color.status.success.50",
+        "content": "color.status.success.700",
+        "border": "color.status.success.500"
+      },
+      "error": {
+        "surface": "color.status.error.50",
+        "content": "color.status.error.700",
+        "border": "color.status.error.500"
+      },
+      "warning": {
+        "surface": "color.status.warning.50",
+        "content": "color.status.warning.700",
+        "border": "color.status.warning.500"
+      },
+      "info": {
+        "surface": "color.status.info.50",
+        "content": "color.status.info.700",
+        "border": "color.status.info.500"
+      }
+    },
+    "focus": {
+      "ring": "color.brand.accent.500",
+      "ringOffset": "color.neutral.0"
+    },
+    "input": {
+      "bg": "color.neutral.0",
+      "border": "color.neutral.300",
+      "borderFocus": "color.brand.accent.500"
+    },
+    "toggle": {
+      "bg": "color.neutral.100",
+      "active": "color.neutral.0"
+    }
+  },
+  "dark": {
+    "surface": {
+      "canvas": "color.neutral.950",
+      "base": "color.neutral.875",
+      "subtle": "color.neutral.800",
+      "elevated": {
+        "1": "color.neutral.850",
+        "2": "color.neutral.800",
+        "3": "color.neutral.800"
+      },
+      "sidebar": "color.neutral.875",
+      "header": "color.neutral.875"
+    },
+    "content": {
+      "primary": "color.neutral.150",
+      "secondary": "color.neutral.400",
+      "muted": "color.neutral.500",
+      "disabled": "color.neutral.600",
+      "inverse": {
+        "primary": "color.neutral.950"
+      }
+    },
+    "border": {
+      "default": "color.neutral.750",
+      "subtle": "color.neutral.800",
+      "strong": "color.neutral.500"
+    },
+    "brand": {
+      "primary": "color.neutral.0",
+      "secondary": "color.neutral.400",
+      "accent": "color.brand.accent.400",
+      "onPrimary": "color.neutral.950",
+      "onAccent": "color.neutral.950"
+    },
+    "action": {
+      "primary": {
+        "bg": "color.neutral.0",
+        "fg": "color.neutral.950",
+        "hover": { "bg": "color.neutral.200" },
+        "active": { "bg": "color.neutral.300" }
+      },
+      "secondary": {
+        "bg": "color.neutral.800",
+        "fg": "color.neutral.100",
+        "hover": { "bg": "color.neutral.700" },
+        "active": { "bg": "color.neutral.600" }
+      },
+      "destructive": {
+        "bg": "color.status.error.500",
+        "fg": "color.neutral.0",
+        "hover": { "bg": "color.status.error.600" },
+        "active": { "bg": "color.status.error.700" }
+      },
+      "ghost": {
+        "bg": "transparent",
+        "fg": "color.neutral.100",
+        "hover": { "bg": "color.neutral.800" },
+        "active": { "bg": "color.neutral.700" }
+      },
+      "outline": {
+        "bg": "transparent",
+        "fg": "color.neutral.100",
+        "border": "color.neutral.700",
+        "hover": { "bg": "color.neutral.800" },
+        "active": { "bg": "color.neutral.700" }
+      }
+    },
+    "status": {
+      "success": {
+        "surface": "color.status.success.950",
+        "content": "color.status.success.400",
+        "border": "color.status.success.500"
+      },
+      "error": {
+        "surface": "color.status.error.950",
+        "content": "color.status.error.400",
+        "border": "color.status.error.500"
+      },
+      "warning": {
+        "surface": "color.status.warning.950",
+        "content": "color.status.warning.400",
+        "border": "color.status.warning.500"
+      },
+      "info": {
+        "surface": "color.status.info.950",
+        "content": "color.status.info.400",
+        "border": "color.status.info.500"
+      }
+    },
+    "focus": {
+      "ring": "color.brand.accent.400",
+      "ringOffset": "color.neutral.950"
+    },
+    "input": {
+      "bg": "color.neutral.875",
+      "border": "color.neutral.700",
+      "borderFocus": "color.brand.accent.400"
+    },
+    "toggle": {
+      "bg": "color.neutral.800",
+      "active": "color.neutral.700"
+    }
+  }
+}

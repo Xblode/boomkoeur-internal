@@ -7,6 +7,12 @@ export type { IconButtonProps } from './IconButton';
 export { Input } from './Input';
 export type { InputProps } from './Input';
 
+export { FileInput } from './FileInput';
+export type { FileInputProps } from './FileInput';
+
+export { InlineEdit } from './InlineEdit';
+export type { InlineEditProps } from './InlineEdit';
+
 export { Textarea } from './Textarea';
 export type { TextareaProps } from './Textarea';
 
@@ -28,6 +34,9 @@ export type { SliderProps } from './Slider';
 export { Label } from './Label';
 export type { LabelProps } from './Label';
 
+export { FormLabel } from './FormLabel';
+export type { FormLabelProps } from './FormLabel';
+
 export { Icon } from './Icon';
 export type { IconProps } from './Icon';
 
@@ -35,10 +44,10 @@ export { Badge } from './Badge';
 export type { BadgeProps } from './Badge';
 
 export { Tag, Dot } from './Status';
-export type { TagProps, DotProps } from './Status';
+export type { TagProps, DotProps, TagVariant, DotVariant } from './Status';
 
 export { Chip } from './Chip';
-export type { ChipProps } from './Chip';
+export type { ChipProps, ChipVariant } from './Chip';
 
 export { Avatar } from './Avatar';
 export type { AvatarProps } from './Avatar';

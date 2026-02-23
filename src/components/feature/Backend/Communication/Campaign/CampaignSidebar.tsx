@@ -3,7 +3,7 @@
 import React from 'react';
 import { SocialPost, PostStatus } from '@/types/communication';
 import { Image, Video, Clock } from 'lucide-react';
-import { Badge } from '@/components/ui/atoms';
+import { Badge, Button } from '@/components/ui/atoms';
 import { cn } from '@/lib/utils';
 
 interface CampaignSidebarProps {
@@ -81,8 +81,10 @@ export const CampaignSidebar: React.FC<CampaignSidebarProps> = ({
               {/* Posts List */}
               <div className="py-1">
                 {statusPosts.map(post => (
-                  <button
+                  <Button
                     key={post.id}
+                    variant="ghost"
+                    size="sm"
                     onClick={() => onSelectPost(post)}
                     className={cn(
                       "w-full p-3 flex items-center gap-3 transition-colors text-left border-l-2 border-transparent",
@@ -117,7 +119,7 @@ export const CampaignSidebar: React.FC<CampaignSidebarProps> = ({
                         }
                       </p>
                     </div>
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>

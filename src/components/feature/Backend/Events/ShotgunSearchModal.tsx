@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { createPortal } from 'react-dom';
-import { Search, X, MapPin, Calendar, Loader2, Ticket } from 'lucide-react';
+import { Search, MapPin, Calendar, Loader2, Ticket, X } from 'lucide-react';
+import { Input, Button, IconButton, Badge } from '@/components/ui/atoms';
+import { EmptyState } from '@/components/ui/molecules';
+import { Modal, ModalHeader, ModalContent, ModalFooter } from '@/components/ui/organisms';
 import { ShotgunEvent, ShotgunEventsResponse } from '@/types/shotgun';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -129,17 +131,6 @@ export function ShotgunSearchModal({ isOpen, onClose, onSelect }: ShotgunSearchM
     }
   }, [isOpen]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [isOpen, onClose]);
-
-  if (!isOpen || !mounted) return null;
-
   const formatDate = (iso: string) => {
     try {
       return format(new Date(iso), "d MMM yyyy 'à' HH:mm", { locale: fr });
@@ -148,35 +139,25 @@ export function ShotgunSearchModal({ isOpen, onClose, onSelect }: ShotgunSearchM
     }
   };
 
-  return createPortal(
-    <>
-      <div
-        className="fixed inset-0 z-[60] bg-black/20 backdrop-blur-sm animate-in fade-in duration-200"
-        onClick={onClose}
-      />
-      <div className="fixed inset-x-4 top-[15%] z-[60] max-w-2xl mx-auto overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-[#171717] animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200 flex flex-col max-h-[70vh]">
-        {/* Search input */}
-        <div className="flex items-center border-b border-zinc-100 dark:border-zinc-800 px-3 shrink-0">
-          <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-          <input
-            ref={inputRef}
-            autoFocus
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher un event Shotgun..."
-            className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-zinc-500 disabled:cursor-not-allowed disabled:opacity-50 text-zinc-900 dark:text-zinc-100"
-          />
-          {loading && <Loader2 size={16} className="animate-spin text-zinc-400 mr-2" />}
-          <button
-            onClick={onClose}
-            className="ml-2 p-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500"
-          >
-            <X size={16} />
-          </button>
-        </div>
+  if (!mounted) return null;
 
-        {/* Results */}
-        <div className="overflow-y-auto flex-1">
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="md" variant="fullBleed" showCloseButton={false}>
+      <ModalHeader className="flex items-center gap-2">
+        <Search className="h-4 w-4 shrink-0 opacity-50" />
+        <Input
+          ref={inputRef}
+          autoFocus
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Rechercher un event Shotgun..."
+          className="flex h-11 flex-1 rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-zinc-500 disabled:cursor-not-allowed disabled:opacity-50 border-0"
+        />
+        {loading && <Loader2 size={16} className="animate-spin text-zinc-400 shrink-0" />}
+        <IconButton icon={<X size={16} />} ariaLabel="Fermer" variant="ghost" size="sm" onClick={onClose} />
+      </ModalHeader>
+
+      <ModalContent noPadding className="border-t border-border-custom overflow-y-auto">
           {error && (
             <div className="py-6 text-center text-sm text-red-500">{error}</div>
           )}
@@ -189,9 +170,10 @@ export function ShotgunSearchModal({ isOpen, onClose, onSelect }: ShotgunSearchM
           )}
 
           {!error && !initialLoading && results.length === 0 && (
-            <div className="py-6 text-center text-sm text-zinc-500">
-              {query ? `Aucun event trouvé pour "${query}"` : 'Aucun event disponible sur votre compte Shotgun'}
-            </div>
+            <EmptyState
+              title={query ? `Aucun event trouvé pour "${query}"` : 'Aucun event disponible sur votre compte Shotgun'}
+              variant="inline"
+            />
           )}
 
           {!error && results.length > 0 && (
@@ -204,10 +186,12 @@ export function ShotgunSearchModal({ isOpen, onClose, onSelect }: ShotgunSearchM
                 </div>
               )}
               {results.map((event) => (
-                <button
+                <Button
                   key={event.id}
+                  variant="ghost"
+                  size="sm"
                   onClick={() => onSelect(event)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors text-left justify-start h-auto"
                 >
                   {/* Cover thumbnail */}
                   {event.coverThumbnailUrl ? (
@@ -244,32 +228,31 @@ export function ShotgunSearchModal({ isOpen, onClose, onSelect }: ShotgunSearchM
                   {/* Status / Tickets */}
                   <div className="flex flex-col items-end gap-0.5 shrink-0">
                     {new Date(event.startTime) < new Date() ? (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
                         Passé
-                      </span>
+                      </Badge>
                     ) : event.leftTicketsCount !== undefined ? (
                       <span className="text-xs text-zinc-400 tabular-nums">
                         {event.leftTicketsCount} places
                       </span>
                     ) : null}
                     {!event.publishedAt && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
+                      <Badge variant="warning" className="text-[10px] px-1.5 py-0.5">
                         Brouillon
-                      </span>
+                      </Badge>
                     )}
                   </div>
-                </button>
+                </Button>
               ))}
             </div>
           )}
-        </div>
+      </ModalContent>
 
-        {/* Footer hint */}
-        <div className="border-t border-zinc-100 dark:border-zinc-800 px-3 py-2 text-[11px] text-zinc-400 shrink-0">
+      <ModalFooter className="justify-start">
+        <span className="text-[11px] text-zinc-400">
           Sélectionne un event pour créer automatiquement l&apos;événement
-        </div>
-      </div>
-    </>,
-    document.body
+        </span>
+      </ModalFooter>
+    </Modal>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { financeDataService } from '@/lib/services/FinanceDataService'
-import { Modal, ModalFooter, Button, Input, Select, Textarea } from '@/components/ui'
+import { Modal, ModalFooter, Button, Input, Select, Textarea, Label, Checkbox, FormLabel } from '@/components/ui'
 import { FormField } from '@/components/ui/molecules'
 import type { TransactionCategory, BankAccount } from '@/types/finance'
 
@@ -258,15 +258,16 @@ export default function NewTransactionModal({ isOpen, onClose, onSuccess, eventI
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Type */}
         <div>
-          <label className="block font-label text-[10px] uppercase tracking-widest text-zinc-500 mb-3">
+          <FormLabel>
             Type *
-          </label>
+          </FormLabel>
           <div className="grid grid-cols-2 gap-3">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => setFormData({ ...formData, type: 'income', category: '' })}
               className={`
-                py-3 px-4 rounded border-2 font-heading text-sm uppercase tracking-wide transition-all
+                py-3 px-4 rounded border-2 font-heading text-sm uppercase tracking-wide transition-all h-auto
                 ${formData.type === 'income'
                   ? 'bg-green-500 text-black border-green-500'
                   : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-border-custom hover:border-green-500'
@@ -274,12 +275,13 @@ export default function NewTransactionModal({ isOpen, onClose, onSuccess, eventI
               `}
             >
               ⬆️ Entree
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
               onClick={() => setFormData({ ...formData, type: 'expense', category: '' })}
               className={`
-                py-3 px-4 rounded border-2 font-heading text-sm uppercase tracking-wide transition-all
+                py-3 px-4 rounded border-2 font-heading text-sm uppercase tracking-wide transition-all h-auto
                 ${formData.type === 'expense'
                   ? 'bg-red-500 text-black border-red-500'
                   : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-border-custom hover:border-red-500'
@@ -287,7 +289,7 @@ export default function NewTransactionModal({ isOpen, onClose, onSuccess, eventI
               `}
             >
               ⬇️ Sortie
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -396,8 +398,7 @@ export default function NewTransactionModal({ isOpen, onClose, onSuccess, eventI
         {formData.type === 'expense' && (
           <div className="border-2 border-purple-500/30 rounded p-4 bg-purple-500/5">
             <div className="flex items-center gap-3 mb-3">
-              <input
-                type="checkbox"
+              <Checkbox
                 id="paid-by-member-checkbox"
                 checked={formData.paid_by_member}
                 onChange={(e) => setFormData({ 
@@ -407,12 +408,12 @@ export default function NewTransactionModal({ isOpen, onClose, onSuccess, eventI
                 })}
                 className="w-4 h-4 rounded border-2 border-border-custom bg-zinc-100 dark:bg-zinc-800 checked:bg-purple-500"
               />
-              <label
+              <Label
                 htmlFor="paid-by-member-checkbox"
                 className="font-label text-[10px] uppercase tracking-widest text-foreground cursor-pointer"
               >
                 💰 Avance personnelle d'un membre
-              </label>
+              </Label>
             </div>
             
             {formData.paid_by_member && (
@@ -460,19 +461,18 @@ export default function NewTransactionModal({ isOpen, onClose, onSuccess, eventI
         {/* TVA */}
         <div className="border-2 border-border-custom rounded p-4">
           <div className="flex items-center gap-3 mb-3">
-            <input
-              type="checkbox"
+            <Checkbox
               id="vat-checkbox"
               checked={formData.vat_applicable}
               onChange={(e) => setFormData({ ...formData, vat_applicable: e.target.checked })}
               className="w-4 h-4 rounded border-2 border-border-custom bg-zinc-100 dark:bg-zinc-800 checked:bg-accent"
             />
-            <label
+            <Label
               htmlFor="vat-checkbox"
               className="font-label text-[10px] uppercase tracking-widest text-foreground cursor-pointer"
             >
               TVA applicable
-            </label>
+            </Label>
           </div>
           {formData.vat_applicable && (
             <div className="space-y-3">
@@ -521,19 +521,18 @@ export default function NewTransactionModal({ isOpen, onClose, onSuccess, eventI
         {/* Transaction recurrente */}
         <div className="border-2 border-blue-500/30 rounded p-4 bg-blue-500/5">
           <div className="flex items-center gap-3 mb-3">
-            <input
-              type="checkbox"
+            <Checkbox
               id="recurring-checkbox"
               checked={formData.is_recurring}
               onChange={(e) => setFormData({ ...formData, is_recurring: e.target.checked })}
               className="w-4 h-4 rounded border-2 border-border-custom bg-zinc-100 dark:bg-zinc-800 checked:bg-blue-500"
             />
-            <label
+            <Label
               htmlFor="recurring-checkbox"
               className="font-label text-[10px] uppercase tracking-widest text-foreground cursor-pointer"
             >
               🔄 Transaction recurrente (abonnement, etc.)
-            </label>
+            </Label>
           </div>
           
           {formData.is_recurring && (
@@ -581,7 +580,8 @@ export default function NewTransactionModal({ isOpen, onClose, onSuccess, eventI
 
         <ModalFooter>
           <Button
-            variant="secondary"
+            variant="outline"
+            size="sm"
             onClick={onClose}
             disabled={loading}
             type="button"
@@ -590,6 +590,7 @@ export default function NewTransactionModal({ isOpen, onClose, onSuccess, eventI
           </Button>
           <Button
             variant="primary"
+            size="sm"
             disabled={loading}
             type="submit"
           >

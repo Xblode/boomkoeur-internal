@@ -61,15 +61,23 @@ export const getAllProjectsWithBudgets = async ({ year }: { year?: number }): Pr
   return []
 }
 
-// Treasury Forecasts
+// Treasury Forecasts - store en memoire pour les tests
+let _forecastsStore: any[] = []
+
 export const getTreasuryForecasts = async (filters?: any): Promise<any[]> => {
-  console.warn('getTreasuryForecasts: stub non implémenté')
-  return []
+  return [..._forecastsStore]
 }
 
 export const createTreasuryForecast = async (data: any): Promise<any> => {
-  console.log('createTreasuryForecast (stub):', data)
-  return { id: `stub-${Date.now()}`, ...data, created_at: new Date().toISOString() }
+  const now = new Date().toISOString()
+  const created = {
+    id: `stub-${Date.now()}`,
+    ...data,
+    created_at: now,
+    updated_at: now,
+  }
+  _forecastsStore.push(created)
+  return created
 }
 
 export const updateTreasuryForecast = async (id: string, data: any): Promise<any> => {
