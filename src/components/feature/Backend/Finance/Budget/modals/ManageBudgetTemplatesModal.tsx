@@ -14,7 +14,7 @@ import {
   updateBudgetTemplate,
   deleteBudgetTemplate,
   duplicateBudgetTemplate,
-} from '@/lib/stubs/supabase-stubs'
+} from '@/lib/supabase/finance'
 import type { BudgetTemplateWithLines, BudgetTemplateLine } from '@/types/finance'
 
 interface ManageBudgetTemplatesModalProps {

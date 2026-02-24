@@ -6,10 +6,13 @@ import { cn } from '@/lib/utils';
 export type PageContentMaxWidth = '4xl' | '5xl' | '6xl' | '7xl';
 
 export interface PageContentLayoutProps {
+  /** @deprecated Utiliser useAlert() pour les pages dans DashboardShell */
   alert?: React.ReactNode;
   toolbar?: React.ReactNode;
   sectionHeader?: React.ReactNode;
   maxWidth?: PageContentMaxWidth;
+  /** Quand true, n'ajoute pas padding/max-width (parent DashboardShell les fournit) */
+  embedded?: boolean;
   children: React.ReactNode;
   className?: string;
 }
@@ -29,15 +32,26 @@ const maxWidthClasses: Record<PageContentMaxWidth, string> = {
  * - Zone scrollable : sectionHeader (optionnel) + children
  *
  * Seul le contenu défile, l'alerte et la toolbar restent visibles en haut.
+ * Quand embedded=true (pages dans DashboardShell), n'ajoute pas de padding/max-width.
  */
 export function PageContentLayout({
   alert,
   toolbar,
   sectionHeader,
   maxWidth = '6xl',
+  embedded = false,
   children,
   className,
 }: PageContentLayoutProps) {
+  if (embedded) {
+    return (
+      <>
+        {sectionHeader}
+        {children}
+      </>
+    );
+  }
+
   return (
     <main className={cn('flex-1 min-w-0 flex flex-col min-h-0', className)}>
       {(alert || toolbar) && (

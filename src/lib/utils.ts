@@ -29,6 +29,20 @@ export function formatNumber(num: number): string {
 }
 
 /**
+ * Extrait un message lisible depuis une erreur (Error, Supabase PostgrestError, ou objet).
+ */
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'object' && error !== null) {
+    const obj = error as Record<string, unknown>;
+    if (typeof obj.message === 'string') return obj.message;
+    if (typeof obj.error === 'string') return obj.error;
+    if (typeof obj.details === 'string') return obj.details;
+  }
+  return typeof error === 'string' ? error : 'Erreur inconnue';
+}
+
+/**
  * Debounce function
  */
 export function debounce<T extends (...args: any[]) => any>(

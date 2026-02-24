@@ -5,7 +5,10 @@ import { Modal, ModalFooter } from '@/components/ui/organisms/Modal';
 import { Button, Input, Select, Textarea } from '@/components/ui/atoms';
 import { FormField } from '@/components/ui/molecules';
 import { CommercialContact, CommercialContactInput, ContactType, ContactStatus } from '@/types/commercial';
-import { commercialService } from '@/lib/services/CommercialService';
+import {
+  createCommercialContact,
+  updateCommercialContact,
+} from '@/lib/supabase/commercial';
 
 interface ContactFormProps {
   isOpen: boolean;
@@ -41,9 +44,9 @@ export default function ContactForm({ isOpen, onClose, onSuccess, contact }: Con
 
     try {
       if (contact) {
-        await commercialService.updateContact(contact.id, formData);
+        await updateCommercialContact(contact.id, formData);
       } else {
-        await commercialService.createContact(formData as CommercialContactInput);
+        await createCommercialContact(formData as CommercialContactInput);
       }
       onSuccess();
       onClose();

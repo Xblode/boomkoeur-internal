@@ -12,6 +12,7 @@ export const ROUTES = {
   // Backend
   DASHBOARD: '/dashboard',
   SETTINGS: '/dashboard/settings',
+  ONBOARDING: '/onboarding',
 
   // Erreurs
   ERROR: '/error',

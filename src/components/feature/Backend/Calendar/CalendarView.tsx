@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight, Clock, MapPin } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, getDay, isSameDay } from 'date-fns';
@@ -8,47 +8,22 @@ import { fr } from 'date-fns/locale';
 import { useToolbar } from '@/components/providers/ToolbarProvider';
 import { PageToolbar, PageToolbarFilters, PageToolbarActions } from '@/components/ui/organisms';
 import { Button, IconButton } from '@/components/ui/atoms';
-
-import { getEvents } from '@/lib/localStorage/events';
-import { getCampaigns } from '@/lib/localStorage/communication';
-import { getReminders } from '@/lib/localStorage/reminders';
-import type { Event as BKEvent } from '@/types/event';
-import type { Meeting } from '@/types/meeting';
-import type { Reminder } from '@/lib/localStorage/reminders';
+import { useCalendarDataContext } from '@/components/providers/CalendarDataProvider';
+import Link from 'next/link';
 import { CALENDAR_EVENT_COLORS } from '@/lib/constants/chart-colors';
 
-// ── Types unifiés pour le calendrier ──
-
-type CalendarItemType = 'event' | 'meeting' | 'reminder' | 'post';
-
-interface CalendarItem {
-  id: string;
-  title: string;
-  date: Date;
-  time?: string;
-  location?: string;
-  type: CalendarItemType;
-}
-
-const dotColors: Record<CalendarItemType, string> = CALENDAR_EVENT_COLORS as Record<CalendarItemType, string>;
-
-const typeLabels: Record<CalendarItemType, string> = {
+const dotColors: Record<string, string> = CALENDAR_EVENT_COLORS;
+const typeLabels: Record<string, string> = {
   event: 'Événement',
   meeting: 'Réunion',
-  reminder: 'Rappel',
   post: 'Post',
+  google_calendar: 'Google Calendar',
 };
 
-// ── Component ──
-
-interface CalendarViewProps {
-  meetings: Meeting[];
-}
-
-export const CalendarView: React.FC<CalendarViewProps> = ({ meetings }) => {
+export const CalendarView: React.FC = () => {
+  const { items: calendarItems, isLoading, currentDate, setCurrentDate } = useCalendarDataContext();
   const [mounted, setMounted] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
@@ -57,63 +32,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ meetings }) => {
   }, []);
 
   const { setToolbar } = useToolbar();
-
-  // ── Fusionner toutes les sources de données ──
-
-  const calendarItems = useMemo<CalendarItem[]>(() => {
-    const items: CalendarItem[] = [];
-
-    const events = getEvents();
-    for (const e of events) {
-      items.push({
-        id: `ev-${e.id}`,
-        title: e.name,
-        date: new Date(e.date),
-        time: format(new Date(e.date), 'HH:mm'),
-        location: e.location,
-        type: 'event',
-      });
-    }
-
-    for (const m of meetings) {
-      items.push({
-        id: `mt-${m.id}`,
-        title: m.title,
-        date: new Date(m.date),
-        time: m.startTime,
-        location: m.location,
-        type: 'meeting',
-      });
-    }
-
-    const reminders = getReminders();
-    for (const r of reminders) {
-      const [y, mo, d] = r.date.split('-').map(Number);
-      items.push({
-        id: `rem-${r.id}`,
-        title: r.title,
-        date: new Date(y, mo - 1, d),
-        time: r.time,
-        type: 'reminder',
-      });
-    }
-
-    const campaigns = getCampaigns();
-    for (const c of campaigns) {
-      for (const p of c.posts) {
-        if (p.scheduledDate) {
-          items.push({
-            id: `post-${p.id}`,
-            title: p.caption || p.brainstorming?.objective || 'Post',
-            date: new Date(p.scheduledDate),
-            type: 'post',
-          });
-        }
-      }
-    }
-
-    return items;
-  }, [meetings]);
 
   // ── Calcul du calendrier ──
 
@@ -132,11 +50,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ meetings }) => {
   // ── Navigation ──
 
   const previousMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   };
 
   const nextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   };
 
   const todayMonth = () => {
@@ -203,6 +121,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ meetings }) => {
 
   // ── Render ──
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-zinc-500">Chargement du calendrier...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
 
@@ -258,7 +184,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ meetings }) => {
                       <div
                         key={item.id}
                         className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: dotColors[item.type] }}
+                        style={{ backgroundColor: dotColors[item.type] ?? '#71717a' }}
                         title={item.title}
                       />
                     ))}
@@ -275,7 +201,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ meetings }) => {
         {/* Légende */}
         <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
           <div className="flex flex-wrap gap-4">
-            {(Object.entries(typeLabels) as [CalendarItemType, string][]).map(([key, label]) => (
+            {Object.entries(typeLabels).map(([key, label]) => (
               <div key={key} className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColors[key] }} />
                 <span className="text-xs text-zinc-500 dark:text-zinc-400">{label}</span>
@@ -301,7 +227,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ meetings }) => {
             {hoveredDateItems.map((item) => (
               <div key={item.id} className="space-y-0.5">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: dotColors[item.type] }} />
+                  <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: dotColors[item.type] ?? '#71717a' }} />
                   <span className="text-sm font-medium">{item.title}</span>
                 </div>
                 {item.time && (
@@ -332,32 +258,62 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ meetings }) => {
             </span>
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-            {selectedDateItems.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-start gap-2.5 p-2.5 rounded-lg border border-border-custom hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors"
-              >
-                <div className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: dotColors[item.type] }} />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{item.title}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] text-zinc-400">{typeLabels[item.type]}</span>
-                    {item.time && (
-                      <>
-                        <span className="text-[10px] text-zinc-400">·</span>
-                        <span className="text-[10px] text-zinc-400">{item.time}</span>
-                      </>
-                    )}
-                    {item.location && (
-                      <>
-                        <span className="text-[10px] text-zinc-400">·</span>
-                        <span className="text-[10px] text-zinc-400 truncate">{item.location}</span>
-                      </>
-                    )}
+            {selectedDateItems.map((item) => {
+              const isExternal = item.href?.startsWith('http');
+              const linkClassName = 'flex items-start gap-2.5 p-2.5 rounded-lg border border-border-custom hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors';
+              return item.href ? (
+                isExternal ? (
+                  <a
+                    key={item.id}
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={linkClassName}
+                  >
+                    <div className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: dotColors[item.type] ?? '#71717a' }} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{item.title}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] text-zinc-400">{typeLabels[item.type] ?? item.type}</span>
+                        {item.time && <><span className="text-[10px] text-zinc-400">·</span><span className="text-[10px] text-zinc-400">{item.time}</span></>}
+                        {item.location && <><span className="text-[10px] text-zinc-400">·</span><span className="text-[10px] text-zinc-400 truncate">{item.location}</span></>}
+                      </div>
+                    </div>
+                  </a>
+                ) : (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    className={linkClassName}
+                  >
+                    <div className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: dotColors[item.type] ?? '#71717a' }} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{item.title}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] text-zinc-400">{typeLabels[item.type] ?? item.type}</span>
+                        {item.time && <><span className="text-[10px] text-zinc-400">·</span><span className="text-[10px] text-zinc-400">{item.time}</span></>}
+                        {item.location && <><span className="text-[10px] text-zinc-400">·</span><span className="text-[10px] text-zinc-400 truncate">{item.location}</span></>}
+                      </div>
+                    </div>
+                  </Link>
+                )
+              ) : (
+                <div
+                  key={item.id}
+                  className="flex items-start gap-2.5 p-2.5 rounded-lg border border-border-custom hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors"
+                >
+                  <div className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: dotColors[item.type] ?? '#71717a' }} />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{item.title}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[10px] text-zinc-400">{typeLabels[item.type] ?? item.type}</span>
+                      {item.time && <><span className="text-[10px] text-zinc-400">·</span><span className="text-[10px] text-zinc-400">{item.time}</span></>}
+                      {item.location && <><span className="text-[10px] text-zinc-400">·</span><span className="text-[10px] text-zinc-400 truncate">{item.location}</span></>}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

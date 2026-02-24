@@ -1,7 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef, Fragment } from 'react';
-import { commercialService } from '@/lib/services/CommercialService';
+import {
+  createCommercialContact,
+  updateCommercialContact,
+  deleteCommercialContact,
+} from '@/lib/supabase/commercial';
 import { CommercialContact, ContactType, ContactStatus } from '@/types/commercial';
 import {
   Plus,
@@ -18,7 +22,7 @@ import {
   Users,
 } from 'lucide-react';
 import { Button, IconButton, Input, Select, Skeleton, Textarea } from '@/components/ui/atoms';
-import { SectionHeader, SearchInput, FilterField } from '@/components/ui/molecules';
+import { SectionHeader, SearchInput, FilterField, EmptyState } from '@/components/ui/molecules';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/atoms';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -221,10 +225,14 @@ function EditableAddress({
   );
 }
 
-export default function CommercialList() {
-  const [contacts, setContacts] = useState<CommercialContact[]>([]);
+interface CommercialListProps {
+  contacts: CommercialContact[];
+  isLoading: boolean;
+  onRefetch: () => void | Promise<void>;
+}
+
+export default function CommercialList({ contacts, isLoading, onRefetch }: CommercialListProps) {
   const [filteredContacts, setFilteredContacts] = useState<CommercialContact[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -235,10 +243,6 @@ export default function CommercialList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<ContactType | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<ContactStatus | 'all'>('all');
-
-  useEffect(() => {
-    loadContacts();
-  }, []);
 
   useEffect(() => {
     let filtered = [...contacts];
@@ -257,21 +261,9 @@ export default function CommercialList() {
     setFilteredContacts(filtered);
   }, [contacts, searchTerm, typeFilter, statusFilter]);
 
-  const loadContacts = async () => {
-    setIsLoading(true);
-    try {
-      const data = await commercialService.getContacts();
-      setContacts(data);
-    } catch (error) {
-      console.error('Error loading contacts:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleAddContact = async () => {
     try {
-      const newContact = await commercialService.createContact({
+      const newContact = await createCommercialContact({
         name: '',
         type: 'contact',
         status: 'lead',
@@ -280,7 +272,7 @@ export default function CommercialList() {
         linked_order_ids: [],
         linked_invoice_ids: [],
       });
-      setContacts((prev) => [...prev, newContact]);
+      await onRefetch();
       setExpandedId(newContact.id);
       setEditingCell({ id: newContact.id, field: 'name' });
       setEditValue('');
@@ -298,9 +290,9 @@ export default function CommercialList() {
     const contact = contacts.find((c) => c.id === id);
     if (!contact) return;
     try {
-      const updated = await commercialService.updateContact(id, { [field]: value });
+      const updated = await updateCommercialContact(id, { [field]: value });
       if (updated) {
-        setContacts((prev) => prev.map((c) => (c.id === id ? updated : c)));
+        await onRefetch();
       }
     } catch (error) {
       console.error('Error updating contact:', error);
@@ -315,8 +307,8 @@ export default function CommercialList() {
     const contact = contacts.find((c) => c.id === id);
     if (!contact || !confirm(`Supprimer "${contact.name || 'ce contact'}" ?`)) return;
     try {
-      await commercialService.deleteContact(id);
-      setContacts((prev) => prev.filter((c) => c.id !== id));
+      await deleteCommercialContact(id);
+      await onRefetch();
       if (expandedId === id) setExpandedId(null);
     } catch (error) {
       console.error('Error deleting contact:', error);
@@ -351,6 +343,36 @@ export default function CommercialList() {
         {[1, 2, 3].map((i) => (
           <Skeleton key={i} className="h-14 w-full rounded-xl" />
         ))}
+      </div>
+    );
+  }
+
+  if (contacts.length === 0) {
+    return (
+      <div className="w-full space-y-4">
+        <SectionHeader
+          icon={<Users size={28} />}
+          title="Commercial"
+          subtitle="Gérez vos contacts, partenaires et fournisseurs"
+          actions={
+            <Button variant="primary" size="sm" onClick={handleAddContact}>
+              <Plus size={14} className="mr-1.5" />
+              Nouveau contact
+            </Button>
+          }
+        />
+        <EmptyState
+          icon={Users}
+          title="Aucun contact"
+          description="Créez votre premier contact pour commencer."
+          action={
+            <Button variant="primary" size="sm" onClick={handleAddContact}>
+              <Plus size={14} className="mr-1.5" />
+              Nouveau contact
+            </Button>
+          }
+          variant="full"
+        />
       </div>
     );
   }

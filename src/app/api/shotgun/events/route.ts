@@ -1,18 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { getOrgIntegration, type ShotgunCredentials } from '@/lib/supabase/integrations';
 
 const SHOTGUN_BASE = 'https://smartboard-api.shotgun.live/api/shotgun/organizers';
 
-export async function GET(request: NextRequest) {
+async function getShotgunCredentials(request: NextRequest): Promise<ShotgunCredentials | null> {
+  const orgId = request.headers.get('X-Org-Id');
+  if (orgId) {
+    const supabase = await createClient();
+    const creds = await getOrgIntegration<ShotgunCredentials>(supabase, orgId, 'shotgun');
+    return creds;
+  }
   const organizerId = process.env.SHOTGUN_ORGANIZER_ID;
   const apiToken = process.env.SHOTGUN_API_TOKEN;
+  if (organizerId && apiToken) {
+    return { organizerId, apiToken };
+  }
+  return null;
+}
 
-  if (!organizerId || !apiToken) {
+export async function GET(request: NextRequest) {
+  const credentials = await getShotgunCredentials(request);
+  if (!credentials) {
     return NextResponse.json(
-      { error: 'Shotgun credentials not configured' },
-      { status: 500 }
+      { error: 'Shotgun non configuré. Configurez l\'intégration dans Administration > Intégrations.' },
+      { status: 400 }
     );
   }
 
+  const { organizerId, apiToken } = credentials;
   const { searchParams } = request.nextUrl;
   const url = new URL(`${SHOTGUN_BASE}/${organizerId}/events`);
   url.searchParams.set('key', apiToken);

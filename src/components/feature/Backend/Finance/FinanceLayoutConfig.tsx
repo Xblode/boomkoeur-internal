@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Wallet,
   Receipt,
@@ -40,12 +41,25 @@ export function useFinanceLayout() {
   return context;
 }
 
+const VALID_SECTIONS: FinanceSectionId[] = ['tresorerie', 'transactions', 'budget', 'factures', 'bilan'];
+
 export function FinanceLayoutConfig({ children }: { children: React.ReactNode }) {
   const { setPageSidebarConfig } = usePageSidebar();
   const { setMaxWidth } = usePageLayout();
+  const searchParams = useSearchParams();
 
-  const [activeSection, setActiveSection] = useState<FinanceSectionId>('tresorerie');
+  const sectionFromUrl = searchParams.get('section') as FinanceSectionId | null;
+  const initialSection =
+    sectionFromUrl && VALID_SECTIONS.includes(sectionFromUrl) ? sectionFromUrl : 'tresorerie';
+
+  const [activeSection, setActiveSection] = useState<FinanceSectionId>(initialSection);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+
+  useEffect(() => {
+    if (sectionFromUrl && VALID_SECTIONS.includes(sectionFromUrl)) {
+      setActiveSection(sectionFromUrl);
+    }
+  }, [sectionFromUrl]);
 
   useEffect(() => {
     setMaxWidth('6xl');

@@ -1,6 +1,6 @@
 /**
  * FinanceDataService - Couche d'abstraction pour les données financières
- * 
+ *
  * Cette interface permet de basculer facilement entre localStorage et Supabase
  * en changeant uniquement l'implémentation, sans modifier les composants.
  */
@@ -19,13 +19,13 @@ import type {
   ProfitAndLoss,
   BalanceSheet,
   FinancialRatios,
-} from '@/types/finance'
+} from '@/types/finance';
 
-// Import localStorage implementations
-import * as BankAccountsLS from '@/lib/localStorage/finance/bankAccounts'
-import * as TransactionsLS from '@/lib/localStorage/finance/transactions'
-import * as BudgetsLS from '@/lib/localStorage/finance/budgets'
-import * as InvoicesLS from '@/lib/localStorage/finance/invoices'
+import * as FinanceSupabase from '@/lib/supabase/finance';
+import * as BankAccountsLS from '@/lib/localStorage/finance/bankAccounts';
+import * as TransactionsLS from '@/lib/localStorage/finance/transactions';
+import * as BudgetsLS from '@/lib/localStorage/finance/budgets';
+import * as InvoicesLS from '@/lib/localStorage/finance/invoices';
 
 /**
  * Interface du service de données financières
@@ -337,8 +337,135 @@ class LocalStorageFinanceService implements IFinanceDataService {
 }
 
 /**
- * Instance singleton du service
- * Pour migrer vers Supabase, il suffit de remplacer cette ligne par:
- * export const financeDataService: IFinanceDataService = new SupabaseFinanceService()
+ * Implémentation Supabase du service
  */
-export const financeDataService: IFinanceDataService = new LocalStorageFinanceService()
+class SupabaseFinanceService implements IFinanceDataService {
+  async getBankAccounts(): Promise<BankAccount[]> {
+    return FinanceSupabase.getBankAccounts();
+  }
+  async getBankAccountById(id: string): Promise<BankAccount | null> {
+    return FinanceSupabase.getBankAccountById(id);
+  }
+  async createBankAccount(data: Omit<BankAccount, 'id' | 'created_at' | 'updated_at'>): Promise<BankAccount> {
+    return FinanceSupabase.createBankAccount(data);
+  }
+  async updateBankAccount(id: string, updates: Partial<BankAccount>): Promise<BankAccount> {
+    return FinanceSupabase.updateBankAccount(id, updates);
+  }
+  async deleteBankAccount(id: string): Promise<void> {
+    return FinanceSupabase.deleteBankAccount(id);
+  }
+
+  async getTransactions(year?: number): Promise<Transaction[]> {
+    return FinanceSupabase.getTransactions(year);
+  }
+  async getTransactionById(id: string): Promise<Transaction | null> {
+    return FinanceSupabase.getTransactionById(id);
+  }
+  async createTransaction(data: Omit<Transaction, 'id' | 'entry_number' | 'created_at' | 'updated_at'>): Promise<Transaction> {
+    return FinanceSupabase.createTransaction(data);
+  }
+  async updateTransaction(id: string, updates: Partial<Transaction>): Promise<Transaction> {
+    return FinanceSupabase.updateTransaction(id, updates);
+  }
+  async deleteTransaction(id: string): Promise<void> {
+    return FinanceSupabase.deleteTransaction(id);
+  }
+  async validateTransaction(id: string, userId: string): Promise<Transaction> {
+    return FinanceSupabase.validateTransaction(id, userId);
+  }
+  async reconcileTransaction(id: string): Promise<Transaction> {
+    return FinanceSupabase.reconcileTransaction(id);
+  }
+
+  async getTransactionCategories(type?: 'income' | 'expense'): Promise<TransactionCategory[]> {
+    return FinanceSupabase.getTransactionCategories(type);
+  }
+  async createTransactionCategory(data: Omit<TransactionCategory, 'id' | 'created_at' | 'updated_at'>): Promise<TransactionCategory> {
+    return FinanceSupabase.createTransactionCategory(data);
+  }
+  async updateTransactionCategory(id: string, updates: Partial<TransactionCategory>): Promise<TransactionCategory> {
+    return FinanceSupabase.updateTransactionCategory(id, updates);
+  }
+  async deleteTransactionCategory(id: string): Promise<TransactionCategory> {
+    return FinanceSupabase.deleteTransactionCategory(id);
+  }
+
+  async getBudgets(): Promise<(Budget & { categories: BudgetCategory[] })[]> {
+    return FinanceSupabase.getBudgets();
+  }
+  async getBudgetByYear(year: number): Promise<(Budget & { categories: BudgetCategory[] }) | null> {
+    return FinanceSupabase.getBudgetByYear(year);
+  }
+  async createBudget(data: { budget: Omit<Budget, 'id' | 'created_at' | 'updated_at'>; categories: Omit<BudgetCategory, 'id' | 'budget_id' | 'created_at' | 'updated_at'>[] }): Promise<Budget & { categories: BudgetCategory[] }> {
+    return FinanceSupabase.createBudget(data);
+  }
+  async updateBudget(id: string, data: { total_budget?: number; description?: string; target_events_count?: number; target_revenue?: number; target_margin?: number; categories?: { category: string; allocated_amount: number; notes?: string }[] }): Promise<Budget & { categories: BudgetCategory[] }> {
+    return FinanceSupabase.updateBudget(id, data);
+  }
+
+  async getBudgetProjects(filters?: { status?: string; year?: number }): Promise<BudgetProject[]> {
+    return FinanceSupabase.getBudgetProjects(filters);
+  }
+  async getBudgetProject(projectId: string): Promise<BudgetProject | null> {
+    return FinanceSupabase.getBudgetProject(projectId);
+  }
+  async getProjectBudgetLines(projectId: string): Promise<BudgetProjectLine[]> {
+    return FinanceSupabase.getProjectBudgetLines(projectId);
+  }
+  async createBudgetProject(data: Omit<BudgetProject, 'id' | 'created_at' | 'updated_at'>): Promise<BudgetProject> {
+    return FinanceSupabase.createBudgetProject(data);
+  }
+  async createProjectBudgetLine(data: Omit<BudgetProjectLine, 'id' | 'created_at' | 'updated_at'>): Promise<BudgetProjectLine> {
+    return FinanceSupabase.createProjectBudgetLine(data);
+  }
+  async updateBudgetProject(projectId: string, updates: Partial<BudgetProject>): Promise<BudgetProject> {
+    return FinanceSupabase.updateBudgetProject(projectId, updates);
+  }
+  async deleteBudgetProject(projectId: string): Promise<void> {
+    return FinanceSupabase.deleteBudgetProject(projectId);
+  }
+  async deleteProjectBudgetLines(projectId: string): Promise<void> {
+    return FinanceSupabase.deleteProjectBudgetLines(projectId);
+  }
+
+  async getInvoices(filters?: { type?: string; status?: string; year?: number }): Promise<(Invoice & { invoice_lines: InvoiceLine[] })[]> {
+    return FinanceSupabase.getInvoices(filters);
+  }
+  async getInvoiceById(id: string): Promise<(Invoice & { invoice_lines: InvoiceLine[] }) | null> {
+    return FinanceSupabase.getInvoiceById(id);
+  }
+  async createInvoice(data: { invoice: Omit<Invoice, 'id' | 'invoice_number' | 'created_at' | 'updated_at'>; lines: Omit<InvoiceLine, 'id' | 'invoice_id' | 'created_at'>[] }): Promise<Invoice & { invoice_lines: InvoiceLine[] }> {
+    return FinanceSupabase.createInvoice(data);
+  }
+  async updateInvoice(id: string, updates: { invoice?: Partial<Invoice>; lines?: Omit<InvoiceLine, 'id' | 'invoice_id' | 'created_at'>[] }): Promise<Invoice & { invoice_lines: InvoiceLine[] }> {
+    return FinanceSupabase.updateInvoice(id, updates);
+  }
+  async deleteInvoice(id: string): Promise<void> {
+    return FinanceSupabase.deleteInvoice(id);
+  }
+  async markInvoiceAsPaid(id: string, paidDate?: string): Promise<Invoice & { invoice_lines: InvoiceLine[] }> {
+    return FinanceSupabase.markInvoiceAsPaid(id, paidDate);
+  }
+
+  async getFinanceKPIs(year?: number): Promise<FinanceKPIs> {
+    return FinanceSupabase.getFinanceKPIs(year);
+  }
+  async getProfitAndLoss(periodType?: 'month' | 'quarter' | 'semester' | 'year', year?: number, month?: number): Promise<ProfitAndLoss> {
+    return FinanceSupabase.getProfitAndLoss(periodType, year, month);
+  }
+  async getBalanceSheet(periodType?: 'month' | 'quarter' | 'semester' | 'year', year?: number): Promise<BalanceSheet> {
+    return FinanceSupabase.getBalanceSheet(periodType, year);
+  }
+  async getFinancialRatios(periodType?: 'month' | 'quarter' | 'semester' | 'year', year?: number): Promise<FinancialRatios> {
+    return FinanceSupabase.getFinancialRatios(periodType, year);
+  }
+  async getPendingInvoicesCount(): Promise<number> {
+    return FinanceSupabase.getPendingInvoicesCount();
+  }
+}
+
+/**
+ * Instance singleton du service - Supabase
+ */
+export const financeDataService: IFinanceDataService = new SupabaseFinanceService();

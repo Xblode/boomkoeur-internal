@@ -7,13 +7,8 @@ import { Button } from '@/components/ui/atoms'
 import { Input } from '@/components/ui/atoms'
 import { Select } from '@/components/ui/atoms'
 import { Plus, Trash2, Copy } from 'lucide-react'
-import {
-  getEventBudget,
-  createEventBudget,
-  deleteEventBudget,
-  getAllBudgetTemplatesWithLines,
-} from '@/lib/stubs/supabase-stubs'
-import { getEventById } from '@/lib/localStorage/events'
+import { getAllBudgetTemplatesWithLines } from '@/lib/supabase/finance'
+import { getEventById } from '@/lib/supabase/events'
 import type { EventBudget, BudgetTemplateWithLines } from '@/types/finance'
 
 // Stubs temporaires pour les fonctions manquantes
@@ -73,7 +68,7 @@ export default function CreateEventBudgetModal({
 
     try {
       // Charger l'événement
-      const event = getEventById(eventId)
+      const event = await getEventById(eventId)
       if (event) {
         setEventTitle(event.name)
       }

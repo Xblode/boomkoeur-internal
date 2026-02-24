@@ -6,8 +6,15 @@ import { useRouter } from 'next/navigation';
 import { ProductInput, ProductType, ProductStatus, Provider, ProductProvider, ProductVariantInput, VariantAvailability } from '@/types/product';
 import { productDataService } from '@/lib/services/ProductDataService';
 import { useProduct } from '@/components/providers';
+import { useOrg } from '@/hooks';
+import { DrivePickerModal } from '@/components/feature/Backend/Events/DrivePickerModal';
 import { Button, Input, Label, Textarea, Select, IconButton, Checkbox } from '@/components/ui/atoms';
-import { ArrowLeft, Plus, X, Truck } from 'lucide-react';
+import { ArrowLeft, Plus, X, Truck, Image as ImageIcon } from 'lucide-react';
+
+const getDriveViewUrl = (url: string): string => {
+  const m = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/);
+  return m ? `https://drive.google.com/uc?export=view&id=${m[1]}` : url;
+};
 
 const PROVIDER_ROLE_SUGGESTIONS = [
   'Matière première', 'Impression', 'Broderie', 'Assemblage', 'Finition', 'Emballage', 'Autre',
@@ -27,6 +34,8 @@ const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
 export function ProductCreatePage() {
   const router = useRouter();
   const { triggerRefresh } = useProduct();
+  const { activeOrg } = useOrg();
+  const [drivePickerTarget, setDrivePickerTarget] = useState<'main' | string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
@@ -337,9 +346,14 @@ export function ProductCreatePage() {
                           <Label className="text-xs mb-1 block">Prix d&apos;achat (€)</Label>
                           <Input type="number" step="0.01" min="0" className="h-8" value={variant.purchasePrice} onChange={(e) => updateVariant(variant.id, 'purchasePrice', parseFloat(e.target.value) || 0)} placeholder="0.00" />
                         </div>
-                        <div>
-                          <Label className="text-xs mb-1 block">Image URL</Label>
-                          <Input className="h-8 text-xs" placeholder="https://..." value={variant.imageUrl} onChange={(e) => updateVariant(variant.id, 'imageUrl', e.target.value)} />
+                        <div className="flex gap-1 flex-wrap items-end">
+                          <div className="flex-1 min-w-0">
+                            <Label className="text-xs mb-1 block">Image URL</Label>
+                            <Input className="h-8 text-xs" placeholder="https://..." value={variant.imageUrl} onChange={(e) => updateVariant(variant.id, 'imageUrl', e.target.value)} />
+                          </div>
+                          <Button type="button" variant="outline" size="sm" className="h-8 text-xs shrink-0" onClick={() => setDrivePickerTarget(variant.id)}>
+                            <ImageIcon className="h-3 w-3 mr-1" /> Drive
+                          </Button>
                         </div>
                       </div>
                       <div>
@@ -387,11 +401,33 @@ export function ProductCreatePage() {
           {/* Média */}
           <div className="space-y-4">
             <h3 className="text-sm font-medium text-zinc-500 uppercase tracking-wider">Visuel Principal</h3>
-            <div>
-              <Label htmlFor="image">URL de l&apos;image principale</Label>
-              <Input id="image" value={formData.main_image} onChange={(e) => setFormData({ ...formData, main_image: e.target.value })} placeholder="https://..." />
+            <div className="flex gap-2 flex-wrap">
+              <div className="flex-1 min-w-0">
+                <Label htmlFor="image">URL de l&apos;image principale</Label>
+                <Input id="image" value={formData.main_image} onChange={(e) => setFormData({ ...formData, main_image: e.target.value })} placeholder="https://..." />
+              </div>
+              <Button type="button" variant="outline" size="sm" className="self-end mt-6" onClick={() => setDrivePickerTarget('main')}>
+                <ImageIcon className="h-3 w-3 mr-1.5" /> Depuis Drive
+              </Button>
             </div>
           </div>
+
+          {activeOrg && (
+            <DrivePickerModal
+              isOpen={!!drivePickerTarget}
+              onClose={() => setDrivePickerTarget(null)}
+              onSelect={(url) => {
+                const imgUrl = url.includes('drive.google.com') ? getDriveViewUrl(url) : url;
+                if (drivePickerTarget === 'main') {
+                  setFormData(prev => ({ ...prev, main_image: imgUrl }));
+                } else if (drivePickerTarget) {
+                  updateVariant(drivePickerTarget, 'imageUrl', imgUrl);
+                }
+                setDrivePickerTarget(null);
+              }}
+              orgId={activeOrg.id}
+            />
+          )}
 
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t border-border-custom">

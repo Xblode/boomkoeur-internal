@@ -27,9 +27,11 @@ interface BudgetTabProps {
   onCreateBudget?: (eventId: string) => void
   onEditProject?: (projectId: string) => void
   onCreateProject?: () => void
+  onError?: (error: string | null) => void
+  refreshTrigger?: number
 }
 
-export default function BudgetTab({ selectedYear: externalSelectedYear, filterStatus: externalFilterStatus, onCreateBudget, onEditProject, onCreateProject }: BudgetTabProps) {
+export default function BudgetTab({ selectedYear: externalSelectedYear, filterStatus: externalFilterStatus, onCreateBudget, onEditProject, onCreateProject, onError, refreshTrigger }: BudgetTabProps) {
   const router = useRouter()
   const [internalSelectedYear, setInternalSelectedYear] = useState(new Date().getFullYear())
   const selectedYear = externalSelectedYear ?? internalSelectedYear
@@ -38,22 +40,29 @@ export default function BudgetTab({ selectedYear: externalSelectedYear, filterSt
   const [events, setEvents] = useState<any[]>([])
   const [projects, setProjects] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     loadData()
-  }, [selectedYear])
+  }, [selectedYear, refreshTrigger])
 
   async function loadData() {
     try {
       setLoading(true)
+      setError(null)
+      onError?.(null)
       const [eventsData, projectsData] = await Promise.all([
         getAllEventsWithBudgets({ year: selectedYear }),
         financeDataService.getBudgetProjects({ year: selectedYear })
       ])
       setEvents(eventsData || [])
       setProjects(projectsData || [])
-    } catch (error) {
-      console.error('Erreur lors du chargement des donnees:', error)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      const errorMsg = msg || 'Erreur lors du chargement des donnees'
+      setError(errorMsg)
+      onError?.(errorMsg)
+      console.error('Erreur lors du chargement des donnees:', err)
     } finally {
       setLoading(false)
     }
@@ -129,7 +138,6 @@ export default function BudgetTab({ selectedYear: externalSelectedYear, filterSt
 
   return (
     <div className="space-y-6">
-
       {/* KPIs globaux */}
       {globalKPIs.eventsWithBudget > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

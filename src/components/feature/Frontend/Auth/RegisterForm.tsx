@@ -1,22 +1,28 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { FormField } from '@/components/ui/molecules';
-import { Button } from '@/components/ui/atoms';
+import { Button, PasswordInput } from '@/components/ui/atoms';
 import { CustomLink } from '@/components/ui/atoms';
 import { fadeInUp } from '@/lib/animations';
 import { ROUTES } from '@/lib/constants';
+import { supabase } from '@/lib/supabase/client';
+import { getErrorMessage } from '@/lib/utils';
 
 export const RegisterForm: React.FC = () => {
+  const router = useRouter();
   const [formData, setFormData] = useState({
-    name: '',
+    nom: '',
+    prenom: '',
     email: '',
     password: '',
     confirmPassword: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,13 +41,33 @@ export const RegisterForm: React.FC = () => {
     setLoading(true);
 
     try {
-      // TODO: Intégrer avec votre système d'authentification (NextAuth, etc.)
-      console.log('Register attempt:', formData);
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulation
-      alert('Inscription réussie ! (simulation)');
-      // router.push(ROUTES.DASHBOARD);
+      const { data, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            nom: formData.nom,
+            prenom: formData.prenom,
+          },
+        },
+      });
+
+      if (authError) {
+        setError(getErrorMessage(authError) ?? 'Une erreur est survenue. Veuillez réessayer.');
+        return;
+      }
+
+      if (data.user && !data.session) {
+        setSuccessMessage(
+          'Inscription réussie ! Vérifiez votre boîte mail pour confirmer votre compte.'
+        );
+        return;
+      }
+
+      router.push(ROUTES.ONBOARDING);
+      router.refresh();
     } catch (err) {
-      setError('Une erreur est survenue. Veuillez réessayer.');
+      setError(getErrorMessage(err) ?? 'Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setLoading(false);
     }
@@ -69,22 +95,44 @@ export const RegisterForm: React.FC = () => {
                 {error}
               </div>
             )}
+            {successMessage && (
+              <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 text-green-600 dark:text-green-400 text-sm">
+                {successMessage}
+              </div>
+            )}
 
-            <FormField
-              label="Nom complet"
-              htmlFor="name"
-              required
-              inputProps={{
-                type: 'text',
-                id: 'name',
-                value: formData.name,
-                onChange: (e) =>
-                  setFormData({ ...formData, name: e.target.value }),
-                placeholder: 'Jean Dupont',
-                required: true,
-                autoComplete: 'name',
-              }}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                label="Prénom"
+                htmlFor="prenom"
+                required
+                inputProps={{
+                  type: 'text',
+                  id: 'prenom',
+                  value: formData.prenom,
+                  onChange: (e) =>
+                    setFormData({ ...formData, prenom: e.target.value }),
+                  placeholder: 'Jean',
+                  required: true,
+                  autoComplete: 'given-name',
+                }}
+              />
+              <FormField
+                label="Nom"
+                htmlFor="nom"
+                required
+                inputProps={{
+                  type: 'text',
+                  id: 'nom',
+                  value: formData.nom,
+                  onChange: (e) =>
+                    setFormData({ ...formData, nom: e.target.value }),
+                  placeholder: 'Dupont',
+                  required: true,
+                  autoComplete: 'family-name',
+                }}
+              />
+            </div>
 
             <FormField
               label="Email"
@@ -106,32 +154,38 @@ export const RegisterForm: React.FC = () => {
               label="Mot de passe"
               htmlFor="password"
               required
-              inputProps={{
-                type: 'password',
-                id: 'password',
-                value: formData.password,
-                onChange: (e) =>
-                  setFormData({ ...formData, password: e.target.value }),
-                placeholder: '••••••••',
-                required: true,
-                autoComplete: 'new-password',
-              }}
+              children={
+                <PasswordInput
+                  id="password"
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
+                  placeholder="••••••••"
+                  required
+                  autoComplete="new-password"
+                  fullWidth
+                />
+              }
             />
 
             <FormField
               label="Confirmer le mot de passe"
               htmlFor="confirmPassword"
               required
-              inputProps={{
-                type: 'password',
-                id: 'confirmPassword',
-                value: formData.confirmPassword,
-                onChange: (e) =>
-                  setFormData({ ...formData, confirmPassword: e.target.value }),
-                placeholder: '••••••••',
-                required: true,
-                autoComplete: 'new-password',
-              }}
+              children={
+                <PasswordInput
+                  id="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={(e) =>
+                    setFormData({ ...formData, confirmPassword: e.target.value })
+                  }
+                  placeholder="••••••••"
+                  required
+                  autoComplete="new-password"
+                  fullWidth
+                />
+              }
             />
 
             <Button

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { meetingService } from '@/lib/services/MeetingService';
+import { getMeetingById } from '@/lib/supabase/meetings';
 import { Meeting } from '@/types/meeting';
 import { Skeleton } from '@/components/ui/atoms';
 import PresentationMode from '@/components/feature/Backend/Meetings/PresentationMode';
@@ -21,7 +21,7 @@ export default function MeetingPresentPage() {
     
     setIsLoading(true);
     try {
-      const data = await meetingService.getMeetingById(params.id);
+      const data = await getMeetingById(params.id);
       setMeeting(data);
     } catch (error) {
       console.error('Error loading meeting:', error);

@@ -22,14 +22,17 @@ interface FacturesTabProps {
   filterStatus?: FilterStatus
   selectedYear?: number
   onCreateInvoice?: () => void
+  onError?: (error: string | null) => void
+  refreshTrigger?: number
 }
 
-export default function FacturesTab({ filterStatus: externalFilterStatus, selectedYear, onCreateInvoice }: FacturesTabProps) {
+export default function FacturesTab({ filterStatus: externalFilterStatus, selectedYear, onCreateInvoice, onError, refreshTrigger }: FacturesTabProps) {
   const filterStatus = externalFilterStatus ?? 'all'
   const year = selectedYear ?? new Date().getFullYear()
   const [searchQuery, setSearchQuery] = useState('')
   const [invoices, setInvoices] = useState<(Invoice & { invoice_lines: InvoiceLine[] })[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [showEditInvoiceModal, setShowEditInvoiceModal] = useState(false)
   const [showViewInvoiceModal, setShowViewInvoiceModal] = useState(false)
   const [viewingInvoice, setViewingInvoice] = useState<(Invoice & { invoice_lines: InvoiceLine[] }) | null>(null)
@@ -38,11 +41,13 @@ export default function FacturesTab({ filterStatus: externalFilterStatus, select
 
   useEffect(() => {
     loadInvoices()
-  }, [filterStatus, year])
+  }, [filterStatus, year, refreshTrigger])
 
   async function loadInvoices() {
     try {
       setLoading(true)
+      setError(null)
+      onError?.(null)
       const filters: { status?: string; year?: number } = {}
       if (filterStatus !== 'all') {
         filters.status = filterStatus
@@ -50,8 +55,12 @@ export default function FacturesTab({ filterStatus: externalFilterStatus, select
       filters.year = year
       const data = await financeDataService.getInvoices(filters)
       setInvoices(data || [])
-    } catch (error) {
-      console.error('Erreur lors du chargement des factures:', error)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      const errorMsg = msg || 'Erreur lors du chargement des factures'
+      setError(errorMsg)
+      onError?.(errorMsg)
+      console.error('Erreur lors du chargement des factures:', err)
     } finally {
       setLoading(false)
     }
@@ -318,7 +327,6 @@ export default function FacturesTab({ filterStatus: externalFilterStatus, select
 
   return (
     <div className="space-y-6">
-
       {/* Vue Liste */}
       <DataTable
         data={filteredInvoices}

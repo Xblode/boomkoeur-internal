@@ -1,13 +1,12 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { financeDataService } from '@/lib/services/FinanceDataService'
 import { Modal, ModalFooter } from '@/components/ui/organisms'
 import { EmptyState, LoadingState } from '@/components/ui/molecules'
 import { Button, Input, Label } from '@/components/ui/atoms'
 import { Badge } from '@/components/ui/atoms'
-import { Search, User, Mail, Phone } from 'lucide-react'
-import { useCommercialContacts } from '@/lib/stubs/supabase-stubs'
+import { Search, Mail, Phone } from 'lucide-react'
+import { useCommercialContacts } from '@/hooks'
 
 interface LinkContactModalProps {
   isOpen: boolean
@@ -17,7 +16,7 @@ interface LinkContactModalProps {
 }
 
 export function LinkContactModal({ isOpen, onClose, transactionId, onLink }: LinkContactModalProps) {
-  const { data: allContacts = [], isLoading } = useCommercialContacts()
+  const { contacts: allContacts = [], isLoading } = useCommercialContacts()
   const [searchQuery, setSearchQuery] = useState('')
 
   // Filtrer les contacts
@@ -52,21 +51,20 @@ export function LinkContactModal({ isOpen, onClose, transactionId, onLink }: Lin
 
   const getContactTypeLabel = (type?: string) => {
     const labels: Record<string, string> = {
-      sponsor: '💼 Sponsor',
-      lieu: '📍 Lieu',
-      fournisseur: '📦 Fournisseur',
-      artiste: '🎨 Artiste',
+      supplier: '📦 Fournisseur',
+      contact: '👤 Contact',
+      partner: '🤝 Partenaire',
     }
-    return labels[type || 'sponsor'] || '👤 Contact'
+    return labels[type || 'contact'] || '👤 Contact'
   }
 
   const getContactStatusLabel = (status?: string) => {
     const labels: Record<string, string> = {
       active: 'Actif',
-      prospect: 'Prospect',
+      lead: 'Lead',
       inactive: 'Inactif',
     }
-    return labels[status || 'prospect'] || 'Prospect'
+    return labels[status || 'lead'] || 'Lead'
   }
 
   return (

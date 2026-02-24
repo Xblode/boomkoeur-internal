@@ -9,7 +9,7 @@ const CAMPAIGNS_STORAGE_KEY = 'boomkoeur_campaigns';
 const PUBLISHED_POSTS_STORAGE_KEY = 'boomkoeur_published_posts';
 
 /**
- * Initialise le localStorage avec les données mock si vide
+ * Initialise le localStorage avec les données mock si vide (utilisé par Communication)
  */
 export const initializeStorage = (): void => {
   if (typeof window === 'undefined') return;
@@ -26,7 +26,7 @@ export const initializeStorage = (): void => {
 };
 
 /**
- * Récupère toutes les campagnes depuis localStorage
+ * Récupère toutes les campagnes depuis localStorage (sans initialiser avec des mocks)
  */
 export const getCampaigns = (): Campaign[] => {
   if (typeof window === 'undefined') return [];
@@ -34,8 +34,7 @@ export const getCampaigns = (): Campaign[] => {
   try {
     const stored = localStorage.getItem(CAMPAIGNS_STORAGE_KEY);
     if (!stored) {
-      initializeStorage();
-      return mockCampaigns;
+      return [];
     }
 
     const campaigns = JSON.parse(stored);
@@ -77,8 +76,7 @@ export const getPublishedPosts = (): PublishedPost[] => {
   try {
     const stored = localStorage.getItem(PUBLISHED_POSTS_STORAGE_KEY);
     if (!stored) {
-      initializeStorage();
-      return mockPublishedPosts;
+      return [];
     }
 
     const posts = JSON.parse(stored);
@@ -90,6 +88,15 @@ export const getPublishedPosts = (): PublishedPost[] => {
     console.error('Erreur lors de la lecture des posts publiés:', error);
     return [];
   }
+};
+
+/**
+ * Vide les campagnes et posts du localStorage (utilisé pour réinitialiser le calendrier)
+ */
+export const clearCampaigns = (): void => {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(CAMPAIGNS_STORAGE_KEY);
+  localStorage.removeItem(PUBLISHED_POSTS_STORAGE_KEY);
 };
 
 // Génère un ID lisible : slug-code (ex: campagne-ete-x7k9p)

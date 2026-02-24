@@ -6,18 +6,21 @@ import type { PageContentMaxWidth } from '@/components/ui/organisms/PageContentL
 interface PageLayoutContextType {
   maxWidth: PageContentMaxWidth;
   setMaxWidth: (maxWidth: PageContentMaxWidth) => void;
+  fullBleed: boolean;
+  setFullBleed: (fullBleed: boolean) => void;
 }
 
 const PageLayoutContext = createContext<PageLayoutContextType | undefined>(undefined);
 
 /**
- * PageLayoutProvider - Config de layout (maxWidth, etc.).
+ * PageLayoutProvider - Config de layout (maxWidth, fullBleed, etc.).
  */
 export function PageLayoutProvider({ children }: { children: ReactNode }) {
   const [maxWidth, setMaxWidth] = useState<PageContentMaxWidth>('6xl');
+  const [fullBleed, setFullBleed] = useState(false);
 
   return (
-    <PageLayoutContext.Provider value={{ maxWidth, setMaxWidth }}>
+    <PageLayoutContext.Provider value={{ maxWidth, setMaxWidth, fullBleed, setFullBleed }}>
       {children}
     </PageLayoutContext.Provider>
   );

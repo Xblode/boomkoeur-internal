@@ -7,3 +7,4 @@ export * from './meeting';
 export * from './user';
 export * from './planning';
 export * from './shotgun';
+export * from './organisation';

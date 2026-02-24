@@ -52,8 +52,8 @@ export default function UserDetails({
               {user.firstName} {user.lastName}
             </h3>
             <div className="flex items-center gap-2 mt-2">
-              <Badge variant={user.role === 'admin' ? 'secondary' : 'default'}>
-                {user.role === 'admin' ? 'Administrateur' : 'Membre'}
+              <Badge variant={user.orgRole === 'admin' || user.orgRole === 'fondateur' ? 'secondary' : 'default'}>
+                {user.orgRole === 'fondateur' ? 'Fondateur' : user.orgRole === 'admin' ? 'Admin' : user.orgRole === 'invite' ? 'Invite' : 'Membre'}
               </Badge>
               <Badge variant={user.status === 'active' ? 'success' : 'destructive'}>
                 {user.status === 'active' ? 'Actif' : 'Inactif'}

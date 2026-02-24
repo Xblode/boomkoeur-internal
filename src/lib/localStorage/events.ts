@@ -1,5 +1,6 @@
 /**
- * Utilitaires pour la gestion des événements dans localStorage
+ * @deprecated Utiliser @/lib/supabase/events pour le module Events.
+ * Ce fichier est conservé pour référence ou migration locale.
  */
 
 import { Event, Artist } from '@/types/event';

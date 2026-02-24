@@ -1,10 +1,17 @@
 /**
  * Artist Service - Interface abstraction (comme PlanningService)
+ * Utilise Supabase pour le module Events
  */
 
 import { Artist, ArtistType } from '@/types/event';
-import * as artistsStorage from '@/lib/localStorage/artists';
-import * as eventArtistsStorage from '@/lib/localStorage/eventArtists';
+import {
+  getArtistsList,
+  createArtist as supabaseCreateArtist,
+  updateArtist as supabaseUpdateArtist,
+  addArtistToEvent as supabaseAddArtistToEvent,
+  removeArtistFromEvent as supabaseRemoveArtistFromEvent,
+  updateEventArtistAssignment as supabaseUpdateEventArtistAssignment,
+} from '@/lib/supabase/events';
 
 export interface IArtistService {
   getAll(): Promise<Artist[]>;
@@ -15,64 +22,76 @@ export interface IArtistService {
 }
 
 export interface IEventArtistService {
-  getByEventId(eventId: string): Promise<eventArtistsStorage.EventArtists | undefined>;
-  addArtistToEvent(eventId: string, artistId: string): Promise<eventArtistsStorage.EventArtists>;
-  removeArtistFromEvent(eventId: string, artistId: string): Promise<eventArtistsStorage.EventArtists>;
+  getByEventId(eventId: string): Promise<{ eventId: string; assignments: unknown[]; updatedAt: Date } | undefined>;
+  addArtistToEvent(eventId: string, artistId: string): Promise<{ eventId: string; assignments: unknown[]; updatedAt: Date }>;
+  removeArtistFromEvent(eventId: string, artistId: string): Promise<{ eventId: string; assignments: unknown[]; updatedAt: Date }>;
   updateAssignment(
     eventId: string,
     artistId: string,
-    updates: Partial<{ performanceTime: string; fee: number }>
-  ): Promise<eventArtistsStorage.EventArtists>;
-  setOrder(eventId: string, artistIds: string[]): Promise<eventArtistsStorage.EventArtists>;
+    updates: Partial<{ performanceTime?: string; fee?: number }>
+  ): Promise<{ eventId: string; assignments: unknown[]; updatedAt: Date }>;
+  setOrder(eventId: string, artistIds: string[]): Promise<{ eventId: string; assignments: unknown[]; updatedAt: Date }>;
 }
 
-class LocalStorageArtistService implements IArtistService {
+const stubEventArtists = (eventId: string) => ({
+  eventId,
+  assignments: [] as unknown[],
+  updatedAt: new Date(),
+});
+
+class SupabaseArtistService implements IArtistService {
   async getAll(): Promise<Artist[]> {
-    return artistsStorage.getArtists();
+    return getArtistsList();
   }
 
   async getById(id: string): Promise<Artist | undefined> {
-    return artistsStorage.getArtistById(id);
+    const all = await getArtistsList();
+    return all.find((a) => a.id === id);
   }
 
   async create(input: { name: string; genre?: string; type?: ArtistType }): Promise<Artist> {
-    return artistsStorage.createArtist(input);
+    return supabaseCreateArtist(input);
   }
 
   async update(id: string, updates: Partial<Pick<Artist, 'name' | 'genre' | 'type'>>): Promise<Artist> {
-    return artistsStorage.updateArtist(id, updates);
+    return supabaseUpdateArtist(id, updates);
   }
 
   async delete(id: string): Promise<void> {
-    artistsStorage.deleteArtist(id);
+    const { supabase } = await import('@/lib/supabase');
+    const { error } = await supabase.from('artists').delete().eq('id', id);
+    if (error) throw error;
   }
 }
 
-class LocalStorageEventArtistService implements IEventArtistService {
-  async getByEventId(eventId: string): Promise<eventArtistsStorage.EventArtists | undefined> {
-    return eventArtistsStorage.getEventArtistsByEventId(eventId);
+class SupabaseEventArtistService implements IEventArtistService {
+  async getByEventId(eventId: string): Promise<{ eventId: string; assignments: unknown[]; updatedAt: Date } | undefined> {
+    return stubEventArtists(eventId);
   }
 
-  async addArtistToEvent(eventId: string, artistId: string): Promise<eventArtistsStorage.EventArtists> {
-    return eventArtistsStorage.addArtistToEvent(eventId, artistId);
+  async addArtistToEvent(eventId: string, artistId: string): Promise<{ eventId: string; assignments: unknown[]; updatedAt: Date }> {
+    await supabaseAddArtistToEvent(eventId, artistId);
+    return stubEventArtists(eventId);
   }
 
-  async removeArtistFromEvent(eventId: string, artistId: string): Promise<eventArtistsStorage.EventArtists> {
-    return eventArtistsStorage.removeArtistFromEvent(eventId, artistId);
+  async removeArtistFromEvent(eventId: string, artistId: string): Promise<{ eventId: string; assignments: unknown[]; updatedAt: Date }> {
+    await supabaseRemoveArtistFromEvent(eventId, artistId);
+    return stubEventArtists(eventId);
   }
 
   async updateAssignment(
     eventId: string,
     artistId: string,
-    updates: Partial<{ performanceTime: string; fee: number }>
-  ): Promise<eventArtistsStorage.EventArtists> {
-    return eventArtistsStorage.updateEventArtistAssignment(eventId, artistId, updates);
+    updates: Partial<{ performanceTime?: string; fee?: number }>
+  ): Promise<{ eventId: string; assignments: unknown[]; updatedAt: Date }> {
+    await supabaseUpdateEventArtistAssignment(eventId, artistId, updates);
+    return stubEventArtists(eventId);
   }
 
-  async setOrder(eventId: string, artistIds: string[]): Promise<eventArtistsStorage.EventArtists> {
-    return eventArtistsStorage.setEventArtistsOrder(eventId, artistIds);
+  async setOrder(_eventId: string, _artistIds: string[]): Promise<{ eventId: string; assignments: unknown[]; updatedAt: Date }> {
+    return stubEventArtists(_eventId);
   }
 }
 
-export const artistService: IArtistService = new LocalStorageArtistService();
-export const eventArtistService: IEventArtistService = new LocalStorageEventArtistService();
+export const artistService: IArtistService = new SupabaseArtistService();
+export const eventArtistService: IEventArtistService = new SupabaseEventArtistService();

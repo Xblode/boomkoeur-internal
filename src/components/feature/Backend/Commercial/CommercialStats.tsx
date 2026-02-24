@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { commercialService } from '@/lib/services/CommercialService';
+import { getCommercialStats } from '@/lib/supabase/commercial';
 import { CommercialStats as StatsType } from '@/types/commercial';
 import { Users, UserCheck, UserPlus, Activity } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/molecules/Card';
@@ -18,7 +18,7 @@ export default function CommercialStats() {
   const loadStats = async () => {
     setIsLoading(true);
     try {
-      const data = await commercialService.getStats();
+      const data = await getCommercialStats();
       setStats(data);
     } catch (error) {
       console.error('Error loading stats:', error);

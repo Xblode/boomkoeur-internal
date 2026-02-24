@@ -85,6 +85,7 @@ export interface ComWorkflow {
 
 export interface Event {
   id: string;
+  orgId?: string;
   name: string;
   date: Date;
   endTime?: string;

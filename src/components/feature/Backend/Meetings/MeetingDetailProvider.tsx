@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { Meeting } from '@/types/meeting';
-import { meetingService } from '@/lib/services/MeetingService';
+import { updateMeeting, getMeetingById } from '@/lib/supabase/meetings';
 
 interface MeetingDetailContextValue {
   meeting: Meeting;
@@ -30,13 +30,13 @@ export function MeetingDetailProvider({ initialMeeting, children }: MeetingDetai
   const persistField = useCallback((updates: Partial<Meeting>) => {
     setMeeting(prev => {
       const updated = { ...prev, ...updates, updated_at: new Date() };
-      meetingService.updateMeeting(prev.id, updates);
+      updateMeeting(prev.id, updates);
       return updated;
     });
   }, []);
 
   const reloadMeeting = useCallback(async () => {
-    const fresh = await meetingService.getMeetingById(meeting.id);
+    const fresh = await getMeetingById(meeting.id);
     if (fresh) setMeeting(fresh);
   }, [meeting.id]);
 

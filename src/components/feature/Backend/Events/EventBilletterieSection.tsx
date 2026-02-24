@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { SectionHeader } from '@/components/ui';
 import { useEventDetail } from './EventDetailProvider';
+import { useOrg } from '@/hooks';
 import { ShotgunEvent, ShotgunDeal, ShotgunEventsResponse } from '@/types/shotgun';
 import { Badge, Button } from '@/components/ui/atoms';
 import { EmptyState, Card, CardContent } from '@/components/ui/molecules';
@@ -43,6 +44,7 @@ const CHANNEL_LABELS: Record<string, string> = {
 
 export function EventBilletterieSection() {
   const { event } = useEventDetail();
+  const { activeOrg } = useOrg();
   const [shotgunEvent, setShotgunEvent] = useState<ShotgunEvent | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,10 +54,11 @@ export function EventBilletterieSection() {
     setLoading(true);
     setError(null);
     try {
-      // Chercher dans futurs ET passés car l'event peut être terminé
+      const headers: Record<string, string> = {};
+      if (activeOrg?.id) headers['X-Org-Id'] = activeOrg.id;
       const [futureRes, pastRes] = await Promise.all([
-        fetch('/api/shotgun/events'),
-        fetch('/api/shotgun/events?past_events=true&limit=50'),
+        fetch('/api/shotgun/events', { headers }),
+        fetch('/api/shotgun/events?past_events=true&limit=50', { headers }),
       ]);
       const [futureJson, pastJson]: [ShotgunEventsResponse, ShotgunEventsResponse] =
         await Promise.all([futureRes.json(), pastRes.json()]);
@@ -69,7 +72,7 @@ export function EventBilletterieSection() {
     } finally {
       setLoading(false);
     }
-  }, [event.shotgunEventId]);
+  }, [event.shotgunEventId, activeOrg?.id]);
 
   useEffect(() => {
     fetchDeals();

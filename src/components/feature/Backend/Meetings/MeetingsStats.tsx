@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { meetingService } from '@/lib/services/MeetingService';
+import { getMeetingStats } from '@/lib/supabase/meetings';
 import { MeetingStats as StatsType } from '@/types/meeting';
 import { Calendar, CheckCircle, Clock, FileText } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/molecules/Card';
@@ -20,7 +20,7 @@ export default function MeetingsStats() {
   const loadStats = async () => {
     setIsLoading(true);
     try {
-      const data = await meetingService.getStats();
+      const data = await getMeetingStats();
       setStats(data);
     } catch (error) {
       console.error('Error loading stats:', error);

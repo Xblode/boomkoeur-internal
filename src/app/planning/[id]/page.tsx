@@ -15,7 +15,7 @@ import {
   EventPlanning,
   ShiftKey,
 } from '@/types/planning';
-import { getEventById } from '@/lib/localStorage/events';
+import { getEventById } from '@/lib/supabase/events';
 import { getVolunteers } from '@/lib/localStorage/volunteers';
 import { getPlanningByEventId } from '@/lib/localStorage/planning';
 
@@ -76,12 +76,15 @@ export default function PublicPlanningPage({ params }: { params: Promise<{ id: s
   const [planning, setPlanning] = useState<EventPlanning | null>(null);
 
   useEffect(() => {
-    const ev = getEventById(id);
-    setEvent(ev ?? null);
-    if (ev) {
-      setVolunteers(getVolunteers());
-      setPlanning(getPlanningByEventId(id) ?? null);
-    }
+    getEventById(id)
+      .then((ev) => {
+        setEvent(ev ?? null);
+        if (ev) {
+          setVolunteers(getVolunteers());
+          setPlanning(getPlanningByEventId(id) ?? null);
+        }
+      })
+      .catch(() => setEvent(null));
   }, [id]);
 
   const shiftKeys = useMemo(

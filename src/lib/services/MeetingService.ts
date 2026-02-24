@@ -1,5 +1,4 @@
 import { Meeting, MeetingInput, AgendaItem, AgendaItemInput, MeetingStats, MeetingFilters } from '@/types/meeting';
-import { mockMeetings } from '@/lib/mocks/meetings';
 
 /**
  * Service de gestion des réunions
@@ -31,8 +30,7 @@ class MeetingService {
           }));
           resolve(parsed);
         } else {
-          localStorage.setItem(this.MEETINGS_KEY, JSON.stringify(mockMeetings));
-          resolve(mockMeetings);
+          resolve([]);
         }
       }, 300);
     });

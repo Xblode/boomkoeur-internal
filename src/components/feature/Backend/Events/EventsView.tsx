@@ -3,7 +3,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, IconButton } from '@/components/ui/atoms';
+import { Modal, ModalFooter, PageContentLayout } from '@/components/ui/organisms';
 import { SectionHeader } from '@/components/ui/molecules';
+import { useAlert } from '@/components/providers/AlertProvider';
+import { usePageLayout } from '@/components/providers/PageLayoutProvider';
 import { Event, EventFilters as EventFiltersType, SortField, SortOrder } from '@/types/event';
 import { ShotgunEvent } from '@/types/shotgun';
 import { EventsList } from './EventsList';
@@ -11,19 +14,20 @@ import { EventFilters } from './EventFilters';
 import { EventForm } from './EventForm';
 import { ShotgunSearchModal } from './ShotgunSearchModal';
 import {
-  getEvents,
   saveEvent,
   deleteEvent,
   duplicateEvent,
   getArtistsList,
-  initializeStorage,
-} from '@/lib/localStorage/events';
+} from '@/lib/supabase/events';
+import { useEvents } from '@/hooks/useEvents';
+import { getErrorMessage } from '@/lib/utils';
 import { Plus, History, X, Ticket, FileText, CalendarDays } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
 export const EventsView: React.FC = () => {
   const router = useRouter();
-  const [events, setEvents] = useState<Event[]>([]);
+  const { events, isLoading, error, refetch } = useEvents();
+  const [existingArtists, setExistingArtists] = useState<Event['artists']>([]);
   const [filters, setFilters] = useState<EventFiltersType>({
     search: '',
     status: 'all',
@@ -36,20 +40,45 @@ export const EventsView: React.FC = () => {
   const [editingEvent, setEditingEvent] = useState<Event | undefined>();
   const [isShotgunOpen, setIsShotgunOpen] = useState(false);
   const [isChoiceOpen, setIsChoiceOpen] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
 
-  // Initialiser et charger les événements
   useEffect(() => {
-    initializeStorage();
-    loadEvents();
-  }, []);
+    getArtistsList().then(setExistingArtists).catch(() => setExistingArtists([]));
+  }, [isFormOpen]);
 
-  const loadEvents = () => {
-    const loadedEvents = getEvents();
-    setEvents(loadedEvents);
-  };
+  const { setAlert } = useAlert();
+  const { setMaxWidth } = usePageLayout();
+
+  useEffect(() => {
+    setMaxWidth('7xl');
+    return () => setMaxWidth('6xl');
+  }, [setMaxWidth]);
+  const errorMessage = error ? getErrorMessage(error) : null;
+  const isConfigError = errorMessage ? /relation.*does not exist|permission denied|JWT/i.test(errorMessage) : false;
+  const alertMessage = errorMessage
+    ? isConfigError
+      ? 'Base de données non configurée. Exécutez les migrations SQL dans Supabase (voir supabase/migrations/).'
+      : `Impossible de charger les événements : ${errorMessage}`
+    : null;
+
+  useEffect(() => {
+    if (alertMessage) {
+      setAlert({
+        variant: 'error',
+        message: alertMessage,
+        onDismiss: () => {
+          setAlert(null);
+          refetch();
+        },
+      });
+    } else {
+      setAlert(null);
+    }
+    return () => setAlert(null);
+  }, [alertMessage, setAlert, refetch]);
 
   // Extraire les lieux et artistes uniques pour les filtres
   const { locations, artists } = useMemo(() => {
@@ -138,28 +167,32 @@ export const EventsView: React.FC = () => {
     setIsChoiceOpen(true);
   };
 
-  const handleCreateEmpty = () => {
+  const handleCreateEmpty = async () => {
     setIsChoiceOpen(false);
-    const newEvent = saveEvent({
-      name: 'Nouvel Événement',
-      date: new Date(),
-      location: '',
-      description: '',
-      status: 'idea',
-      artists: [],
-      linkedElements: [],
-      tags: [],
-      comments: [],
-      comWorkflow: {
-        activePhase: 'preparation',
-        activeStep: 0,
-        manual: {},
-        shotgunUrl: '',
-        overrides: {},
-      },
-    });
-    loadEvents();
-    router.push(`/dashboard/events/${newEvent.id}`);
+    try {
+      const newEvent = await saveEvent({
+        name: 'Nouvel Événement',
+        date: new Date(),
+        location: '',
+        description: '',
+        status: 'idea',
+        artists: [],
+        linkedElements: [],
+        tags: [],
+        comments: [],
+        comWorkflow: {
+          activePhase: 'preparation',
+          activeStep: 0,
+          manual: {},
+          shotgunUrl: '',
+          overrides: {},
+        },
+      });
+      await refetch();
+      router.push(`/dashboard/events/${newEvent.id}`);
+    } catch (err) {
+      console.error('Erreur création événement:', err);
+    }
   };
 
   const handleOpenShotgunSearch = () => {
@@ -167,40 +200,43 @@ export const EventsView: React.FC = () => {
     setIsShotgunOpen(true);
   };
 
-  const handleShotgunSelect = (sgEvent: ShotgunEvent) => {
+  const handleShotgunSelect = async (sgEvent: ShotgunEvent) => {
     setIsShotgunOpen(false);
 
     const startDate = new Date(sgEvent.startTime);
     const endDate = new Date(sgEvent.endTime);
     const endTimeStr = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
 
-    const newEvent = saveEvent({
-      name: sgEvent.name,
-      date: startDate,
-      endTime: endTimeStr,
-      location: sgEvent.geolocation?.street || sgEvent.geolocation?.city || '',
-      description: sgEvent.description || '',
-      status: 'preparation',
-      artists: [],
-      linkedElements: [],
-      tags: sgEvent.genres?.map((g) => g.name) || [],
-      comments: [],
-      shotgunEventId: sgEvent.id,
-      shotgunEventUrl: sgEvent.url,
-      media: {
-        posterShotgun: sgEvent.coverUrl || undefined,
-      },
-      comWorkflow: {
-        activePhase: 'preparation',
-        activeStep: 0,
-        manual: { shotgunDone: true },
-        shotgunUrl: sgEvent.url,
-        overrides: {},
-      },
-    });
-
-    loadEvents();
-    router.push(`/dashboard/events/${newEvent.id}`);
+    try {
+      const newEvent = await saveEvent({
+        name: sgEvent.name,
+        date: startDate,
+        endTime: endTimeStr,
+        location: sgEvent.geolocation?.street || sgEvent.geolocation?.city || '',
+        description: sgEvent.description || '',
+        status: 'preparation',
+        artists: [],
+        linkedElements: [],
+        tags: sgEvent.genres?.map((g) => g.name) || [],
+        comments: [],
+        shotgunEventId: sgEvent.id,
+        shotgunEventUrl: sgEvent.url,
+        media: {
+          posterShotgun: sgEvent.coverUrl || undefined,
+        },
+        comWorkflow: {
+          activePhase: 'preparation',
+          activeStep: 0,
+          manual: { shotgunDone: true },
+          shotgunUrl: sgEvent.url,
+          overrides: {},
+        },
+      });
+      await refetch();
+      router.push(`/dashboard/events/${newEvent.id}`);
+    } catch (err) {
+      console.error('Erreur import Shotgun:', err);
+    }
   };
 
   const handleEditEvent = (event: Event) => {
@@ -208,25 +244,43 @@ export const EventsView: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  const handleDeleteEvent = (id: string) => {
-    deleteEvent(id);
-    loadEvents();
+  const handleDeleteClick = (event: Event) => {
+    setEventToDelete(event);
   };
 
-  const handleDuplicateEvent = (id: string) => {
-    duplicateEvent(id);
-    loadEvents();
-  };
-
-  const handleSubmitForm = (data: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (editingEvent) {
-      saveEvent({ ...editingEvent, ...data });
-    } else {
-      saveEvent(data);
+  const handleConfirmDelete = async () => {
+    if (!eventToDelete) return;
+    try {
+      await deleteEvent(eventToDelete.id);
+      await refetch();
+      setEventToDelete(null);
+    } catch (err) {
+      console.error('Erreur suppression:', err);
     }
-    loadEvents();
-    setIsFormOpen(false);
-    setEditingEvent(undefined);
+  };
+
+  const handleDuplicateEvent = async (id: string) => {
+    try {
+      await duplicateEvent(id);
+      await refetch();
+    } catch (err) {
+      console.error('Erreur duplication:', err);
+    }
+  };
+
+  const handleSubmitForm = async (data: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      if (editingEvent) {
+        await saveEvent({ ...editingEvent, ...data });
+      } else {
+        await saveEvent(data);
+      }
+      await refetch();
+      setIsFormOpen(false);
+      setEditingEvent(undefined);
+    } catch (err) {
+      console.error('Erreur sauvegarde:', err);
+    }
   };
 
   const handleCancelForm = () => {
@@ -243,33 +297,42 @@ export const EventsView: React.FC = () => {
     setSortOrder(order);
   };
 
-  const existingArtists = getArtistsList();
-
   return (
-    <div className="w-full space-y-4">
-      <SectionHeader
-        icon={<CalendarDays size={28} />}
-        title="Events"
-        subtitle="Gérez vos événements et soirées musicales"
-        actions={
-          <Button variant="primary" size="sm" onClick={handleCreateEvent}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nouvel événement
-          </Button>
-        }
-        filters={
-          <EventFilters
-            filters={filters}
-            sortField={sortField}
-            sortOrder={sortOrder}
-            onFiltersChange={setFilters}
-            onSortChange={handleSortChange}
-            locations={locations}
-            artists={artists}
-          />
-        }
-      />
+    <PageContentLayout
+      embedded
+      sectionHeader={
+        <SectionHeader
+          icon={<CalendarDays size={28} />}
+          title="Events"
+          subtitle="Gérez vos événements et soirées musicales"
+          actions={
+            <Button variant="primary" size="sm" onClick={handleCreateEvent}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nouvel événement
+            </Button>
+          }
+          filters={
+            <EventFilters
+              filters={filters}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              onFiltersChange={setFilters}
+              onSortChange={handleSortChange}
+              locations={locations}
+              artists={artists}
+            />
+          }
+        />
+      }
+    >
+      {isLoading && (
+        <div className="flex items-center justify-center py-12 text-zinc-500">
+          Chargement des événements...
+        </div>
+      )}
 
+      {!isLoading && (
+        <>
       {/* Compteur */}
       <div className="text-sm text-zinc-600 dark:text-zinc-400">
         {filteredAndSortedEvents.length} événement{filteredAndSortedEvents.length > 1 ? 's' : ''}{' '}
@@ -281,7 +344,7 @@ export const EventsView: React.FC = () => {
         <EventsList
           events={activeEvents}
           onEdit={handleEditEvent}
-          onDelete={handleDeleteEvent}
+          onDelete={handleDeleteClick}
           onDuplicate={handleDuplicateEvent}
           onClick={handleEventClick}
         />
@@ -300,7 +363,7 @@ export const EventsView: React.FC = () => {
             <EventsList
               events={pastEvents}
               onEdit={handleEditEvent}
-              onDelete={handleDeleteEvent}
+              onDelete={handleDeleteClick}
               onDuplicate={handleDuplicateEvent}
               onClick={handleEventClick}
             />
@@ -313,10 +376,12 @@ export const EventsView: React.FC = () => {
         <EventsList
           events={[]}
           onEdit={handleEditEvent}
-          onDelete={handleDeleteEvent}
+          onDelete={handleDeleteClick}
           onDuplicate={handleDuplicateEvent}
           onClick={handleEventClick}
         />
+      )}
+        </>
       )}
 
       {/* Choice modal */}
@@ -380,6 +445,27 @@ export const EventsView: React.FC = () => {
         onSelect={handleShotgunSelect}
       />
 
+      {/* Modal de confirmation de suppression */}
+      <Modal
+        isOpen={!!eventToDelete}
+        onClose={() => setEventToDelete(null)}
+        title="Supprimer l'événement"
+        size="sm"
+      >
+        <p className="text-zinc-600 dark:text-zinc-400">
+          Êtes-vous sûr de vouloir supprimer l'événement{' '}
+          <strong className="text-zinc-900 dark:text-zinc-100">&quot;{eventToDelete?.name}&quot;</strong> ? Cette action est irréversible.
+        </p>
+        <ModalFooter>
+          <Button variant="outline" size="sm" onClick={() => setEventToDelete(null)}>
+            Annuler
+          </Button>
+          <Button variant="destructive" size="sm" onClick={handleConfirmDelete}>
+            Supprimer
+          </Button>
+        </ModalFooter>
+      </Modal>
+
       {/* Modal de formulaire (edition uniquement) */}
       {isFormOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -409,6 +495,6 @@ export const EventsView: React.FC = () => {
         </div>
       )}
 
-    </div>
+    </PageContentLayout>
   );
 };

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Product } from '@/types/product';
 import { ProductDetailProvider, useProductDetail } from './ProductDetailProvider';
+import { useAlert } from '@/components/providers/AlertProvider';
 import {
   AlignLeft,
   BarChart,
@@ -118,15 +119,42 @@ interface ProductDetailLayoutConfigProps {
 
 export function ProductDetailLayoutConfig({ productId, children }: ProductDetailLayoutConfigProps) {
   const router = useRouter();
+  const { setAlert } = useAlert();
   const [initialProduct, setInitialProduct] = useState<Product | null | undefined>(undefined);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
   useEffect(() => {
-    productDataService.getProductById(productId).then((found) => {
-      setInitialProduct(found ?? null);
-    });
+    setDetailError(null);
+    productDataService
+      .getProductById(productId)
+      .then((found) => {
+        setInitialProduct(found ?? null);
+      })
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        setDetailError(msg);
+        setInitialProduct(null);
+      });
   }, [productId]);
 
-  if (initialProduct === undefined) {
+  const pageAlertMessage = detailError ? `Impossible de charger les données : ${detailError}` : null;
+
+  useEffect(() => {
+    if (pageAlertMessage) {
+      setAlert({
+        variant: 'error',
+        message: pageAlertMessage,
+        onDismiss: () => {
+          setDetailError(null);
+        },
+      });
+    } else {
+      setAlert(null);
+    }
+    return () => setAlert(null);
+  }, [pageAlertMessage, setAlert]);
+
+  if (initialProduct === undefined && !detailError) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-zinc-500">Chargement...</div>
@@ -134,13 +162,21 @@ export function ProductDetailLayoutConfig({ productId, children }: ProductDetail
     );
   }
 
-  if (initialProduct === null) {
+  if (initialProduct === null && !detailError) {
     router.replace('/dashboard/products');
     return null;
   }
 
+  if (initialProduct === null && detailError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-zinc-500">Une erreur s&apos;est produite. Utilisez le bouton ci-dessus pour réessayer.</div>
+      </div>
+    );
+  }
+
   return (
-    <ProductDetailProvider key={productId} initialProduct={initialProduct}>
+    <ProductDetailProvider key={productId} initialProduct={initialProduct!} onError={setDetailError}>
       <ProductDetailLayoutConfigInner>{children}</ProductDetailLayoutConfigInner>
     </ProductDetailProvider>
   );

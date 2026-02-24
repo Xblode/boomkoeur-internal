@@ -4,7 +4,11 @@ import { useState, useEffect } from 'react';
 import { Modal, ModalFooter } from '@/components/ui/organisms/Modal';
 import { Button, Badge, Textarea, IconButton } from '@/components/ui/atoms';
 import { CommercialContact, ContactNote } from '@/types/commercial';
-import { commercialService } from '@/lib/services/CommercialService';
+import {
+  getContactNotes,
+  addContactNote,
+  deleteContactNote,
+} from '@/lib/supabase/commercial';
 import { 
   Mail, Phone, Globe, MapPin, User, Building2, Tag, 
   Calendar, StickyNote, Package, ShoppingCart, FileText, Plus, Trash2 
@@ -34,7 +38,7 @@ export default function ContactDetails({ isOpen, onClose, contact }: ContactDeta
     
     setIsLoadingNotes(true);
     try {
-      const data = await commercialService.getContactNotes(contact.id);
+      const data = await getContactNotes(contact.id);
       setNotes(data);
     } catch (error) {
       console.error('Error loading notes:', error);
@@ -48,10 +52,10 @@ export default function ContactDetails({ isOpen, onClose, contact }: ContactDeta
 
     setIsSavingNote(true);
     try {
-      await commercialService.addContactNote({
+      await addContactNote({
         contact_id: contact.id,
         content: newNote,
-        created_by: 'Admin User',
+        created_by: 'Utilisateur',
       });
       setNewNote('');
       await loadNotes();
@@ -66,7 +70,7 @@ export default function ContactDetails({ isOpen, onClose, contact }: ContactDeta
     if (!confirm('Supprimer cette note ?')) return;
 
     try {
-      await commercialService.deleteContactNote(noteId);
+      await deleteContactNote(noteId);
       await loadNotes();
     } catch (error) {
       console.error('Error deleting note:', error);

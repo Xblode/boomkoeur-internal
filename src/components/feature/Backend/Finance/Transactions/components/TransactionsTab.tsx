@@ -41,6 +41,8 @@ interface TransactionsTabProps {
   filterContactId?: string
   onTransactionChange?: () => void
   onCreateTransaction?: () => void
+  onError?: (error: string | null) => void
+  refreshTrigger?: number
 }
 
 export default function TransactionsTab({ 
@@ -53,7 +55,9 @@ export default function TransactionsTab({
   filterProjectId: externalFilterProjectId = 'all',
   filterContactId: externalFilterContactId = 'all',
   onTransactionChange,
-  onCreateTransaction
+  onCreateTransaction,
+  onError,
+  refreshTrigger
 }: TransactionsTabProps) {
   // Par defaut, afficher toutes les annees (undefined)
   const selectedYear = externalSelectedYear !== undefined ? externalSelectedYear : undefined
@@ -73,6 +77,7 @@ export default function TransactionsTab({
   const [viewingTransaction, setViewingTransaction] = useState<Transaction | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [hoveredRow, setHoveredRow] = useState<string | null>(null)
   const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>([])
   const [showRecurringSection, setShowRecurringSection] = useState(false)
@@ -97,16 +102,22 @@ export default function TransactionsTab({
     loadTransactions()
     loadRecurringTransactions()
     setCurrentPage(1)
-  }, [selectedYear])
+  }, [selectedYear, refreshTrigger])
 
   async function loadTransactions() {
     try {
       setLoading(true)
+      setError(null)
+      onError?.(null)
       const data = await financeDataService.getTransactions(selectedYear)
       console.log(`📊 Transactions chargees: ${data?.length || 0} transactions${selectedYear ? ` pour l'annee ${selectedYear}` : ' (toutes annees)'}`)
       setTransactions(data || [])
-    } catch (error) {
-      console.error('Erreur lors du chargement des transactions:', error)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      const errorMsg = msg || 'Erreur lors du chargement des transactions'
+      setError(errorMsg)
+      onError?.(errorMsg)
+      console.error('Erreur lors du chargement des transactions:', err)
     } finally {
       setLoading(false)
     }
@@ -116,8 +127,14 @@ export default function TransactionsTab({
     try {
       const data = await getRecurringTransactions()
       setRecurringTransactions(data || [])
-    } catch (error) {
-      console.error('Erreur lors du chargement des transactions recurrentes:', error)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erreur lors du chargement des transactions récurrentes'
+      setError((prev) => {
+        const next = prev || msg
+        onError?.(next)
+        return next
+      })
+      console.error('Erreur lors du chargement des transactions recurrentes:', err)
     }
   }
 
@@ -537,7 +554,6 @@ export default function TransactionsTab({
 
   return (
     <div className="space-y-6">
-
       {/* Section Transactions recurrentes */}
       {recurringTransactions.length > 0 && (
         <div className="border-2 border-blue-500/30 rounded-lg p-4 bg-blue-500/5">

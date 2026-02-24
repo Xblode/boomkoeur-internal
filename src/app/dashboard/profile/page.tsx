@@ -1,18 +1,28 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { ProfileHeader } from '@/components/ui/organisms';
+import { useUser } from '@/hooks';
 
 export default function ProfilePage() {
-  const [user] = useState({
-    name: 'Admin User',
-    email: 'admin@example.com',
-    role: 'Administrateur',
-    location: 'Paris, France',
-    website: 'https://monsite.com',
-    bio: 'Développeur Fullstack passionné par React et Next.js.',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
-  });
+  const { user, loading } = useUser();
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="h-8 w-48 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+        <div className="h-48 bg-zinc-100 dark:bg-zinc-900 rounded-lg animate-pulse" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="text-center py-12 text-zinc-500">
+        Vous devez être connecté pour voir votre profil.
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -22,7 +32,14 @@ export default function ProfilePage() {
           Gérez vos informations personnelles et préférences de compte.
         </p>
       </div>
-      <ProfileHeader user={user} />
+      <ProfileHeader
+        user={{
+          name: user.name,
+          email: user.email,
+          role: 'Utilisateur',
+          avatar: user.avatar,
+        }}
+      />
     </div>
   );
 }

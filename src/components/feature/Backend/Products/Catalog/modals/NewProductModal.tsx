@@ -6,7 +6,14 @@ import { Button, Input, Label, Textarea, Select, Checkbox } from '@/components/u
 import { ProductInput, ProductType, ProductStatus, Provider, ProductVariantInput, VariantAvailability } from '@/types/product';
 import { productDataService } from '@/lib/services/ProductDataService';
 import { useProduct } from '@/components/providers';
+import { useOrg } from '@/hooks';
+import { DrivePickerModal } from '@/components/feature/Backend/Events/DrivePickerModal';
 import { Trash2, Plus, X, Image as ImageIcon } from 'lucide-react';
+
+const getDriveViewUrl = (url: string): string => {
+  const m = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/);
+  return m ? `https://drive.google.com/uc?export=view&id=${m[1]}` : url;
+};
 
 interface NewProductModalProps {
   isOpen: boolean;
@@ -24,6 +31,8 @@ type VariantRow = {
 
 export default function NewProductModal({ isOpen, onClose }: NewProductModalProps) {
   const { triggerRefresh } = useProduct();
+  const { activeOrg } = useOrg();
+  const [drivePickerTarget, setDrivePickerTarget] = useState<'main' | string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [providers, setProviders] = useState<Provider[]>([]);
   
@@ -372,14 +381,25 @@ export default function NewProductModal({ isOpen, onClose }: NewProductModalProp
                           placeholder="0.00"
                         />
                       </div>
-                      <div>
-                        <Label className="text-xs mb-1 block">Image URL (optionnel)</Label>
-                        <Input
-                          className="h-8 text-xs"
-                          placeholder="https://..."
-                          value={variant.imageUrl}
-                          onChange={(e) => updateVariant(variant.id, 'imageUrl', e.target.value)}
-                        />
+                      <div className="flex gap-1 flex-wrap items-end">
+                        <div className="flex-1 min-w-0">
+                          <Label className="text-xs mb-1 block">Image URL (optionnel)</Label>
+                          <Input
+                            className="h-8 text-xs"
+                            placeholder="https://..."
+                            value={variant.imageUrl}
+                            onChange={(e) => updateVariant(variant.id, 'imageUrl', e.target.value)}
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs shrink-0"
+                          onClick={() => setDrivePickerTarget(variant.id)}
+                        >
+                          <ImageIcon className="h-3 w-3 mr-1" /> Drive
+                        </Button>
                       </div>
                     </div>
                     <div>
@@ -473,17 +493,45 @@ export default function NewProductModal({ isOpen, onClose }: NewProductModalProp
         {/* Média */}
         <div className="space-y-4">
           <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Visuel Principal</h3>
-          <div>
-            <Label htmlFor="image">URL de l'image principale</Label>
-            <Input
-              id="image"
-              value={formData.main_image}
-              onChange={(e) => setFormData({ ...formData, main_image: e.target.value })}
-              placeholder="https://..."
-            />
+          <div className="flex gap-2 flex-wrap">
+            <div className="flex-1 min-w-0">
+              <Label htmlFor="image">URL de l'image principale</Label>
+              <Input
+                id="image"
+                value={formData.main_image}
+                onChange={(e) => setFormData({ ...formData, main_image: e.target.value })}
+                placeholder="https://..."
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="self-end mt-6"
+              onClick={() => setDrivePickerTarget('main')}
+            >
+              <ImageIcon className="h-3 w-3 mr-1.5" /> Depuis Drive
+            </Button>
           </div>
         </div>
       </form>
+
+      {activeOrg && (
+        <DrivePickerModal
+          isOpen={!!drivePickerTarget}
+          onClose={() => setDrivePickerTarget(null)}
+          onSelect={(url) => {
+            const imgUrl = url.includes('drive.google.com') ? getDriveViewUrl(url) : url;
+            if (drivePickerTarget === 'main') {
+              setFormData(prev => ({ ...prev, main_image: imgUrl }));
+            } else if (drivePickerTarget) {
+              updateVariant(drivePickerTarget, 'imageUrl', imgUrl);
+            }
+            setDrivePickerTarget(null);
+          }}
+          orgId={activeOrg.id}
+        />
+      )}
 
       <ModalFooter>
         <Button type="button" variant="outline" size="sm" onClick={onClose}>

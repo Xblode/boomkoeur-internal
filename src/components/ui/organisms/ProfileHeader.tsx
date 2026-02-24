@@ -7,11 +7,11 @@ import { Camera, Mail, MapPin, Globe } from 'lucide-react';
 export interface UserProfile {
   name: string;
   email: string;
-  role: string;
-  location: string;
-  website: string;
-  bio: string;
-  avatar: string;
+  role?: string;
+  location?: string;
+  website?: string;
+  bio?: string;
+  avatar?: string;
 }
 
 export interface ProfileHeaderProps {
@@ -26,12 +26,14 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user }) => {
       <div className="px-6 pb-6">
         <div className="flex flex-col sm:flex-row items-start gap-6 -mt-10">
           <div className="relative group shrink-0">
-            <div className="h-24 w-24 rounded-full border-4 border-white dark:border-zinc-900 overflow-hidden bg-zinc-100">
-              <img 
-                src={user.avatar} 
-                alt={user.name} 
-                className="h-full w-full object-cover"
-              />
+            <div className="h-24 w-24 rounded-full border-4 border-white dark:border-zinc-900 overflow-hidden bg-zinc-100 flex items-center justify-center">
+              {user.avatar ? (
+                <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-2xl font-bold text-zinc-500">
+                  {user.name.charAt(0).toUpperCase()}
+                </span>
+              )}
             </div>
             <button className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 group-hover:opacity-100 rounded-full transition-opacity">
               <Camera size={20} />
@@ -43,11 +45,13 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user }) => {
               <div className="space-y-1">
                 <div>
                   <h2 className="font-bold text-2xl leading-none">{user.name}</h2>
-                  <p className="text-zinc-500 font-medium">{user.role}</p>
+                  {user.role && <p className="text-zinc-500 font-medium">{user.role}</p>}
                 </div>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 max-w-xl">
-                  {user.bio}
-                </p>
+                {user.bio && (
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400 max-w-xl">
+                    {user.bio}
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 text-sm text-zinc-600 dark:text-zinc-400 sm:pt-1 shrink-0">
@@ -55,16 +59,20 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user }) => {
                   <Mail size={14} />
                   <span>{user.email}</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <MapPin size={14} />
-                  <span>{user.location}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Globe size={14} />
-                  <a href={user.website} target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline">
-                    Site web
-                  </a>
-                </div>
+                {user.location && (
+                  <div className="flex items-center gap-1.5">
+                    <MapPin size={14} />
+                    <span>{user.location}</span>
+                  </div>
+                )}
+                {user.website && (
+                  <div className="flex items-center gap-1.5">
+                    <Globe size={14} />
+                    <a href={user.website} target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline">
+                      Site web
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           </div>

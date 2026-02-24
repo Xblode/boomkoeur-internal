@@ -13,6 +13,7 @@ import { AlertProvider } from '@/components/providers/AlertProvider';
 import { PageSidebarProvider } from '@/components/providers/PageSidebarProvider';
 import { ChatPanelProvider } from '@/components/providers/ChatPanelProvider';
 import { PageLayoutProvider } from '@/components/providers/PageLayoutProvider';
+import { OrgProvider } from '@/components/providers/OrgProvider';
 
 function BackendLayoutContent({
   children,
@@ -21,7 +22,6 @@ function BackendLayoutContent({
 }) {
   const { sidebarMode } = useSidebarMode();
   const pathname = usePathname();
-  const isDesignSystem = pathname?.startsWith('/dashboard/design-system');
   const isDetail = isDetailPage(pathname);
   const useShell = usesDashboardShell(pathname);
   const isPresentationMode = pathname?.includes('/present');
@@ -60,12 +60,10 @@ function BackendLayoutContent({
       )}>
         {useShell ? (
           <DashboardShell>{children}</DashboardShell>
-        ) : isDetail ? (
-          children
         ) : (
-          <main className={cn("flex-1", !isDesignSystem && "p-6 md:p-8")}>
-            <div className={cn(!isDesignSystem && "max-w-7xl mx-auto")}>
-              {children}
+          <main className="flex-1 min-w-0">
+            <div className="flex-1 min-h-0 overflow-y-auto p-6 md:p-8">
+              <div className="max-w-7xl mx-auto">{children}</div>
             </div>
           </main>
         )}
@@ -87,19 +85,21 @@ export default function BackendLayout({
       disableTransitionOnChange
       storageKey="theme-dashboard"
     >
-      <ToolbarProvider>
-        <AlertProvider>
-          <PageSidebarProvider>
-            <ChatPanelProvider>
-              <PageLayoutProvider>
-                <BackendLayoutContent>
-                  {children}
-                </BackendLayoutContent>
-              </PageLayoutProvider>
-            </ChatPanelProvider>
-          </PageSidebarProvider>
-        </AlertProvider>
-      </ToolbarProvider>
+      <OrgProvider>
+        <ToolbarProvider>
+          <AlertProvider>
+            <PageSidebarProvider>
+              <ChatPanelProvider>
+                <PageLayoutProvider>
+                  <BackendLayoutContent>
+                    {children}
+                  </BackendLayoutContent>
+                </PageLayoutProvider>
+              </ChatPanelProvider>
+            </PageSidebarProvider>
+          </AlertProvider>
+        </ToolbarProvider>
+      </OrgProvider>
     </ThemeProvider>
   );
 }

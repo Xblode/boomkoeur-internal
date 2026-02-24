@@ -1,4 +1,4 @@
-// Product Data Service - Interface abstraction for future Supabase migration
+// Product Data Service - Supabase backend
 // Les fournisseurs assignables aux produits proviennent de Commercial (type: supplier)
 import {
   Product,
@@ -14,12 +14,31 @@ import {
   ProductProvider,
 } from '@/types/product';
 
-import * as productsStorage from '@/lib/localStorage/products/products';
-import * as variantsStorage from '@/lib/localStorage/products/variants';
-import * as stockStorage from '@/lib/localStorage/products/stock';
-import * as providersStorage from '@/lib/localStorage/products/providers';
-import { commercialService } from '@/lib/services/CommercialService';
-import type { CommercialContact } from '@/types/commercial';
+import {
+  getProducts as supabaseGetProducts,
+  getProductById as supabaseGetProductById,
+  createProduct as supabaseCreateProduct,
+  updateProduct as supabaseUpdateProduct,
+  deleteProduct as supabaseDeleteProduct,
+  getVariants as supabaseGetVariants,
+  createVariant as supabaseCreateVariant,
+  updateVariant as supabaseUpdateVariant,
+  deleteVariant as supabaseDeleteVariant,
+  getStockMovements as supabaseGetStockMovements,
+  addStockMovement as supabaseAddStockMovement,
+  getLowStockProducts as supabaseGetLowStockProducts,
+  addProductProvider as supabaseAddProductProvider,
+  removeProductProvider as supabaseRemoveProductProvider,
+  addProductComment as supabaseAddProductComment,
+} from '@/lib/supabase/products';
+import {
+  getCommercialContacts,
+  getCommercialContactById,
+  createCommercialContact,
+  updateCommercialContact,
+  deleteCommercialContact,
+} from '@/lib/supabase/commercial';
+import type { CommercialContact, CommercialContactInput } from '@/types/commercial';
 
 /** Mappe un contact Commercial (supplier) vers le format Provider */
 function commercialSupplierToProvider(c: CommercialContact): Provider {
@@ -37,6 +56,23 @@ function commercialSupplierToProvider(c: CommercialContact): Provider {
     notes: c.notes,
     created_at: c.created_at,
     updated_at: c.updated_at,
+  };
+}
+
+/** Mappe ProviderInput vers CommercialContactInput (type: supplier) */
+function providerInputToCommercial(input: ProviderInput): CommercialContactInput {
+  return {
+    type: 'supplier',
+    status: 'active',
+    name: input.name,
+    contact_person: input.contact_name ?? undefined,
+    email: input.email ?? undefined,
+    phone: input.phone ?? undefined,
+    linked_product_ids: [],
+    linked_order_ids: [],
+    linked_invoice_ids: [],
+    tags: [],
+    notes: input.notes ?? undefined,
   };
 }
 
@@ -75,50 +111,47 @@ export interface IProductDataService {
   addComment(productId: string, author: string, content: string): Promise<ProductComment>;
 }
 
-// Implementation avec localStorage
-class LocalStorageProductService implements IProductDataService {
+// Implémentation Supabase
+class SupabaseProductService implements IProductDataService {
   // Products
   async getProducts(filters?: ProductFilters): Promise<Product[]> {
-    if (filters) {
-      return productsStorage.filterProducts(filters);
-    }
-    return productsStorage.getProducts();
+    return supabaseGetProducts(filters);
   }
 
   async getProductById(id: string): Promise<Product | null> {
-    return productsStorage.getProductById(id);
+    return supabaseGetProductById(id);
   }
 
   async createProduct(product: ProductInput): Promise<Product> {
-    return productsStorage.createProduct(product);
+    return supabaseCreateProduct(product);
   }
 
   async updateProduct(id: string, updates: Partial<Product>): Promise<Product> {
-    return productsStorage.updateProduct(id, updates);
+    return supabaseUpdateProduct(id, updates);
   }
 
   async deleteProduct(id: string): Promise<void> {
-    productsStorage.deleteProduct(id);
+    return supabaseDeleteProduct(id);
   }
 
   // Variants
   async getVariants(productId: string): Promise<ProductVariant[]> {
-    return variantsStorage.getVariantsByProductId(productId);
+    return supabaseGetVariants(productId);
   }
 
   async createVariant(variant: ProductVariantInput): Promise<ProductVariant> {
-    return variantsStorage.createVariant(variant);
+    return supabaseCreateVariant(variant);
   }
 
   async updateVariant(
     id: string,
     updates: Partial<ProductVariant>
   ): Promise<ProductVariant> {
-    return variantsStorage.updateVariant(id, updates);
+    return supabaseUpdateVariant(id, updates);
   }
 
   async deleteVariant(id: string): Promise<void> {
-    variantsStorage.deleteVariant(id);
+    return supabaseDeleteVariant(id);
   }
 
   // Stock
@@ -126,60 +159,72 @@ class LocalStorageProductService implements IProductDataService {
     productId?: string;
     variantId?: string;
   }): Promise<StockMovement[]> {
-    return stockStorage.getStockMovementsByFilters(filters);
+    return supabaseGetStockMovements(filters);
   }
 
   async addStockMovement(movement: StockMovementInput): Promise<StockMovement> {
-    return stockStorage.addStockMovement(movement);
+    return supabaseAddStockMovement(movement);
   }
 
   async getLowStockProducts(): Promise<Product[]> {
-    return productsStorage.getLowStockProducts();
+    return supabaseGetLowStockProducts();
   }
 
-  // Providers : proviennent de Commercial (suppliers). Fallback sur l'ancien storage pour compatibilité.
+  // Providers : proviennent de Commercial (suppliers)
   async getProviders(): Promise<Provider[]> {
-    const contacts = await commercialService.getContacts();
+    const contacts = await getCommercialContacts();
     const suppliers = contacts.filter((c) => c.type === 'supplier');
     return suppliers.map(commercialSupplierToProvider);
   }
 
   async getProviderById(id: string): Promise<Provider | null> {
-    const contacts = await commercialService.getContacts();
-    const supplier = contacts.find((c) => c.type === 'supplier' && c.id === id);
-    if (supplier) return commercialSupplierToProvider(supplier);
-    return providersStorage.getProviderById(id);
+    const contact = await getCommercialContactById(id);
+    if (contact && contact.type === 'supplier') {
+      return commercialSupplierToProvider(contact);
+    }
+    return null;
   }
 
   async createProvider(provider: ProviderInput): Promise<Provider> {
-    return providersStorage.createProvider(provider);
+    const input = providerInputToCommercial(provider);
+    const contact = await createCommercialContact(input);
+    return commercialSupplierToProvider(contact);
   }
 
   async updateProvider(
     id: string,
     updates: Partial<Provider>
   ): Promise<Provider> {
-    return providersStorage.updateProvider(id, updates);
+    const payload: Partial<CommercialContactInput> = {};
+    if (updates.name !== undefined) payload.name = updates.name;
+    if (updates.contact_name !== undefined) payload.contact_person = updates.contact_name;
+    if (updates.email !== undefined) payload.email = updates.email;
+    if (updates.phone !== undefined) payload.phone = updates.phone;
+    if (updates.notes !== undefined) payload.notes = updates.notes;
+    const contact = await updateCommercialContact(id, payload);
+    if (!contact) throw new Error(`Provider ${id} not found`);
+    return commercialSupplierToProvider(contact);
   }
 
   async deleteProvider(id: string): Promise<void> {
-    providersStorage.deleteProvider(id);
+    const ok = await deleteCommercialContact(id);
+    if (!ok) throw new Error(`Failed to delete provider ${id}`);
   }
 
   // Product providers
   async addProductProvider(productId: string, entry: ProductProvider): Promise<void> {
-    productsStorage.addProductProvider(productId, entry);
+    return supabaseAddProductProvider(productId, entry);
   }
 
   async removeProductProvider(productId: string, providerId: string): Promise<void> {
-    productsStorage.removeProductProvider(productId, providerId);
+    return supabaseRemoveProductProvider(productId, providerId);
   }
 
   // Comments
   async addComment(productId: string, author: string, content: string): Promise<ProductComment> {
-    return productsStorage.addProductComment(productId, author, content);
+    return supabaseAddProductComment(productId, author, content);
   }
 }
 
 // Singleton export
-export const productDataService: IProductDataService = new LocalStorageProductService();
+export const productDataService: IProductDataService = new SupabaseProductService();

@@ -4,7 +4,6 @@ import { Meeting, MeetingStatus } from '@/types/meeting';
 import {
   Clock,
   Users,
-  Edit,
   Trash2,
   Presentation,
   ListChecks,
@@ -29,7 +28,6 @@ const STATUS_BADGE: Record<MeetingStatus, { label: string; className: string }> 
 interface MeetingCardProps {
   meeting: Meeting;
   onView: (meeting: Meeting) => void;
-  onEdit: (meeting: Meeting) => void;
   onDelete: (meeting: Meeting) => void;
   onPresent: (e: React.MouseEvent, meeting: Meeting) => void;
 }
@@ -37,7 +35,6 @@ interface MeetingCardProps {
 export default function MeetingCard({
   meeting,
   onView,
-  onEdit,
   onDelete,
   onPresent,
 }: MeetingCardProps) {
@@ -111,15 +108,6 @@ export default function MeetingCard({
               onClick={(e) => onPresent(e, meeting)}
               className="p-2 rounded-md text-zinc-400 hover:text-purple-400 hover:bg-zinc-800 transition-colors"
               title="Présenter"
-            />
-            <IconButton
-              icon={<Edit className="h-4 w-4" />}
-              ariaLabel="Modifier"
-              variant="ghost"
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); onEdit(meeting); }}
-              className="p-2 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
-              title="Modifier"
             />
             <IconButton
               icon={<Trash2 className="h-4 w-4" />}

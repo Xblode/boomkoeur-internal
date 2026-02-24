@@ -1,5 +1,6 @@
 /**
- * Gestion des artistes dans localStorage (pool global, comme bénévoles)
+ * @deprecated Les artistes sont gérés via Supabase (lib/supabase/events, ArtistService).
+ * Ce fichier est conservé pour référence.
  */
 
 import { Artist, ArtistType } from '@/types/event';

@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { Meeting } from '@/types/meeting';
+import { useState, useEffect, useCallback } from 'react';
+import { Meeting, AgendaDocument } from '@/types/meeting';
 import { Button, IconButton, Input, Label, Textarea } from '@/components/ui/atoms';
-import { X, ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Plus, Trash2, CheckCircle2, Vote, FileText, Eye, ArrowLeft, ChevronDown } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Plus, Trash2, CheckCircle2, Vote, FileText, Eye, ArrowLeft, ChevronDown, Loader2, ExternalLink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useOrg } from '@/hooks';
+import { isGoogleDocUrl, isGoogleSheetUrl } from '@/lib/integrations/google-utils';
 
 interface PresentationModeProps {
   meeting: Meeting;
@@ -41,8 +43,88 @@ export default function PresentationMode({ meeting }: PresentationModeProps) {
   const [newOptionLabel, setNewOptionLabel] = useState('');
   const [activeTab, setActiveTab] = useState<'vote' | 'notes'>('notes'); // Tab pour basculer entre vote et notes (par défaut notes)
   
-  // Document viewer
-  const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
+  // Document viewer: { doc, type, content?, values?, loading, error }
+  type DocViewState = {
+    doc: AgendaDocument;
+    type: 'doc' | 'sheet' | 'pdf' | 'external';
+    content?: string;
+    values?: string[][];
+    loading: boolean;
+    error?: string;
+  } | null;
+  const [selectedDocument, setSelectedDocument] = useState<DocViewState | null>(null);
+  const { activeOrg } = useOrg();
+
+  const fetchDocContent = useCallback(
+    async (doc: AgendaDocument): Promise<DocViewState> => {
+      const url = doc.url || '';
+      if (!activeOrg) {
+        return { doc, type: 'external', loading: false, error: 'Organisation non disponible' };
+      }
+      if (isGoogleDocUrl(url)) {
+        try {
+          const res = await fetch(
+            `/api/admin/integrations/google/docs/content?org_id=${encodeURIComponent(activeOrg.id)}&url=${encodeURIComponent(url)}`
+          );
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error ?? 'Erreur chargement');
+          return { doc, type: 'doc', content: data.content ?? '', loading: false };
+        } catch (err) {
+          return {
+            doc,
+            type: 'doc',
+            loading: false,
+            error: err instanceof Error ? err.message : 'Erreur inconnue',
+          };
+        }
+      }
+      if (isGoogleSheetUrl(url)) {
+        try {
+          const res = await fetch(
+            `/api/admin/integrations/google/sheets/content?org_id=${encodeURIComponent(activeOrg.id)}&url=${encodeURIComponent(url)}`
+          );
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error ?? 'Erreur chargement');
+          return { doc, type: 'sheet', values: data.values ?? [], loading: false };
+        } catch (err) {
+          return {
+            doc,
+            type: 'sheet',
+            loading: false,
+            error: err instanceof Error ? err.message : 'Erreur inconnue',
+          };
+        }
+      }
+      if (url.toLowerCase().endsWith('.pdf') || url.includes('drive.google.com') && url.includes('/file/d/')) {
+        return { doc, type: 'pdf', loading: false };
+      }
+      return { doc, type: 'external', loading: false };
+    },
+    [activeOrg]
+  );
+
+  const openDocument = useCallback(
+    (doc: AgendaDocument) => {
+      const url = doc.url || '';
+      if (isGoogleDocUrl(url) || isGoogleSheetUrl(url)) {
+        setSelectedDocument({ doc, type: url.includes('spreadsheets') ? 'sheet' : 'doc', loading: true });
+      } else if (url.toLowerCase().endsWith('.pdf') || (url.includes('drive.google.com') && url.includes('/file/d/'))) {
+        setSelectedDocument({ doc, type: 'pdf', loading: false });
+      } else {
+        setSelectedDocument({ doc, type: 'external', loading: false });
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!selectedDocument || !selectedDocument.loading || !activeOrg) return;
+    let cancelled = false;
+    fetchDocContent(selectedDocument.doc).then((result) => {
+      if (!cancelled) setSelectedDocument(result);
+    });
+    return () => { cancelled = true; };
+  }, [selectedDocument?.doc.id, selectedDocument?.loading, activeOrg?.id, fetchDocContent]);
   
   // Accordion pour les descriptions
   const [expandedAgendaItem, setExpandedAgendaItem] = useState<number>(0); // Par défaut, le premier item est ouvert
@@ -69,10 +151,6 @@ export default function PresentationMode({ meeting }: PresentationModeProps) {
       resetVote();
       setSelectedDocument(null);
     }
-  };
-
-  const openDocument = (doc: string) => {
-    setSelectedDocument(doc);
   };
 
   const closeDocument = () => {
@@ -306,7 +384,7 @@ export default function PresentationMode({ meeting }: PresentationModeProps) {
                     key={doc.id}
                     variant="ghost"
                     size="sm"
-                    onClick={() => openDocument(doc.url)}
+                    onClick={() => openDocument(doc)}
                     className="p-3 bg-card rounded-lg border border-border-custom flex items-center gap-2 cursor-pointer transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left w-full h-auto justify-start"
                   >
                     <div className="w-7 h-7 rounded bg-zinc-100 flex items-center justify-center dark:bg-zinc-800">
@@ -333,116 +411,117 @@ export default function PresentationMode({ meeting }: PresentationModeProps) {
                 onClick={closeDocument}
                 className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
               />
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded bg-zinc-100 flex items-center justify-center dark:bg-zinc-800">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <div className="w-7 h-7 rounded bg-zinc-100 flex items-center justify-center dark:bg-zinc-800 shrink-0">
                   <span className="text-xs font-bold text-zinc-500">DOC</span>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-sm">{selectedDocument}</h3>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-sm truncate">{selectedDocument.doc.name}</h3>
                   <p className="text-xs text-muted-foreground">Lecture seule</p>
                 </div>
               </div>
+              {selectedDocument.doc.url && (
+                <a
+                  href={selectedDocument.doc.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-foreground"
+                  title="Ouvrir dans un nouvel onglet"
+                >
+                  <ExternalLink size={16} />
+                </a>
+              )}
             </div>
-            
+
             {/* Document Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              {selectedDocument?.toLowerCase().endsWith('.pdf') ? (
+              {selectedDocument.loading ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                  <Loader2 size={32} className="animate-spin text-zinc-400" />
+                  <p className="text-sm text-muted-foreground">Chargement du document...</p>
+                </div>
+              ) : selectedDocument.error ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
+                  <p className="text-sm text-red-600 dark:text-red-400">{selectedDocument.error}</p>
+                  {selectedDocument.doc.url && (
+                    <a
+                      href={selectedDocument.doc.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1.5"
+                    >
+                      <ExternalLink size={14} /> Ouvrir dans un nouvel onglet
+                    </a>
+                  )}
+                </div>
+              ) : selectedDocument.type === 'pdf' ? (
                 <iframe
-                  src={`/documents/${selectedDocument.toLowerCase().replace(/\s+/g, '_')}`}
-                  className="w-full h-full rounded-lg border border-border-custom"
-                  title={selectedDocument}
+                  src={
+                    selectedDocument.doc.url.includes('drive.google.com')
+                      ? selectedDocument.doc.url.replace(/\/view.*$/, '/preview')
+                      : selectedDocument.doc.url
+                  }
+                  className="w-full h-full min-h-[400px] rounded-lg border border-border-custom"
+                  title={selectedDocument.doc.name}
                 />
-              ) : selectedDocument?.toLowerCase().endsWith('.xlsx') || selectedDocument?.toLowerCase().endsWith('.xls') ? (
-                <div className="bg-background rounded-lg border border-border-custom p-6 h-full overflow-y-auto">
-                  <div className="prose prose-sm max-w-none">
-                    <h2 className="text-xl font-bold mb-4">Analytics Communication 2025 - Boom Koeur</h2>
-                    
-                    <div className="space-y-6">
-                      <section>
-                        <h3 className="text-lg font-semibold mb-3">📱 RÉSEAUX SOCIAUX</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="bg-card p-4 rounded-lg border border-border-custom">
-                            <h4 className="font-semibold mb-2">Instagram</h4>
-                            <ul className="text-sm space-y-1 text-muted-foreground">
-                              <li>Abonnés: 1,632 → 2,482 (+52%)</li>
-                              <li>Publications: 156 | Stories: 428</li>
-                              <li>Taux engagement: 7.2%</li>
-                              <li>Reach moyen: 1,245</li>
-                            </ul>
-                          </div>
-                          <div className="bg-card p-4 rounded-lg border border-border-custom">
-                            <h4 className="font-semibold mb-2">Facebook</h4>
-                            <ul className="text-sm space-y-1 text-muted-foreground">
-                              <li>Abonnés: 1,142 → 1,462 (+28%)</li>
-                              <li>Publications: 98 | Partages: 234</li>
-                              <li>Taux engagement: 5.8%</li>
-                              <li>Reach moyen: 892</li>
-                            </ul>
-                          </div>
-                        </div>
-                      </section>
-
-                      <section>
-                        <h3 className="text-lg font-semibold mb-3">📧 NEWSLETTER</h3>
-                        <div className="bg-card p-4 rounded-lg border border-border-custom">
-                          <ul className="text-sm space-y-1 text-muted-foreground">
-                            <li>Inscrits: 1,815 → 2,450 (+35%)</li>
-                            <li>Emails envoyés: 24</li>
-                            <li>Taux d'ouverture: 42.3%</li>
-                            <li>Taux de clic: 8.7%</li>
-                          </ul>
-                        </div>
-                      </section>
-
-                      <section>
-                        <h3 className="text-lg font-semibold mb-3">🌐 SITE WEB</h3>
-                        <div className="bg-card p-4 rounded-lg border border-border-custom">
-                          <ul className="text-sm space-y-1 text-muted-foreground">
-                            <li>Visiteurs uniques: 28,450</li>
-                            <li>Pages vues: 76,234</li>
-                            <li>Temps moyen: 3min 24s</li>
-                            <li>Taux de rebond: 48.2%</li>
-                          </ul>
-                        </div>
-                      </section>
-
-                      <section>
-                        <h3 className="text-lg font-semibold mb-3">💰 BUDGET</h3>
-                        <div className="bg-card p-4 rounded-lg border border-border-custom">
-                          <ul className="text-sm space-y-1 text-muted-foreground">
-                            <li>Budget: 12,000€ | Dépensé: 11,450€</li>
-                            <li>Publicité digitale: 4,850€ (42%)</li>
-                            <li>Création contenu: 2,800€ (24%)</li>
-                            <li>ROI moyen: 340%</li>
-                          </ul>
-                        </div>
-                      </section>
-
-                      <section>
-                        <h3 className="text-lg font-semibold mb-3">✅ CONCLUSIONS</h3>
-                        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
-                          <p className="text-sm font-medium mb-2">Points forts:</p>
-                          <ul className="text-sm space-y-1 text-muted-foreground list-disc list-inside">
-                            <li>Tous les KPIs dépassent les objectifs</li>
-                            <li>Forte croissance sur tous les canaux</li>
-                            <li>Excellent ROI des campagnes</li>
-                            <li>Budget maîtrisé (-4.6%)</li>
-                          </ul>
-                        </div>
-                      </section>
-                    </div>
-                  </div>
+              ) : selectedDocument.type === 'doc' && selectedDocument.content !== undefined ? (
+                <div className="bg-background rounded-lg border border-border-custom p-6">
+                  <pre className="whitespace-pre-wrap font-sans text-sm text-foreground leading-relaxed">
+                    {selectedDocument.content || 'Document vide'}
+                  </pre>
+                </div>
+              ) : selectedDocument.type === 'sheet' && selectedDocument.values && selectedDocument.values.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border-collapse">
+                    <tbody>
+                      {selectedDocument.values.map((row, i) => (
+                        <tr key={i}>
+                          {row.map((cell, j) => (
+                            <td
+                              key={j}
+                              className={cn(
+                                'border border-border-custom px-3 py-2',
+                                i === 0 && 'font-semibold bg-zinc-50 dark:bg-zinc-800/80'
+                              )}
+                            >
+                              {cell}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : selectedDocument.type === 'sheet' ? (
+                <div className="text-center text-muted-foreground py-12">
+                  <p className="text-sm">Tableur vide ou inaccessible</p>
+                  {selectedDocument.doc.url && (
+                    <a
+                      href={selectedDocument.doc.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline mt-2 inline-flex items-center gap-1.5"
+                    >
+                      <ExternalLink size={14} /> Ouvrir dans Google Sheets
+                    </a>
+                  )}
                 </div>
               ) : (
                 <div className="bg-background rounded-lg border border-border-custom p-6">
                   <div className="text-center text-muted-foreground py-12">
                     <FileText size={48} className="mx-auto mb-4 opacity-50" />
-                    <p className="text-sm mb-2">Prévisualisation du document</p>
-                    <p className="text-lg font-semibold mb-4">{selectedDocument}</p>
-                    <p className="text-xs">
-                      Le contenu du document s'affichera ici.<br />
-                      (Images, Documents texte, etc.)
-                    </p>
+                    <p className="text-sm mb-2">Prévisualisation non disponible</p>
+                    <p className="text-lg font-semibold mb-4">{selectedDocument.doc.name}</p>
+                    {selectedDocument.doc.url && (
+                      <a
+                        href={selectedDocument.doc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1.5 justify-center"
+                      >
+                        <ExternalLink size={14} /> Ouvrir le document
+                      </a>
+                    )}
                   </div>
                 </div>
               )}

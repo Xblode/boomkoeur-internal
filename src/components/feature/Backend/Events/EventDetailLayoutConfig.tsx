@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Event } from '@/types/event';
 import { EventDetailProvider, useEventDetail } from './EventDetailProvider';
@@ -18,7 +18,8 @@ import { EntitySelectorDropdown } from '@/components/ui';
 import { usePageSidebar } from '@/components/providers/PageSidebarProvider';
 import { usePageLayout } from '@/components/providers/PageLayoutProvider';
 import { useChatPanel } from '@/components/providers/ChatPanelProvider';
-import { getEventById, getEvents, addComment } from '@/lib/localStorage/events';
+import { addComment } from '@/lib/supabase/events';
+import { useEvents, useEvent } from '@/hooks';
 
 type SectionId = 'info' | 'campagne' | 'artistes' | 'planning' | 'billetterie' | 'liens';
 
@@ -45,6 +46,7 @@ function EventDetailLayoutConfigInner({ children }: { children: React.ReactNode 
   const router = useRouter();
   const pathname = usePathname();
   const { event, setEvent } = useEventDetail();
+  const { events } = useEvents();
   const { setPageSidebarConfig } = usePageSidebar();
   const { setMaxWidth } = usePageLayout();
   const { setChatPanelConfig } = useChatPanel();
@@ -53,15 +55,17 @@ function EventDetailLayoutConfigInner({ children }: { children: React.ReactNode 
   const activeSection = getActiveSectionFromPath(pathname ?? '', basePath);
 
   const allEvents = useMemo(
-    () => getEvents().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-    []
+    () => [...events].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [events]
   );
 
-  const handleSendComment = (author: string, content: string) => {
-    addComment(event.id, author, content);
-    const updated = getEventById(event.id);
-    if (updated) setEvent(updated);
-  };
+  const handleSendComment = useCallback(
+    async (_author: string, content: string) => {
+      const updated = await addComment(event.id, content);
+      setEvent(updated);
+    },
+    [event.id, setEvent]
+  );
 
   useEffect(() => {
     setMaxWidth('5xl');
@@ -93,9 +97,10 @@ function EventDetailLayoutConfigInner({ children }: { children: React.ReactNode 
     setChatPanelConfig({
       comments: event.comments,
       onSendComment: handleSendComment,
+      hideAuthorInput: true,
     });
     return () => setChatPanelConfig(null);
-  }, [event.id, event.comments, setChatPanelConfig]);
+  }, [event.id, event.comments, handleSendComment, setChatPanelConfig]);
 
   return <>{children}</>;
 }
@@ -107,14 +112,9 @@ interface EventDetailLayoutConfigProps {
 
 export function EventDetailLayoutConfig({ eventId, children }: EventDetailLayoutConfigProps) {
   const router = useRouter();
-  const [initialEvent, setInitialEvent] = React.useState<Event | null | undefined>(undefined);
+  const { event: initialEvent, isLoading } = useEvent(eventId);
 
-  React.useEffect(() => {
-    const found = getEventById(eventId);
-    setInitialEvent(found ?? null);
-  }, [eventId]);
-
-  if (initialEvent === undefined) {
+  if (isLoading || initialEvent === undefined) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-zinc-500">Chargement...</div>

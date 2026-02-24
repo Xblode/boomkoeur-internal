@@ -25,6 +25,8 @@ interface BilanTabProps {
   periodType?: PeriodType
   selectedYear?: number
   selectedMonth?: number
+  onError?: (error: string | null) => void
+  refreshTrigger?: number
 }
 
 // Ligne financière — design épuré
@@ -87,22 +89,25 @@ const FinancialSection = ({
   </div>
 )
 
-export default function BilanTab({ periodType: externalPeriodType, selectedYear: externalSelectedYear, selectedMonth: externalSelectedMonth }: BilanTabProps) {
+export default function BilanTab({ periodType: externalPeriodType, selectedYear: externalSelectedYear, selectedMonth: externalSelectedMonth, onError, refreshTrigger }: BilanTabProps) {
   const periodType = externalPeriodType ?? 'year'
   const selectedYear = externalSelectedYear ?? new Date().getFullYear()
   const selectedMonth = externalSelectedMonth ?? new Date().getMonth() + 1
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [profitLoss, setProfitLoss] = useState<any>(null)
   const [balanceSheet, setBalanceSheet] = useState<any>(null)
   const [ratios, setRatios] = useState<any>(null)
 
   useEffect(() => {
     loadData()
-  }, [periodType, selectedYear, selectedMonth])
+  }, [periodType, selectedYear, selectedMonth, refreshTrigger])
 
   async function loadData() {
     try {
       setLoading(true)
+      setError(null)
+      onError?.(null)
       const [pl, bs, r] = await Promise.all([
         financeDataService.getProfitAndLoss(periodType, selectedYear, selectedMonth),
         financeDataService.getBalanceSheet(periodType, selectedYear),
@@ -111,8 +116,10 @@ export default function BilanTab({ periodType: externalPeriodType, selectedYear:
       setProfitLoss(pl)
       setBalanceSheet(bs)
       setRatios(r)
-    } catch (error) {
-      console.error('Erreur lors du chargement des donnees:', error)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setError(msg || 'Erreur lors du chargement des donnees')
+      console.error('Erreur lors du chargement des donnees:', err)
     } finally {
       setLoading(false)
     }

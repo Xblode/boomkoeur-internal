@@ -1,18 +1,27 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
+import { Twitter, Linkedin, Github } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useUser } from '@/hooks';
+import { footerLinksGuest, footerLinksAuth, footerSocialLinksData } from '@/config/navigation';
+
+const SOCIAL_ICONS = { twitter: Twitter, linkedin: Linkedin, github: Github } as const;
 
 export interface FooterProps {
   links?: Array<{ label: string; href: string }>;
-  socialLinks?: Array<{ label: string; href: string; icon?: any }>; // icon type any temporaire pour compatibilité
+  socialLinks?: Array<{ label: string; href: string; iconName?: keyof typeof SOCIAL_ICONS }>;
   className?: string;
 }
 
 export const Footer: React.FC<FooterProps> = ({
-  links = [],
-  socialLinks = [],
+  links: linksProp,
+  socialLinks = footerSocialLinksData,
   className = '',
 }) => {
+  const { user } = useUser();
+  const links = linksProp ?? (user ? footerLinksAuth : footerLinksGuest);
   const currentYear = new Date().getFullYear();
 
   return (
@@ -54,19 +63,22 @@ export const Footer: React.FC<FooterProps> = ({
           <div>
             <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-4">Réseaux</h4>
             <ul className="space-y-3">
-              {socialLinks.map((social) => (
-                <li key={social.href}>
-                  <a
-                    href={social.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50 transition-colors"
-                  >
-                    {social.icon && React.createElement(social.icon, { size: 16 })}
-                    {social.label}
-                  </a>
-                </li>
-              ))}
+              {socialLinks.map((social) => {
+                const Icon = social.iconName ? SOCIAL_ICONS[social.iconName] : null;
+                return (
+                  <li key={social.href}>
+                    <a
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50 transition-colors"
+                    >
+                      {Icon && <Icon size={16} />}
+                      {social.label}
+                    </a>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </div>

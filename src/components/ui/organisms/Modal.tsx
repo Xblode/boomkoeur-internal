@@ -341,3 +341,40 @@ export function ModalThreeColumnLayout({
     </div>
   )
 }
+
+/**
+ * ModalTwoColumnLayout - Layout 2 colonnes avec scroll indépendant
+ *
+ * Chaque colonne scroll indépendamment. À utiliser avec Modal variant="fullBleed".
+ */
+export interface ModalTwoColumnLayoutProps {
+  left: ReactNode
+  right: ReactNode
+  leftWidth?: string
+  minHeight?: string
+}
+
+export function ModalTwoColumnLayout({
+  left,
+  right,
+  leftWidth = '16rem',
+  minHeight = '320px',
+}: ModalTwoColumnLayoutProps) {
+  return (
+    <div
+      className="flex gap-4 overflow-hidden min-w-0 flex-1"
+      style={{ minHeight }}
+    >
+      <aside
+        className="shrink-0 border-r border-zinc-200 dark:border-zinc-700 overflow-y-auto flex flex-col"
+        style={{ width: leftWidth }}
+      >
+        {left}
+      </aside>
+      <div className="flex-1 min-w-0 min-h-0 overflow-y-auto flex flex-col">
+        {right}
+      </div>
+    </div>
+  )
+}
+ModalTwoColumnLayout.displayName = 'ModalTwoColumnLayout'

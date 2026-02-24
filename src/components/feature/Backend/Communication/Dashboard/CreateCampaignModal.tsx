@@ -5,7 +5,7 @@ import { Button, Input, Label, Textarea } from '@/components/ui/atoms';
 import { EventSelector } from '@/components/ui/molecules';
 import { Modal, ModalFooter } from '@/components/ui/organisms';
 import { Campaign } from '@/types/communication';
-import { getEvents } from '@/lib/localStorage/events';
+import { getEvents } from '@/lib/supabase/events';
 import { Event } from '@/types/event';
 
 interface CreateCampaignModalProps {
@@ -29,11 +29,14 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      const events = getEvents();
-      const sortedEvents = [...events].sort((a, b) => 
-        new Date(b.date).getTime() - new Date(a.date).getTime()
-      );
-      setAvailableEvents(sortedEvents);
+      getEvents()
+        .then((events) => {
+          const sortedEvents = [...events].sort((a, b) =>
+            new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+          setAvailableEvents(sortedEvents);
+        })
+        .catch(() => setAvailableEvents([]));
     }
   }, [isOpen]);
 

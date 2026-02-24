@@ -14,14 +14,16 @@ export interface EditableCardProps {
   headerContent: ReactNode;
   editContent: ReactNode;
   headerPadding?: 'sm' | 'md';
+  /** default = Card pleine + actions Éditer/Supprimer | outline = Card transparente + actions dans headerContent */
+  variant?: 'default' | 'outline';
   className?: string;
 }
 
 /**
  * EditableCard - Carte éditable avec zone déroulante
  *
- * Utilise Card variant="editable" (thème). Structure : header (toujours visible) + zone d'édition (déroule en dessous au clic Éditer).
- * Actions Éditer/Supprimer visibles au hover, bouton X quand en édition.
+ * - variant="default" : Card pleine, actions Éditer/Supprimer au hover
+ * - variant="outline" : Card transparente, actions personnalisées dans headerContent (ex: Paramètres)
  */
 export function EditableCard({
   isEditing,
@@ -31,48 +33,70 @@ export function EditableCard({
   headerContent,
   editContent,
   headerPadding = 'md',
+  variant = 'default',
   className,
 }: EditableCardProps) {
   const paddingClass = headerPadding === 'sm' ? 'p-3' : 'p-4';
+  const cardVariant = variant === 'outline' ? 'outline' : 'default';
+  const showDefaultActions = variant === 'default';
 
   return (
-    <Card variant="editable" className={cn('group/card', className)}>
+    <Card variant={cardVariant} className={cn('group/card overflow-hidden', className)}>
       <div className={paddingClass}>
-        <div className="flex items-start gap-2">
-          <div className="flex-1 min-w-0">{headerContent}</div>
+        <div
+          className={cn(
+            'flex items-start w-full',
+            showDefaultActions ? 'justify-between gap-3' : 'gap-2'
+          )}
+        >
+          <div
+            className={cn(
+              'flex min-w-0',
+              showDefaultActions
+                ? 'flex-1 items-start gap-3 [&>*:first-child]:!h-10 [&>*:first-child]:!w-10 [&>*:first-child]:!shrink-0'
+                : 'flex-1'
+            )}
+          >
+            {headerContent}
+          </div>
           {isEditing ? (
             <Button
               variant="outline"
               size="sm"
               onClick={onCloseEdit}
-              className="shrink-0 h-6 w-6 p-0 md:h-7 md:w-7"
+              className="shrink-0 h-8 w-8 p-0"
               aria-label="Fermer"
             >
-              <X size={12} />
+              <X size={14} />
             </Button>
-          ) : (
-            <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover/card:opacity-100 transition-opacity">
-              <Button variant="outline" size="sm" onClick={onEdit} className="h-7 text-xs px-2">
-                <Edit size={12} /> Éditer
+          ) : showDefaultActions ? (
+            <div className="flex items-center gap-2 shrink-0 opacity-0 group-hover/card:opacity-100 transition-opacity">
+              <Button variant="outline" size="sm" onClick={onEdit} className="shrink-0">
+                <Edit size={14} className="mr-1.5" /> Éditer
               </Button>
               {onDelete && (
                 <IconButton
                   type="button"
-                  icon={<Trash2 size={12} />}
+                  icon={<Trash2 size={14} />}
                   ariaLabel="Supprimer"
                   variant="ghost"
                   size="sm"
                   onClick={onDelete}
-                  className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-zinc-400 hover:text-red-600"
+                  className="shrink-0 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-zinc-400 hover:text-red-600"
                 />
               )}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 
       {isEditing && (
-        <div className="border-t-2 border-dashed border-border-custom p-4 space-y-4 bg-card-bg">
+        <div
+          className={cn(
+            'border-t-2 border-dashed border-border-custom p-4 space-y-4',
+            cardVariant === 'outline' ? 'bg-transparent' : 'bg-card-bg'
+          )}
+        >
           {editContent}
         </div>
       )}

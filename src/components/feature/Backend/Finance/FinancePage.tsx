@@ -30,13 +30,21 @@ import {
 } from './Budget/modals'
 import { NewInvoiceModal } from './Factures/modals'
 import { useFinanceLayout } from './FinanceLayoutConfig'
+import { useAlert } from '@/components/providers/AlertProvider'
 
 export default function FinancePage() {
   const { activeSection, selectedYear } = useFinanceLayout()
+  const { setAlert } = useAlert()
 
   const [stats, setStats] = useState<any>(null)
   const [pendingInvoices, setPendingInvoices] = useState<number>(0)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [statsError, setStatsError] = useState<string | null>(null)
+  const [tresorerieError, setTresorerieError] = useState<string | null>(null)
+  const [transactionsError, setTransactionsError] = useState<string | null>(null)
+  const [budgetError, setBudgetError] = useState<string | null>(null)
+  const [facturesError, setFacturesError] = useState<string | null>(null)
+  const [bilanError, setBilanError] = useState<string | null>(null)
 
   // Transactions state
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false)
@@ -114,7 +122,7 @@ export default function FinancePage() {
 
   useEffect(() => {
     loadStats()
-  }, [])
+  }, [selectedYear])
 
   useEffect(() => {
     if (activeSection === 'transactions') {
@@ -747,14 +755,58 @@ export default function FinancePage() {
 
   async function loadStats() {
     try {
-      const data = await financeDataService.getFinanceKPIs()
+      setStatsError(null)
+      const data = await financeDataService.getFinanceKPIs(selectedYear)
       setStats(data)
       const pendingCount = await financeDataService.getPendingInvoicesCount()
       setPendingInvoices(pendingCount)
-    } catch (error) {
-      console.error('Erreur:', error)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setStatsError(msg || 'Erreur lors du chargement des statistiques')
+      console.error('Erreur:', err)
     }
   }
+
+  const statsAlertMessage = statsError ? statsError : null
+
+  const tabAlertMessage = (() => {
+    switch (activeSection) {
+      case 'tresorerie' : return tresorerieError ? `Impossible de charger les données : ${tresorerieError}` : null
+      case 'transactions': return transactionsError ? `Impossible de charger les données : ${transactionsError}` : null
+      case 'budget': return budgetError ? `Impossible de charger les données : ${budgetError}` : null
+      case 'factures': return facturesError ? `Impossible de charger les données : ${facturesError}` : null
+      case 'bilan': return bilanError ? `Impossible de charger les données : ${bilanError}` : null
+      default: return null
+    }
+  })()
+
+  const pageAlertMessage = tabAlertMessage || statsAlertMessage
+
+  useEffect(() => {
+    if (pageAlertMessage) {
+      setAlert({
+        variant: 'error',
+        message: pageAlertMessage,
+        onDismiss: () => {
+          if (tabAlertMessage) {
+            switch (activeSection) {
+              case 'tresorerie' : setTresorerieError(null); break
+              case 'transactions': setTransactionsError(null); break
+              case 'budget': setBudgetError(null); break
+              case 'factures': setFacturesError(null); break
+              case 'bilan': setBilanError(null); break
+            }
+            setRefreshTrigger((prev) => prev + 1)
+          } else {
+            loadStats()
+          }
+        },
+      })
+    } else {
+      setAlert(null)
+    }
+    return () => setAlert(null)
+  }, [pageAlertMessage, activeSection, tabAlertMessage, setAlert])
 
   const SECTION_HEADERS: Record<string, { icon: React.ReactNode; title: string; subtitle?: string }> = {
     transactions: { icon: <Receipt size={28} />, title: 'Transactions', subtitle: 'Gérez vos entrées et sorties, importez et rapprochez vos opérations.' },
@@ -782,6 +834,7 @@ export default function FinancePage() {
             selectedYear={selectedYear}
             refreshTrigger={refreshTrigger}
             onAddTransaction={() => setShowNewTransactionModal(true)}
+            onError={setTresorerieError}
           />
         )}
         {activeSection === 'transactions' && (
@@ -800,6 +853,8 @@ export default function FinancePage() {
               financeDataService.getTransactions(selectedYear).then(setTransactions).catch(console.error)
             }}
             onCreateTransaction={() => setShowNewTransactionModal(true)}
+            onError={setTransactionsError}
+            refreshTrigger={refreshTrigger}
           />
         )}
         {activeSection === 'budget' && (
@@ -815,6 +870,8 @@ export default function FinancePage() {
               setShowCreateProjectModal(true)
             }}
             onCreateProject={() => setShowCreateProjectModal(true)}
+            onError={setBudgetError}
+            refreshTrigger={refreshTrigger}
           />
         )}
         {activeSection === 'factures' && (
@@ -825,6 +882,8 @@ export default function FinancePage() {
               setInvoiceType('invoice')
               setShowNewInvoiceModal(true)
             }}
+            onError={setFacturesError}
+            refreshTrigger={refreshTrigger}
           />
         )}
         {activeSection === 'bilan' && (
@@ -832,6 +891,8 @@ export default function FinancePage() {
             periodType={bilanPeriodType}
             selectedYear={selectedYear}
             selectedMonth={bilanMonth}
+            onError={setBilanError}
+            refreshTrigger={refreshTrigger}
           />
         )}
       </div>

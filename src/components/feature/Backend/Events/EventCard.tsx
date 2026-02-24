@@ -19,7 +19,7 @@ import { fr } from "date-fns/locale";
 interface EventCardProps {
   event: Event;
   onEdit: (event: Event) => void;
-  onDelete: (id: string) => void;
+  onDelete: (event: Event) => void;
   onDuplicate: (id: string) => void;
   onClick: (event: Event) => void;
 }
@@ -43,9 +43,7 @@ export const EventCard: React.FC<EventCardProps> = ({
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm(`Êtes-vous sûr de vouloir supprimer "${event.name}" ?`)) {
-      onDelete(event.id);
-    }
+    onDelete(event);
   };
 
   const STATUS_VARIANT: Record<EventStatus, 'warning' | 'info' | 'success' | 'secondary' | 'default'> = {

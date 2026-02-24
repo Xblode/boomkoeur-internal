@@ -30,6 +30,8 @@ import { format, setHours, setMinutes } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useMeetingDetail } from './MeetingDetailProvider';
 import { useToolbar } from '@/components/providers/ToolbarProvider';
+import { useOrg } from '@/hooks';
+import { DrivePickerModal } from '../Events/DrivePickerModal';
 import { PageToolbar, PageToolbarFilters, PageToolbarActions } from '@/components/ui/organisms';
 import { useRouter, useParams } from 'next/navigation';
 
@@ -40,6 +42,7 @@ const STATUS_CONFIG: Record<MeetingStatus, { label: string; variant: 'default' |
 
 export function MeetingInfoSection() {
   const { meeting, persistField } = useMeetingDetail();
+  const { activeOrg } = useOrg();
   const { setToolbar } = useToolbar();
   const router = useRouter();
   const params = useParams();
@@ -85,11 +88,13 @@ export function MeetingInfoSection() {
   const [newDocName, setNewDocName] = useState('');
   const [newDocUrl, setNewDocUrl] = useState('');
   const [isAddingItem, setIsAddingItem] = useState(false);
+  const [drivePickerDocContext, setDrivePickerDocContext] = useState<{ itemId: string } | 'new' | null>(null);
   const [newItemData, setNewItemData] = useState({
     title: '',
     description: '',
     duration: 15,
     responsible: '',
+    documents: [] as AgendaDocument[],
   });
 
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -239,12 +244,26 @@ export function MeetingInfoSection() {
       description: newItemData.description.trim() || undefined,
       duration: newItemData.duration,
       responsible: newItemData.responsible.trim() || undefined,
-      documents: [],
+      documents: newItemData.documents,
       requiresVote: false,
     };
     persistField({ agenda: [...meeting.agenda, newItem] });
-    setNewItemData({ title: '', description: '', duration: 15, responsible: '' });
+    setNewItemData({ title: '', description: '', duration: 15, responsible: '', documents: [] });
     setIsAddingItem(false);
+  };
+
+  const handleDriveDocSelect = (url: string, name?: string) => {
+    const doc: AgendaDocument = {
+      id: `doc-${Date.now()}`,
+      name: name ?? 'Document',
+      url,
+    };
+    if (drivePickerDocContext === 'new') {
+      setNewItemData(prev => ({ ...prev, documents: [...prev.documents, doc] }));
+    } else if (drivePickerDocContext?.itemId && editingItemData) {
+      setEditingItemData(prev => prev ? { ...prev, documents: [...prev.documents, doc] } : null);
+    }
+    setDrivePickerDocContext(null);
   };
 
   const totalDuration = meeting.agenda.reduce((sum, item) => sum + item.duration, 0);
@@ -560,15 +579,15 @@ export function MeetingInfoSection() {
                         )}
 
                         {/* Add document */}
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <Input
                             value={newDocName}
                             onChange={e => setNewDocName(e.target.value)}
                             placeholder="Nom du document"
-                            className="flex-1"
+                            className="flex-1 min-w-0"
                             onKeyDown={e => { if (e.key === 'Enter') handleAddDocument(); }}
                           />
-                          <div className="flex items-center gap-1.5 flex-1 px-2 rounded-md border border-border-custom bg-card-bg text-sm text-zinc-500">
+                          <div className="flex items-center gap-1.5 flex-1 min-w-0 px-2 rounded-md border border-border-custom bg-card-bg text-sm text-zinc-500">
                             <Link2 size={13} className="shrink-0" />
                             <Input
                               value={newDocUrl}
@@ -579,6 +598,15 @@ export function MeetingInfoSection() {
                               onKeyDown={e => { if (e.key === 'Enter') handleAddDocument(); }}
                             />
                           </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setDrivePickerDocContext({ itemId: editingItemId! })}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs shrink-0"
+                          >
+                            <FileText size={12} /> Depuis Drive
+                          </Button>
                           <Button
                             type="button"
                             size="sm"
@@ -639,13 +667,46 @@ export function MeetingInfoSection() {
                     className="resize-none"
                   />
                 </div>
-                <div className="flex justify-end gap-2">
-                  <Button onClick={() => { setIsAddingItem(false); setNewItemData({ title: '', description: '', duration: 15, responsible: '' }); }} variant="secondary" size="sm">
-                    <X size={14} /> Annuler
+                {newItemData.documents.length > 0 && (
+                  <div>
+                    <Label className="text-xs text-zinc-600 dark:text-zinc-400 block mb-1.5 font-normal">Documents</Label>
+                    <div className="space-y-1.5">
+                      {newItemData.documents.map((doc, idx) => (
+                        <div key={doc.id} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border-custom bg-zinc-50 dark:bg-zinc-800/40">
+                          <FileText size={13} className="text-zinc-400 shrink-0" />
+                          <span className="text-sm font-medium truncate flex-1">{doc.name}</span>
+                          <IconButton
+                            type="button"
+                            icon={<Trash2 size={12} />}
+                            ariaLabel="Supprimer"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setNewItemData(prev => ({ ...prev, documents: prev.documents.filter(d => d.id !== doc.id) }))}
+                            className="p-1 text-zinc-400 hover:text-red-600"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setDrivePickerDocContext('new')}
+                    className="flex items-center gap-1"
+                  >
+                    <FileText size={12} /> Depuis Drive
                   </Button>
-                  <Button onClick={handleAddAgendaItem} size="sm" disabled={!newItemData.title.trim()}>
-                    <Check size={14} /> Ajouter
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button onClick={() => { setIsAddingItem(false); setNewItemData({ title: '', description: '', duration: 15, responsible: '', documents: [] }); }} variant="secondary" size="sm">
+                      <X size={14} /> Annuler
+                    </Button>
+                    <Button onClick={handleAddAgendaItem} size="sm" disabled={!newItemData.title.trim()}>
+                      <Check size={14} /> Ajouter
+                    </Button>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -661,6 +722,16 @@ export function MeetingInfoSection() {
           </div>
         )}
       </div>
+
+      {activeOrg && (
+        <DrivePickerModal
+          isOpen={!!drivePickerDocContext}
+          onClose={() => setDrivePickerDocContext(null)}
+          onSelect={handleDriveDocSelect}
+          orgId={activeOrg.id}
+          mode="document"
+        />
+      )}
     </div>
   );
 }

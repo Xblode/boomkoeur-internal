@@ -6,6 +6,8 @@ import type { ChatComment } from '@/components/ui/molecules/ChatPanel';
 export interface ChatPanelConfig {
   comments: ChatComment[];
   onSendComment: (author: string, content: string) => void;
+  /** Masque le champ auteur et utilise l'utilisateur connecté */
+  hideAuthorInput?: boolean;
   title?: string;
   emptyTitle?: string;
   emptyDescription?: string;

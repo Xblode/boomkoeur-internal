@@ -48,3 +48,11 @@ export function deleteReminder(id: string): void {
 export function getRemindersByDate(date: string): Reminder[] {
   return getReminders().filter((r) => r.date === date);
 }
+
+/**
+ * Vide tous les rappels du localStorage
+ */
+export function clearReminders(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(REMINDERS_STORAGE_KEY);
+}

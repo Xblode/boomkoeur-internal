@@ -26,9 +26,10 @@ export function useProductDetail() {
 interface ProductDetailProviderProps {
   initialProduct: Product;
   children: React.ReactNode;
+  onError?: (error: string | null) => void;
 }
 
-export function ProductDetailProvider({ initialProduct, children }: ProductDetailProviderProps) {
+export function ProductDetailProvider({ initialProduct, children, onError }: ProductDetailProviderProps) {
   const [product, setProduct] = useState<Product>(initialProduct);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
@@ -47,14 +48,26 @@ export function ProductDetailProvider({ initialProduct, children }: ProductDetai
   }, [product.id]);
 
   const reloadVariants = useCallback(async () => {
-    const data = await productDataService.getVariants(product.id);
-    setVariants(data);
-  }, [product.id]);
+    try {
+      const data = await productDataService.getVariants(product.id);
+      setVariants(data);
+      onError?.(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      onError?.(msg);
+    }
+  }, [product.id, onError]);
 
   const reloadStockMovements = useCallback(async () => {
-    const data = await productDataService.getStockMovements({ productId: product.id });
-    setStockMovements(data);
-  }, [product.id]);
+    try {
+      const data = await productDataService.getStockMovements({ productId: product.id });
+      setStockMovements(data);
+      onError?.(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      onError?.(msg);
+    }
+  }, [product.id, onError]);
 
   useEffect(() => {
     reloadVariants();

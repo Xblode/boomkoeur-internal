@@ -6,7 +6,7 @@ import { Button, Input, Label, Textarea } from '@/components/ui/atoms';
 import { EventSelector } from '@/components/ui/molecules';
 import { Modal, ModalFooter } from '@/components/ui/organisms';
 import { Campaign } from '@/types/communication';
-import { getEvents } from '@/lib/localStorage/events';
+import { getEvents } from '@/lib/supabase/events';
 import { Event } from '@/types/event';
 
 interface CampaignSettingsModalProps {
@@ -38,12 +38,15 @@ export const CampaignSettingsModal: React.FC<CampaignSettingsModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      const events = getEvents();
-      const sortedEvents = [...events].sort((a, b) => 
-        new Date(b.date).getTime() - new Date(a.date).getTime()
-      );
-      setAvailableEvents(sortedEvents);
-      setSelectedEventIds(campaign.eventIds || []);
+      getEvents()
+        .then((events) => {
+          const sortedEvents = [...events].sort((a, b) =>
+            new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+          setAvailableEvents(sortedEvents);
+          setSelectedEventIds(campaign.eventIds || []);
+        })
+        .catch(() => setAvailableEvents([]));
     }
   }, [isOpen, campaign.eventIds]);
 

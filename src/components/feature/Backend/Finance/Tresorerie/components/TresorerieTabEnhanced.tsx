@@ -6,11 +6,11 @@ import { Button } from '@/components/ui/atoms'
 import { SectionHeader, Card, CardContent } from '@/components/ui/molecules'
 import { Plus, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, PieChart } from 'lucide-react'
 import { NewForecastModal } from '../modals'
-import { getTreasuryForecasts } from '@/lib/stubs/supabase-stubs'
+import { getTreasuryForecasts } from '@/lib/supabase/finance'
 import type { TreasuryForecast } from '@/types/finance'
 import { TreasuryChartEnhanced, MonthlyComparisonCard, ForecastTimelineCard } from './'
 import { LoadingState, EmptyState } from '@/components/feature/Backend/Finance/shared/components'
-import { safePadStart, cn } from '@/lib/utils'
+import { safePadStart, cn, getErrorMessage } from '@/lib/utils'
 
 type PeriodType = 'month' | 'quarter' | 'year'
 
@@ -110,9 +110,10 @@ interface TresorerieTabEnhancedProps {
   selectedYear: number
   refreshTrigger?: number
   onAddTransaction?: () => void
+  onError?: (error: string | null) => void
 }
 
-export default function TresorerieTabEnhanced({ selectedYear, refreshTrigger, onAddTransaction }: TresorerieTabEnhancedProps) {
+export default function TresorerieTabEnhanced({ selectedYear, refreshTrigger, onAddTransaction, onError }: TresorerieTabEnhancedProps) {
   const [showNewForecastModal, setShowNewForecastModal] = useState(false)
   const [forecasts, setForecasts] = useState<TreasuryForecast[]>([])
   const [treasuryData, setTreasuryData] = useState<any[]>([])
@@ -120,6 +121,7 @@ export default function TresorerieTabEnhanced({ selectedYear, refreshTrigger, on
   const [loading, setLoading] = useState(true)
   const [chartLoading, setChartLoading] = useState(true)
   const [period, setPeriod] = useState<PeriodType>('year')
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     loadAllData()
@@ -129,12 +131,14 @@ export default function TresorerieTabEnhanced({ selectedYear, refreshTrigger, on
     try {
       setLoading(true)
       setChartLoading(true)
+      setError(null)
+      onError?.(null)
       console.log(`Chargement des donnees de tresorerie pour l'annee ${selectedYear}`)
       
       const [forecastsData, treasuryEvolution, kpis] = await Promise.all([
         getTreasuryForecasts(),
         getTreasuryEvolution(period, selectedYear),
-        financeDataService.getFinanceKPIs(),
+        financeDataService.getFinanceKPIs(selectedYear),
       ])
       
       console.log(`Donnees chargees:`, {
@@ -146,8 +150,12 @@ export default function TresorerieTabEnhanced({ selectedYear, refreshTrigger, on
       setForecasts(forecastsData || [])
       setTreasuryData(treasuryEvolution || [])
       setKpisData(kpis)
-    } catch (error) {
-      console.error('Erreur lors du chargement des donnees:', error)
+    } catch (err) {
+      const msg = getErrorMessage(err)
+      const errorMsg = msg || 'Erreur lors du chargement des données de trésorerie.'
+      setError(errorMsg)
+      onError?.(errorMsg)
+      console.error('Erreur lors du chargement des donnees:', err)
     } finally {
       setLoading(false)
       setChartLoading(false)
@@ -228,13 +236,13 @@ export default function TresorerieTabEnhanced({ selectedYear, refreshTrigger, on
   const monthlyComparison = getMonthlyComparison()
 
   const formatCurrency = (v: number) => `${(v ?? 0).toLocaleString('fr-FR')} EUR`
-  const fluxNet = (kpisData?.monthlyIncome ?? 0) - (kpisData?.monthlyExpenses ?? 0)
+  const fluxNet = (kpisData?.monthlyRevenue ?? 0) - (kpisData?.monthlyExpense ?? 0)
 
   const tresorerieMetadata = [
     [
       { icon: Wallet, label: 'Trésorerie', value: <span className="text-sm font-semibold tabular-nums">{formatCurrency(kpisData?.currentBalance)}</span> },
-      { icon: ArrowUpRight, label: 'Revenus mois', value: <span className="text-sm font-semibold tabular-nums text-green-600 dark:text-green-400">{formatCurrency(kpisData?.monthlyIncome)}</span> },
-      { icon: ArrowDownRight, label: 'Dépenses mois', value: <span className="text-sm font-semibold tabular-nums text-red-600 dark:text-red-400">{formatCurrency(kpisData?.monthlyExpenses)}</span> },
+      { icon: ArrowUpRight, label: 'Revenus mois', value: <span className="text-sm font-semibold tabular-nums text-green-600 dark:text-green-400">{formatCurrency(kpisData?.monthlyRevenue)}</span> },
+      { icon: ArrowDownRight, label: 'Dépenses mois', value: <span className="text-sm font-semibold tabular-nums text-red-600 dark:text-red-400">{formatCurrency(kpisData?.monthlyExpense)}</span> },
     ],
     [
       { icon: TrendingUp, label: 'Flux net', value: <span className={cn('text-sm font-semibold tabular-nums', fluxNet >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>{fluxNet >= 0 ? '+' : ''}{formatCurrency(fluxNet)}</span> },

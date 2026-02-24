@@ -1,6 +1,6 @@
 import React from 'react';
 import { Header, Footer } from '@/components/ui/organisms';
-import { frontendNavigation, footerLinks, footerSocialLinks } from '@/config/navigation';
+import { frontendNavigation, footerSocialLinksData } from '@/config/navigation';
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 export default function FrontendLayout({
@@ -21,7 +21,7 @@ export default function FrontendLayout({
         <main className="flex-1">
           {children}
         </main>
-        <Footer links={footerLinks} socialLinks={footerSocialLinks} />
+        <Footer socialLinks={footerSocialLinksData} />
       </div>
     </ThemeProvider>
   );

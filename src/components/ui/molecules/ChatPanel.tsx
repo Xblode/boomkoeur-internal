@@ -8,6 +8,7 @@ import { MessageSquare, X, Send } from 'lucide-react';
 import { Button, Input, Textarea, IconButton } from '@/components/ui/atoms';
 import { EmptyState } from '@/components/ui/molecules';
 import { cn } from '@/lib/utils';
+import { useUser } from '@/hooks';
 
 export interface ChatComment {
   id: string;
@@ -19,6 +20,8 @@ export interface ChatComment {
 export interface ChatPanelProps {
   comments: ChatComment[];
   onSendComment: (author: string, content: string) => void;
+  /** Masque le champ auteur et utilise l'utilisateur connecté */
+  hideAuthorInput?: boolean;
   title?: string;
   emptyTitle?: string;
   emptyDescription?: string;
@@ -36,6 +39,7 @@ export interface ChatPanelProps {
 export function ChatPanel({
   comments,
   onSendComment,
+  hideAuthorInput = false,
   title = 'Commentaires',
   emptyTitle = 'Aucun commentaire pour le moment',
   emptyDescription = 'Soyez le premier à commenter !',
@@ -43,6 +47,7 @@ export function ChatPanel({
   authorPlaceholder = 'Votre nom',
   className,
 }: ChatPanelProps) {
+  const { user } = useUser();
   const [chatOpen, setChatOpen] = useState(false);
   const [chatAuthor, setChatAuthor] = useState('');
   const [chatContent, setChatContent] = useState('');
@@ -56,8 +61,9 @@ export function ChatPanel({
 
   const handleSendChat = (e: React.FormEvent | React.KeyboardEvent) => {
     e.preventDefault();
-    if (!chatAuthor.trim() || !chatContent.trim()) return;
-    onSendComment(chatAuthor.trim(), chatContent.trim());
+    const author = hideAuthorInput ? (user?.name ?? 'Utilisateur') : chatAuthor.trim();
+    if ((!hideAuthorInput && !chatAuthor.trim()) || !chatContent.trim()) return;
+    onSendComment(author, chatContent.trim());
     setChatContent('');
     if (chatTextareaRef.current) chatTextareaRef.current.style.height = 'auto';
     setTimeout(() => {
@@ -172,13 +178,15 @@ export function ChatPanel({
         </div>
 
         <form onSubmit={handleSendChat} className="p-3 border-t border-border-custom space-y-2 shrink-0">
-          <Input
-            type="text"
-            placeholder={authorPlaceholder}
-            value={chatAuthor}
-            onChange={(e) => setChatAuthor(e.target.value)}
-            fullWidth
-          />
+          {!hideAuthorInput && (
+            <Input
+              type="text"
+              placeholder={authorPlaceholder}
+              value={chatAuthor}
+              onChange={(e) => setChatAuthor(e.target.value)}
+              fullWidth
+            />
+          )}
           <div className="flex rounded-md border border-zinc-200 dark:border-zinc-800 bg-transparent shadow-sm transition-colors focus-within:ring-1 focus-within:ring-zinc-950 dark:focus-within:ring-zinc-300">
             <Textarea
               ref={chatTextareaRef}
@@ -199,7 +207,7 @@ export function ChatPanel({
                 ariaLabel="Envoyer"
                 variant="primary"
                 size="sm"
-                disabled={!chatAuthor.trim() || !chatContent.trim()}
+                disabled={(!hideAuthorInput && !chatAuthor.trim()) || !chatContent.trim()}
                 className="flex items-center justify-center w-7 h-7 rounded-md disabled:opacity-30 disabled:cursor-not-allowed"
               />
             </div>

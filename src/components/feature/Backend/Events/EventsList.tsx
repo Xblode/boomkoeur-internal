@@ -9,7 +9,7 @@ import { CalendarDays } from 'lucide-react';
 interface EventsListProps {
   events: Event[];
   onEdit: (event: Event) => void;
-  onDelete: (id: string) => void;
+  onDelete: (event: Event) => void;
   onDuplicate: (id: string) => void;
   onClick: (event: Event) => void;
 }

@@ -1,4 +1,4 @@
-import { LayoutDashboard, Twitter, Linkedin, Github, CalendarDays, Wallet, Package, Users, ClipboardList, FlaskConical } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Wallet, Package, Users, ClipboardList } from 'lucide-react';
 
 /**
  * Configuration de la navigation Frontend
@@ -52,57 +52,40 @@ export const backendNavigation = [
     href: '/dashboard/commercial',
     icon: Users,
   },
-  {
-    label: 'Test Layout',
-    href: '/dashboard/test',
-    icon: FlaskConical,
-  },
 ];
 
 /**
- * Configuration du footer
+ * Liens footer - invité (non connecté)
  */
-export const footerLinks = [
-  {
-    label: 'Accueil',
-    href: '/',
-  },
-  {
-    label: 'À propos',
-    href: '/about',
-  },
-  {
-    label: 'Contact',
-    href: '/contact',
-  },
-  {
-    label: 'Connexion',
-    href: '/login',
-  },
-  {
-    label: 'Inscription',
-    href: '/register',
-  },
-  {
-    label: 'Mentions légales',
-    href: '/legal',
-  },
+export const footerLinksGuest = [
+  { label: 'Accueil', href: '/' },
+  { label: 'À propos', href: '/about' },
+  { label: 'Contact', href: '/contact' },
+  { label: 'Connexion', href: '/login' },
+  { label: 'Inscription', href: '/register' },
+  { label: 'Mentions légales', href: '/legal' },
 ];
 
-export const footerSocialLinks = [
-  {
-    label: 'Twitter',
-    href: 'https://twitter.com',
-    icon: Twitter,
-  },
-  {
-    label: 'LinkedIn',
-    href: 'https://linkedin.com',
-    icon: Linkedin,
-  },
-  {
-    label: 'GitHub',
-    href: 'https://github.com',
-    icon: Github,
-  },
+/**
+ * Liens footer - connecté
+ */
+export const footerLinksAuth = [
+  { label: 'Accueil', href: '/' },
+  { label: 'À propos', href: '/about' },
+  { label: 'Contact', href: '/contact' },
+  { label: 'Dashboard', href: '/dashboard' },
+  { label: 'Mentions légales', href: '/legal' },
 ];
+
+/** @deprecated Utiliser footerLinksGuest ou footerLinksAuth selon le contexte */
+export const footerLinks = footerLinksGuest;
+
+/** Liens sociaux - données uniquement (icônes résolues côté client) */
+export const footerSocialLinksData = [
+  { label: 'Twitter', href: 'https://twitter.com', iconName: 'twitter' as const },
+  { label: 'LinkedIn', href: 'https://linkedin.com', iconName: 'linkedin' as const },
+  { label: 'GitHub', href: 'https://github.com', iconName: 'github' as const },
+];
+
+/** @deprecated Utiliser footerSocialLinksData - icônes non sérialisables Server→Client */
+export const footerSocialLinks = footerSocialLinksData;

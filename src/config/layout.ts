@@ -28,6 +28,7 @@ export function isDetailPage(pathname: string | null | undefined): boolean {
 
 /** Routes qui utilisent DashboardShell (config via providers) au lieu du layout legacy */
 const DASHBOARD_SHELL_PREFIXES = [
+  '/dashboard',
   '/dashboard/test',
   '/dashboard/commercial',
   '/dashboard/finance',
@@ -35,6 +36,7 @@ const DASHBOARD_SHELL_PREFIXES = [
   '/dashboard/settings',
   '/dashboard/admin',
   '/dashboard/calendar',
+  '/dashboard/communication',
   '/dashboard/events/',
   '/dashboard/meetings/',
   '/dashboard/products',
@@ -42,8 +44,10 @@ const DASHBOARD_SHELL_PREFIXES = [
 
 /**
  * Indique si la page utilise DashboardShell (structure centralisée).
+ * Toutes les pages dashboard passent par le shell sauf design-system et mode présentation.
  */
 export function usesDashboardShell(pathname: string | null | undefined): boolean {
   if (!pathname) return false;
+  if (pathname.startsWith('/dashboard/design-system')) return false;
   return DASHBOARD_SHELL_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }

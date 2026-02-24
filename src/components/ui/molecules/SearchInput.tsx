@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useId } from 'react';
 import { Input } from '@/components/ui/atoms';
 import { Label } from '@/components/ui/atoms';
 import { Search } from 'lucide-react';
@@ -27,7 +27,8 @@ export function SearchInput({
   id,
   className,
 }: SearchInputProps) {
-  const inputId = id ?? `search-${Math.random().toString(36).slice(2)}`;
+  const generatedId = useId();
+  const inputId = id ?? `search-${generatedId.replace(/:/g, '')}`;
 
   return (
     <div className={cn('space-y-1.5', className)}>

@@ -1,6 +1,5 @@
-// Types pour le module Utilisateurs
+import type { OrgRole } from './organisation';
 
-export type UserRole = 'admin' | 'member';
 export type UserStatus = 'active' | 'inactive';
 
 export type User = {
@@ -8,15 +7,16 @@ export type User = {
   firstName: string;
   lastName: string;
   email: string;
-  role: UserRole;
   status: UserStatus;
-  
-  // Informations complémentaires
+  isSuperAdmin: boolean;
+
+  /** Role contextuel dans l'org active (rempli par le service) */
+  orgRole?: OrgRole;
+
   phone?: string;
-  position?: string; // Poste dans l'association
-  avatar?: string; // URL de la photo de profil
-  
-  // Métadonnées
+  position?: string;
+  avatar?: string;
+
   registeredAt: Date;
   lastLoginAt?: Date;
   created_at: Date;
@@ -25,7 +25,7 @@ export type User = {
 
 export type UserFilters = {
   search: string;
-  role: UserRole | 'all';
+  role: OrgRole | 'all';
   status: UserStatus | 'all';
 };
 
@@ -38,4 +38,4 @@ export type UserStats = {
   new_users_this_month: number;
 };
 
-export type UserInput = Omit<User, 'id' | 'created_at' | 'updated_at'>;
+export type UserInput = Omit<User, 'id' | 'created_at' | 'updated_at' | 'isSuperAdmin' | 'orgRole'>;

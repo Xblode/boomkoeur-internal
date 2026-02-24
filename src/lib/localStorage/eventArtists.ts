@@ -1,5 +1,6 @@
 /**
- * Gestion des assignations artistes par événement (comme planning bénévoles)
+ * @deprecated Les assignations event-artists sont gérées via Supabase (lib/supabase/events).
+ * Ce fichier est conservé pour référence.
  */
 
 export interface EventArtistAssignment {

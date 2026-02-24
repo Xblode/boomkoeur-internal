@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, MapPin, Calendar, Loader2, Ticket, X } from 'lucide-react';
 import { Input, Button, IconButton, Badge } from '@/components/ui/atoms';
 import { EmptyState } from '@/components/ui/molecules';
-import { Modal, ModalHeader, ModalContent, ModalFooter } from '@/components/ui/organisms';
+import { useOrg } from '@/hooks';
 import { ShotgunEvent, ShotgunEventsResponse } from '@/types/shotgun';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -16,6 +17,7 @@ interface ShotgunSearchModalProps {
 }
 
 export function ShotgunSearchModal({ isOpen, onClose, onSelect }: ShotgunSearchModalProps) {
+  const { activeOrg } = useOrg();
   const [mounted, setMounted] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ShotgunEvent[]>([]);
@@ -32,12 +34,14 @@ export function ShotgunSearchModal({ isOpen, onClose, onSelect }: ShotgunSearchM
 
   const fetchShotgunEvents = useCallback(
     async (params: URLSearchParams): Promise<ShotgunEvent[]> => {
-      const res = await fetch(`/api/shotgun/events?${params.toString()}`);
+      const headers: Record<string, string> = {};
+      if (activeOrg?.id) headers['X-Org-Id'] = activeOrg.id;
+      const res = await fetch(`/api/shotgun/events?${params.toString()}`, { headers });
       if (!res.ok) throw new Error(`Erreur ${res.status}`);
       const json: ShotgunEventsResponse = await res.json();
       return json.data ?? [];
     },
-    []
+    [activeOrg?.id]
   );
 
   const sortByDateDesc = (events: ShotgunEvent[]) =>
@@ -139,25 +143,39 @@ export function ShotgunSearchModal({ isOpen, onClose, onSelect }: ShotgunSearchM
     }
   };
 
-  if (!mounted) return null;
+  if (!mounted || !isOpen) return null;
 
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} size="md" variant="fullBleed" showCloseButton={false}>
-      <ModalHeader className="flex items-center gap-2">
-        <Search className="h-4 w-4 shrink-0 opacity-50" />
-        <Input
-          ref={inputRef}
-          autoFocus
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Rechercher un event Shotgun..."
-          className="flex h-11 flex-1 rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-zinc-500 disabled:cursor-not-allowed disabled:opacity-50 border-0"
-        />
-        {loading && <Loader2 size={16} className="animate-spin text-zinc-400 shrink-0" />}
-        <IconButton icon={<X size={16} />} ariaLabel="Fermer" variant="ghost" size="sm" onClick={onClose} />
-      </ModalHeader>
+  return createPortal(
+    <>
+      <div
+        className="fixed inset-0 z-[var(--z-overlay)] bg-black/20 backdrop-blur-sm animate-in fade-in duration-200"
+        onClick={onClose}
+      />
+      <div className="fixed inset-x-4 top-[20%] z-[var(--z-overlay)] max-w-2xl mx-auto overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-backend animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200">
+        {/* Header - même style que la barre de recherche */}
+        <div className="flex items-center border-b border-zinc-100 dark:border-zinc-800 px-3">
+          <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+          <Input
+            ref={inputRef}
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Rechercher un event Shotgun..."
+            className="flex-1 min-w-0 border-0 shadow-none focus-visible:ring-0 h-11 py-3 bg-transparent"
+          />
+          {loading && <Loader2 size={16} className="animate-spin text-zinc-400 shrink-0" />}
+          <IconButton
+            icon={X}
+            ariaLabel="Fermer"
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="ml-2 p-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 h-auto w-auto"
+          />
+        </div>
 
-      <ModalContent noPadding className="border-t border-border-custom overflow-y-auto">
+        {/* Contenu */}
+        <div className="max-h-[60vh] overflow-y-auto">
           {error && (
             <div className="py-6 text-center text-sm text-red-500">{error}</div>
           )}
@@ -170,10 +188,12 @@ export function ShotgunSearchModal({ isOpen, onClose, onSelect }: ShotgunSearchM
           )}
 
           {!error && !initialLoading && results.length === 0 && (
-            <EmptyState
-              title={query ? `Aucun event trouvé pour "${query}"` : 'Aucun event disponible sur votre compte Shotgun'}
-              variant="inline"
-            />
+            <div className="py-6 px-4">
+              <EmptyState
+                title={query ? `Aucun event trouvé pour "${query}"` : 'Aucun event disponible sur votre compte Shotgun'}
+                variant="inline"
+              />
+            </div>
           )}
 
           {!error && results.length > 0 && (
@@ -193,7 +213,6 @@ export function ShotgunSearchModal({ isOpen, onClose, onSelect }: ShotgunSearchM
                   onClick={() => onSelect(event)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors text-left justify-start h-auto"
                 >
-                  {/* Cover thumbnail */}
                   {event.coverThumbnailUrl ? (
                     <img
                       src={event.coverThumbnailUrl}
@@ -206,7 +225,6 @@ export function ShotgunSearchModal({ isOpen, onClose, onSelect }: ShotgunSearchM
                     </div>
                   )}
 
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate text-zinc-900 dark:text-zinc-100">
                       {event.name}
@@ -225,7 +243,6 @@ export function ShotgunSearchModal({ isOpen, onClose, onSelect }: ShotgunSearchM
                     </div>
                   </div>
 
-                  {/* Status / Tickets */}
                   <div className="flex flex-col items-end gap-0.5 shrink-0">
                     {new Date(event.startTime) < new Date() ? (
                       <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
@@ -246,13 +263,16 @@ export function ShotgunSearchModal({ isOpen, onClose, onSelect }: ShotgunSearchM
               ))}
             </div>
           )}
-      </ModalContent>
+        </div>
 
-      <ModalFooter className="justify-start">
-        <span className="text-[11px] text-zinc-400">
-          Sélectionne un event pour créer automatiquement l&apos;événement
-        </span>
-      </ModalFooter>
-    </Modal>
+        {/* Footer */}
+        <div className="px-3 py-2 border-t border-zinc-100 dark:border-zinc-800">
+          <span className="text-[11px] text-zinc-400">
+            Sélectionne un event pour créer automatiquement l&apos;événement
+          </span>
+        </div>
+      </div>
+    </>,
+    document.body
   );
 }

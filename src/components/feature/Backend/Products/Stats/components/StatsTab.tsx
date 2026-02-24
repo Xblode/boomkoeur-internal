@@ -7,7 +7,11 @@ import { useProduct } from '@/components/providers';
 import { Package, TrendingUp, AlertCircle } from 'lucide-react';
 import { Card, CardContent, KPICard, SectionHeader } from '@/components/ui/molecules';
 
-export default function StatsTab() {
+interface StatsTabProps {
+  onError?: (error: string | null) => void;
+}
+
+export default function StatsTab({ onError }: StatsTabProps) {
   const { refreshTrigger } = useProduct();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -21,8 +25,11 @@ export default function StatsTab() {
     try {
       const data = await productDataService.getProducts();
       setProducts(data);
+      onError?.(null);
     } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
       console.error('Error loading stats:', error);
+      onError?.(msg);
     } finally {
       setIsLoading(false);
     }

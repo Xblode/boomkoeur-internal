@@ -7,7 +7,11 @@ import { useProduct } from '@/components/providers';
 import { AlertCircle, TrendingUp, TrendingDown } from 'lucide-react';
 import { Card } from '@/components/ui/molecules/Card';
 
-export default function StockTab() {
+interface StockTabProps {
+  onError?: (error: string | null) => void;
+}
+
+export default function StockTab({ onError }: StockTabProps) {
   const { refreshTrigger } = useProduct();
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
@@ -36,9 +40,11 @@ export default function StockTab() {
         map[p.id] = p;
       });
       setProductsMap(map);
-
+      onError?.(null);
     } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
       console.error('Error loading stock data:', error);
+      onError?.(msg);
     } finally {
       setIsLoading(false);
     }

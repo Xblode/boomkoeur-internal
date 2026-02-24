@@ -1,16 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { AlignLeft, FileText } from 'lucide-react';
 import { Meeting } from '@/types/meeting';
 import { MeetingDetailProvider, useMeetingDetail } from './MeetingDetailProvider';
-import { meetingService } from '@/lib/services/MeetingService';
 import { EntitySelectorDropdown } from '@/components/ui';
 import { usePageSidebar } from '@/components/providers/PageSidebarProvider';
 import { usePageLayout } from '@/components/providers/PageLayoutProvider';
+import { useMeeting, useMeetings } from '@/hooks';
 
 type SectionId = 'info' | 'compte-rendu';
 
@@ -29,21 +29,21 @@ function MeetingDetailLayoutConfigInner({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const { meeting } = useMeetingDetail();
+  const { meetings } = useMeetings();
   const { setPageSidebarConfig } = usePageSidebar();
   const { setMaxWidth } = usePageLayout();
 
   const basePath = `/dashboard/meetings/${meeting.id}`;
   const activeSection = getActiveSectionFromPath(pathname ?? '', basePath);
 
-  const [allMeetings, setAllMeetings] = useState<Meeting[]>([]);
-
-  useEffect(() => {
-    meetingService.getMeetings().then((meetings) => {
-      setAllMeetings(meetings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-    });
-  }, []);
-
-  const meetingForSelector = allMeetings.find((m) => m.id === meeting.id) ?? meeting;
+  const allMeetings = useMemo(
+    () => [...meetings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [meetings]
+  );
+  const meetingForSelector = useMemo(
+    () => allMeetings.find((m) => m.id === meeting.id) ?? meeting,
+    [allMeetings, meeting]
+  );
 
   useEffect(() => {
     setMaxWidth('5xl');
@@ -82,19 +82,13 @@ interface MeetingDetailLayoutConfigProps {
 export function MeetingDetailLayoutConfig({ meetingId, children }: MeetingDetailLayoutConfigProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [initialMeeting, setInitialMeeting] = useState<Meeting | null | undefined>(undefined);
-
-  useEffect(() => {
-    meetingService.getMeetingById(meetingId).then((found) => {
-      setInitialMeeting(found ?? null);
-    });
-  }, [meetingId]);
+  const { meeting: initialMeeting, isLoading } = useMeeting(meetingId);
 
   if (pathname?.includes('/present')) {
     return <>{children}</>;
   }
 
-  if (initialMeeting === undefined) {
+  if (isLoading || initialMeeting === undefined) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-zinc-500">Chargement...</div>

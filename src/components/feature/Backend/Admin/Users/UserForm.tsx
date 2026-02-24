@@ -6,6 +6,13 @@ import { Button, Input, Select } from '@/components/ui/atoms';
 import { FormField } from '@/components/ui/molecules';
 import { User, UserInput } from '@/types/user';
 import { userService } from '@/lib/services/UserService';
+import type { OrgRole } from '@/types/organisation';
+
+const ROLE_OPTIONS: { value: OrgRole; label: string }[] = [
+  { value: 'admin', label: 'Administrateur' },
+  { value: 'membre', label: 'Membre' },
+  { value: 'invite', label: 'Invité' },
+];
 
 interface UserFormProps {
   isOpen: boolean;
@@ -20,7 +27,6 @@ export default function UserForm({ isOpen, onClose, onSuccess, user }: UserFormP
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     email: user?.email || '',
-    role: user?.role || 'member',
     status: user?.status || 'active',
     phone: user?.phone || '',
     position: user?.position || '',
@@ -28,6 +34,7 @@ export default function UserForm({ isOpen, onClose, onSuccess, user }: UserFormP
     registeredAt: user?.registeredAt || new Date(),
     lastLoginAt: user?.lastLoginAt,
   });
+  const [role, setRole] = useState<OrgRole>(user?.orgRole ?? 'membre');
 
   useEffect(() => {
     if (user && isOpen) {
@@ -35,7 +42,6 @@ export default function UserForm({ isOpen, onClose, onSuccess, user }: UserFormP
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        role: user.role,
         status: user.status,
         phone: user.phone,
         position: user.position,
@@ -43,18 +49,19 @@ export default function UserForm({ isOpen, onClose, onSuccess, user }: UserFormP
         registeredAt: user.registeredAt,
         lastLoginAt: user.lastLoginAt,
       });
+      setRole(user.orgRole ?? 'membre');
     } else if (!user && isOpen) {
       setFormData({
         firstName: '',
         lastName: '',
         email: '',
-        role: 'member',
         status: 'active',
         phone: '',
         position: '',
         avatar: '',
         registeredAt: new Date(),
       });
+      setRole('membre');
     }
   }, [user, isOpen]);
 
@@ -65,6 +72,9 @@ export default function UserForm({ isOpen, onClose, onSuccess, user }: UserFormP
     try {
       if (user) {
         await userService.updateUser(user.id, formData);
+        if (user.orgRole !== 'fondateur' && role !== user.orgRole) {
+          await userService.updateMemberRole(user.id, role);
+        }
       } else {
         await userService.createUser(formData as UserInput);
       }
@@ -89,7 +99,7 @@ export default function UserForm({ isOpen, onClose, onSuccess, user }: UserFormP
       <form onSubmit={handleSubmit}>
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label="Prénom" required>
+            <FormField label="Prenom" required>
               <Input
                 value={formData.firstName}
                 onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
@@ -118,33 +128,34 @@ export default function UserForm({ isOpen, onClose, onSuccess, user }: UserFormP
             />
           </FormField>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label="Rôle" required>
+          <FormField label="Statut" required>
+            <Select
+              value={formData.status}
+              onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as 'active' | 'inactive' }))}
+              options={[
+                { value: 'active', label: 'Actif' },
+                { value: 'inactive', label: 'Inactif' },
+              ]}
+              required
+            />
+          </FormField>
+
+          {user && (
+            <FormField label="Rôle dans l'organisation">
               <Select
-                value={formData.role}
-                onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as 'admin' | 'member' }))}
-                options={[
-                  { value: 'member', label: 'Membre' },
-                  { value: 'admin', label: 'Administrateur' },
-                ]}
-                required
+                value={role}
+                onChange={(e) => setRole(e.target.value as OrgRole)}
+                options={
+                  user.orgRole === 'fondateur'
+                    ? [{ value: 'fondateur', label: 'Fondateur (non modifiable)' }]
+                    : ROLE_OPTIONS
+                }
+                disabled={user.orgRole === 'fondateur'}
               />
             </FormField>
+          )}
 
-            <FormField label="Statut" required>
-              <Select
-                value={formData.status}
-                onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as 'active' | 'inactive' }))}
-                options={[
-                  { value: 'active', label: 'Actif' },
-                  { value: 'inactive', label: 'Inactif' },
-                ]}
-                required
-              />
-            </FormField>
-          </div>
-
-          <FormField label="Téléphone">
+          <FormField label="Telephone">
             <Input
               type="tel"
               value={formData.phone}
@@ -176,7 +187,7 @@ export default function UserForm({ isOpen, onClose, onSuccess, user }: UserFormP
             Annuler
           </Button>
           <Button type="submit" variant="primary" size="sm" disabled={isSubmitting}>
-            {isSubmitting ? 'Enregistrement...' : user ? 'Mettre à jour' : 'Créer'}
+            {isSubmitting ? 'Enregistrement...' : user ? 'Mettre a jour' : 'Creer'}
           </Button>
         </ModalFooter>
       </form>

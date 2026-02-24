@@ -7,7 +7,7 @@ import { productDataService } from '@/lib/services/ProductDataService';
 import { useProduct } from '@/components/providers';
 import ProductCard from './ProductCard';
 import CatalogSkeleton from './CatalogSkeleton';
-import { Card, SectionHeader, SearchInput, FilterField } from '@/components/ui/molecules';
+import { Card, SectionHeader, SearchInput, FilterField, EmptyState } from '@/components/ui/molecules';
 import { Button, Select, Checkbox, Label } from '@/components/ui/atoms';
 import { Plus, Package } from 'lucide-react';
 
@@ -23,9 +23,10 @@ const DEFAULT_FILTERS: ProductFilters = {
 
 interface CatalogTabProps {
   filters?: ProductFilters;
+  onError?: (error: string | null) => void;
 }
 
-export default function CatalogTab({ filters: externalFilters }: CatalogTabProps) {
+export default function CatalogTab({ filters: externalFilters, onError }: CatalogTabProps) {
   const router = useRouter();
   const { refreshTrigger, triggerRefresh } = useProduct();
   const [products, setProducts] = useState<Product[]>([]);
@@ -53,8 +54,11 @@ export default function CatalogTab({ filters: externalFilters }: CatalogTabProps
     try {
       const data = await productDataService.getProducts();
       setAllProducts(data);
+      onError?.(null);
     } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
       console.error('Error loading products:', error);
+      onError?.(msg);
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +93,9 @@ export default function CatalogTab({ filters: externalFilters }: CatalogTabProps
       await productDataService.deleteProduct(id);
       triggerRefresh();
     } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
       console.error('Error deleting product:', error);
+      onError?.(msg);
     }
   };
 
@@ -164,9 +170,22 @@ export default function CatalogTab({ filters: externalFilters }: CatalogTabProps
       {isLoading ? (
         <CatalogSkeleton count={8} />
       ) : products.length === 0 ? (
-        <Card className="text-center py-12 border-dashed border-2 bg-zinc-50/50 dark:bg-zinc-900/50 border-zinc-300 dark:border-zinc-700">
-          <p className="text-zinc-500 dark:text-zinc-400">Aucun produit trouvé</p>
-        </Card>
+        <EmptyState
+          icon={Package}
+          title="Aucun produit trouvé"
+          description={
+            allProducts.length === 0
+              ? 'Créez votre premier produit pour commencer.'
+              : 'Aucun produit ne correspond à vos filtres. Essayez de les ajuster.'
+          }
+          action={
+            <Button variant="primary" size="sm" onClick={() => router.push('/dashboard/products/new')}>
+              <Plus className="w-4 h-4 mr-2" />
+              Nouveau produit
+            </Button>
+          }
+          variant="full"
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {products.map((product) => (

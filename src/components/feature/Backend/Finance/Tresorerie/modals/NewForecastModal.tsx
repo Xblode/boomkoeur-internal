@@ -6,7 +6,7 @@ import { Modal, ModalFooter } from '@/components/ui/organisms'
 import { Input, Select, Textarea, Button } from '@/components/ui/atoms'
 import { FormField } from '@/components/ui/molecules'
 import { useForm } from 'react-hook-form'
-import { createTreasuryForecast } from '@/lib/stubs/supabase-stubs'
+import { createTreasuryForecast } from '@/lib/supabase/finance'
 
 interface NewForecastModalProps {
   isOpen: boolean
@@ -109,7 +109,7 @@ export default function NewForecastModal({ isOpen, onClose, onSuccess }: NewFore
         amount: Number(data.amount) || 0,
         category: data.category,
         certainty_level: data.certainty_level,
-        notes: data.notes || null,
+        notes: data.notes || undefined,
         realized: false,
       })
 

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useEventDetail } from './EventDetailProvider';
+import { useOrg } from '@/hooks';
 import { ShotgunTicket } from '@/types/shotgun';
 import {
   getShotgunTicketsCache,
@@ -190,6 +191,7 @@ const PAYMENT_LABELS: Record<string, string> = {
 
 export function EventShotgunStats() {
   const { event } = useEventDetail();
+  const { activeOrg } = useOrg();
   const [tickets, setTickets] = useState<ShotgunTicket[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -215,7 +217,9 @@ export function EventShotgunStats() {
           event_id: String(event.shotgunEventId),
           fetch_all: '1',
         });
-        const res = await fetch(`/api/shotgun/tickets?${params.toString()}`);
+        const headers: Record<string, string> = {};
+        if (activeOrg?.id) headers['X-Org-Id'] = activeOrg.id;
+        const res = await fetch(`/api/shotgun/tickets?${params.toString()}`, { headers });
         if (!res.ok) throw new Error(`Erreur ${res.status}`);
         const json = await res.json();
         const data: ShotgunTicket[] = json.data ?? [];
@@ -228,7 +232,7 @@ export function EventShotgunStats() {
         setLoading(false);
       }
     },
-    [event.shotgunEventId]
+    [event.shotgunEventId, activeOrg?.id]
   );
 
   useEffect(() => {

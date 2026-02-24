@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils"
 const CARD_VARIANTS = {
   default: "rounded-md border border-border-custom bg-card-bg text-foreground shadow-sm",
   poster: "rounded-md border border-border-custom bg-card-bg text-foreground shadow-sm overflow-hidden",
-  editable: "rounded-md border border-border-custom bg-card-bg text-foreground overflow-hidden",
   outline: "rounded-md border border-border-custom bg-transparent text-foreground overflow-hidden",
   list: "rounded-md border border-zinc-800 bg-card-bg text-foreground overflow-hidden",
   settings: "rounded-md border border-border-custom bg-card-bg text-foreground shadow-sm overflow-hidden",
@@ -140,7 +139,6 @@ CardContent.displayName = "CardContent"
 const CARD_FOOTER_BORDERS = {
   default: "border-t border-border-custom",
   poster: "border-t border-border-custom",
-  editable: "border-t-2 border-dashed border-border-custom",
   outline: "border-t border-border-custom",
   list: "border-t border-zinc-800",
   settings: "border-t border-border-custom",

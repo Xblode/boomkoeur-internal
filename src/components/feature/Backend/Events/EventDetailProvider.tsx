@@ -1,16 +1,16 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useRef } from 'react';
 import { Event } from '@/types/event';
 import { Campaign } from '@/types/communication';
-import { saveEvent, getEventWithMergedArtists } from '@/lib/localStorage/events';
+import { saveEvent, getEventWithMergedArtists } from '@/lib/supabase/events';
 import { getCampaigns } from '@/lib/localStorage/communication';
 
 interface EventDetailContextValue {
   event: Event;
   setEvent: React.Dispatch<React.SetStateAction<Event>>;
-  persistField: (updates: Partial<Event>) => void;
-  reloadEvent: () => void;
+  persistField: (updates: Partial<Event>) => Promise<void>;
+  reloadEvent: () => Promise<void>;
   linkedCampaigns: Campaign[];
 }
 
@@ -29,18 +29,18 @@ interface EventDetailProviderProps {
 
 export function EventDetailProvider({ initialEvent, children }: EventDetailProviderProps) {
   const [event, setEvent] = useState<Event>(initialEvent);
+  const eventRef = useRef(event);
+  eventRef.current = event;
 
-  const persistField = useCallback((updates: Partial<Event>) => {
-    setEvent(prev => {
-      const saved = saveEvent({ ...prev, ...updates });
-      return saved;
-    });
+  const persistField = useCallback(async (updates: Partial<Event>) => {
+    const saved = await saveEvent({ ...eventRef.current, ...updates });
+    setEvent(saved);
   }, []);
 
-  const reloadEvent = useCallback(() => {
-    const merged = getEventWithMergedArtists(event.id);
+  const reloadEvent = useCallback(async () => {
+    const merged = await getEventWithMergedArtists(eventRef.current.id);
     if (merged) setEvent(merged);
-  }, [event.id]);
+  }, []);
 
   const linkedCampaigns = useMemo(() => {
     const campaigns = getCampaigns();

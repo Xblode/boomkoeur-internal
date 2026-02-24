@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { ComWorkflow, ComWorkflowPost, PostVisual, PostNetwork, PostType } from '@/types/event';
 import { Button, Input, Textarea, Popover, PopoverContent, PopoverTrigger, Checkbox, IconButton, FileInput, Label, Badge, Chip } from '@/components/ui/atoms';
 import { DatePicker, TabSwitcher, ConfirmActions, EditableCard } from '@/components/ui/molecules';
@@ -32,7 +32,10 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useEventDetail } from './EventDetailProvider';
+import { useOrg } from '@/hooks';
+import { EventInstagramStats } from './EventInstagramStats';
 import { ShotgunEventsResponse } from '@/types/shotgun';
+import { DrivePickerModal } from './DrivePickerModal';
 
 const PHASE_ORDER = ['preparation', 'production', 'communication', 'postEvent'] as const;
 
@@ -48,9 +51,11 @@ const NETWORK_LABELS: Record<string, string> = { instagram: 'Instagram', faceboo
 
 export function EventCampaignSection() {
   const { event, persistField, linkedCampaigns } = useEventDetail();
+  const { activeOrg } = useOrg();
 
   // ── Local state ──
-  const [wfSectionTab, setWfSectionTab] = useState<'campagne' | 'statistiques'>('campagne');
+  const [wfSectionTab, setWfSectionTab] = useState<'campagne' | 'shotgun' | 'instagram'>('campagne');
+  const [metaConnected, setMetaConnected] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [syncMessage, setSyncMessage] = useState('');
   const [showAddPost, setShowAddPost] = useState(false);
@@ -59,13 +64,13 @@ export function EventCampaignSection() {
   const [newPostNetworks, setNewPostNetworks] = useState<PostNetwork[]>([]);
   const [newPostType, setNewPostType] = useState<PostType | undefined>(undefined);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
-  const [newVisualUrl, setNewVisualUrl] = useState('');
   const [editingVisualId, setEditingVisualId] = useState<string | null>(null);
   const [editingVisualUrl, setEditingVisualUrl] = useState('');
+  const [drivePickerPostId, setDrivePickerPostId] = useState<string | null>(null);
+  const [drivePickerPosterType, setDrivePickerPosterType] = useState<'posterA4' | 'posterInsta' | 'posterShotgun' | null>(null);
   const [visualUrlInputs, setVisualUrlInputs] = useState<Record<string, string>>({
     posterA4: '', posterInsta: '', posterShotgun: '',
   });
-
   const posterA4InputRef = useRef<HTMLInputElement>(null);
   const posterInstaInputRef = useRef<HTMLInputElement>(null);
   const posterShotgunInputRef = useRef<HTMLInputElement>(null);
@@ -127,6 +132,14 @@ export function EventCampaignSection() {
     PHASE_STEPS.communication = [...sortedComPosts.map(p => getPostDayLabel(p.scheduledDate)), 'Event\nJ-0'];
   }
 
+  useEffect(() => {
+    if (!activeOrg?.id) return;
+    fetch(`/api/admin/integrations?org_id=${activeOrg.id}&provider=meta`)
+      .then((res) => res.json())
+      .then((data) => setMetaConnected(data.connected === true))
+      .catch(() => setMetaConnected(false));
+  }, [activeOrg?.id]);
+
   const updateWorkflow = (updates: Partial<ComWorkflow>) => {
     const newWf: ComWorkflow = {
       ...wf,
@@ -158,10 +171,11 @@ export function EventCampaignSection() {
     setSyncStatus('loading');
     setSyncMessage('');
     try {
-      // Chercher dans futurs + passés
+      const headers: Record<string, string> = {};
+      if (activeOrg?.id) headers['X-Org-Id'] = activeOrg.id;
       const [futureRes, pastRes] = await Promise.all([
-        fetch(`/api/shotgun/events?name=${encodeURIComponent(slug)}`),
-        fetch(`/api/shotgun/events?name=${encodeURIComponent(slug)}&past_events=true&limit=50`),
+        fetch(`/api/shotgun/events?name=${encodeURIComponent(slug)}`, { headers }),
+        fetch(`/api/shotgun/events?name=${encodeURIComponent(slug)}&past_events=true&limit=50`, { headers }),
       ]);
       const [futureJson, pastJson]: [ShotgunEventsResponse, ShotgunEventsResponse] = await Promise.all([
         futureRes.json(),
@@ -187,7 +201,7 @@ export function EventCampaignSection() {
       setSyncMessage('Erreur lors de la synchronisation');
       setTimeout(() => setSyncStatus('idle'), 4000);
     }
-  }, [wf.shotgunUrl, event, persistField]);
+  }, [wf.shotgunUrl, event, persistField, activeOrg?.id]);
 
   // ── Auto-detection ──
   const autoPlanCom = linkedCampaigns.some(c => c.posts?.length > 0);
@@ -294,11 +308,15 @@ export function EventCampaignSection() {
                 onClick={() => handleDownload(fileUrl, `${type}.png`)}>
                 <Download className="h-3 w-3 mr-1.5" /> Télécharger
               </Button>
+              <Button variant="outline" size="sm" className="text-xs h-8 shrink-0"
+                onClick={() => setDrivePickerPosterType(type)}>
+                <ImageIcon className="h-3 w-3 mr-1.5" /> Drive
+              </Button>
               <IconButton icon={Upload} ariaLabel="Remplacer" variant="ghost" size="sm" className="px-2 h-8"
                 onClick={() => inputRef.current?.click()} title="Remplacer" />
             </>
           ) : (
-            <div className="flex flex-1 gap-1">
+            <div className="flex flex-1 flex-wrap gap-1">
               <Input
                 type="url"
                 size="sm"
@@ -306,10 +324,14 @@ export function EventCampaignSection() {
                 onChange={(e) => setVisualUrlInputs(prev => ({ ...prev, [type]: e.target.value }))}
                 onKeyDown={(e) => { if (e.key === 'Enter') saveUrl(); }}
                 placeholder="https://..."
-                className="flex-1 h-8"
+                className="flex-1 min-w-0 h-8"
               />
               <IconButton icon={Check} ariaLabel="Valider l'URL" variant="outline" size="sm" className="h-8 px-2"
                 onClick={saveUrl} disabled={!visualUrlInputs[type].trim()} />
+              <Button variant="outline" size="sm" className="h-8 text-xs shrink-0"
+                onClick={() => setDrivePickerPosterType(type)}>
+                <ImageIcon className="h-3 w-3 mr-1.5" /> Depuis Drive
+              </Button>
             </div>
           )}
         </div>
@@ -927,6 +949,20 @@ export function EventCampaignSection() {
     return m ? `https://drive.google.com/file/d/${m[1]}/preview` : null;
   };
 
+  /** URL Drive pour affichage img (export=view) */
+  const getGoogleDriveViewUrl = (url: string): string => {
+    const m = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/);
+    return m ? `https://drive.google.com/uc?export=view&id=${m[1]}` : url;
+  };
+
+  /** URL de téléchargement direct (Drive → export, autres → URL d'origine) */
+  const getDownloadUrl = (url: string): string => {
+    const m = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/);
+    if (m) return `https://drive.google.com/uc?export=download&id=${m[1]}`;
+    const dropbox = getDropboxDirect(url);
+    return dropbox ?? url;
+  };
+
   const getDropboxDirect = (url: string): string | null => {
     if (!url.includes('dropbox.com')) return null;
     return url.replace(/[?&]dl=0/, '').replace(/dropbox\.com/, 'dl.dropboxusercontent.com');
@@ -975,7 +1011,6 @@ export function EventCampaignSection() {
       createdAt: new Date().toISOString(),
     };
     updatePost(postId, { visuals: [...(post.visuals ?? []), newVisual] });
-    setNewVisualUrl('');
   };
 
   const removeVisual = (postId: string, visualId: string) => {
@@ -999,7 +1034,6 @@ export function EventCampaignSection() {
 
   const toggleEditPost = (postId: string) => {
     setEditingPostId(editingPostId === postId ? null : postId);
-    setNewVisualUrl('');
     setEditingVisualId(null);
     setEditingVisualUrl('');
   };
@@ -1073,12 +1107,13 @@ export function EventCampaignSection() {
       {/* Campaign section */}
       <div className="border-t-2 border-dashed border-zinc-200 dark:border-zinc-800 pt-8">
 
-        <TabSwitcher<'campagne' | 'statistiques'>
+        <TabSwitcher<'campagne' | 'shotgun' | 'instagram'>
           options={[
             { value: 'campagne', label: 'Campagne' },
             ...(event.shotgunEventId
-              ? [{ value: 'statistiques' as const, label: 'Statistiques' }]
+              ? [{ value: 'shotgun' as const, label: 'Shotgun' }]
               : []),
+            ...(metaConnected ? [{ value: 'instagram' as const, label: 'Instagram' }] : []),
           ]}
           value={wfSectionTab}
           onChange={setWfSectionTab}
@@ -1099,7 +1134,9 @@ export function EventCampaignSection() {
                 headerPadding="sm"
                 headerContent={
                   <>
-                    <FileText size={14} className="text-zinc-400 shrink-0 mt-0.5" />
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 self-start">
+                      <FileText size={20} className="text-zinc-600 dark:text-zinc-400" />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         {post.type && (
@@ -1246,6 +1283,15 @@ export function EventCampaignSection() {
                                 )}
                                 {!isEditingThis && (
                                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
+                                    <a
+                                      href={getDownloadUrl(v.url)}
+                                      download
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-1 text-[10px] font-medium text-white bg-white/20 hover:bg-white/30 rounded px-2 py-1 w-full justify-center border-0 no-underline"
+                                    >
+                                      <Download size={10} /> Télécharger
+                                    </a>
                                     <Button
                                       type="button"
                                       variant="ghost"
@@ -1306,23 +1352,14 @@ export function EventCampaignSection() {
                               <ImageIcon size={14} />
                               <Play size={12} className="fill-current" />
                             </div>
-                            <Input
-                              type="url"
-                              size="xs"
-                              value={newVisualUrl}
-                              onChange={(e) => setNewVisualUrl(e.target.value)}
-                              placeholder="URL image ou vidéo..."
-                              className="w-full text-[10px] px-1.5 py-1 text-center"
-                              onKeyDown={(e) => { if (e.key === 'Enter') addVisual(post.id, newVisualUrl); }}
-                            />
                             <Button
                               type="button"
                               variant="primary"
                               size="xs"
-                              onClick={() => addVisual(post.id, newVisualUrl)}
-                              disabled={!newVisualUrl.trim()}
+                              onClick={() => setDrivePickerPostId(post.id)}
                               className="text-[10px] font-medium px-2 py-0.5"
                             >
+                              <Plus size={12} className="mr-1" />
                               Ajouter
                             </Button>
                           </div>
@@ -1457,11 +1494,34 @@ export function EventCampaignSection() {
           </div>
         )}
 
-        {wfSectionTab === 'statistiques' && event.shotgunEventId && (
+        {wfSectionTab === 'shotgun' && event.shotgunEventId && (
           <EventShotgunStats />
         )}
 
+        {wfSectionTab === 'instagram' && (
+          <EventInstagramStats />
+        )}
+
       </div>
+
+      {activeOrg && (
+        <DrivePickerModal
+          isOpen={!!drivePickerPostId || !!drivePickerPosterType}
+          onClose={() => { setDrivePickerPostId(null); setDrivePickerPosterType(null); }}
+          onSelect={(url) => {
+            if (drivePickerPostId) {
+              addVisual(drivePickerPostId, url);
+              setDrivePickerPostId(null);
+            }
+            if (drivePickerPosterType) {
+              const imgUrl = url.includes('drive.google.com') ? getGoogleDriveViewUrl(url) : url;
+              persistField({ media: { ...event.media, [drivePickerPosterType]: imgUrl } });
+              setDrivePickerPosterType(null);
+            }
+          }}
+          orgId={activeOrg.id}
+        />
+      )}
 
     </div>
   );

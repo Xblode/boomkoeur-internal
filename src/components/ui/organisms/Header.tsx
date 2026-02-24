@@ -3,11 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { createPortal } from 'react-dom';
-import { Button, IconButton, Input } from '@/components/ui/atoms';
+import { useRouter } from 'next/navigation';
+import { Button, IconButton } from '@/components/ui/atoms';
 import { cn } from '@/lib/utils';
-import { LogOut, User, Settings, Search, X, Calendar, Shield } from 'lucide-react';
+import { LogOut, User, Settings, Search, Calendar, Shield } from 'lucide-react';
 import { Breadcrumb } from '../molecules/Breadcrumb';
+import { GlobalSearchModal } from './GlobalSearchModal';
+import { supabase } from '@/lib/supabase/client';
+import { ROUTES } from '@/lib/constants';
+import { useUser } from '@/hooks';
 
 export interface HeaderProps {
   navigation?: Array<{ label: string; href: string }>;
@@ -20,12 +24,17 @@ export interface HeaderProps {
   };
 }
 
-export const Header: React.FC<HeaderProps> = ({ 
-  navigation = [], 
-  className = '', 
+export const Header: React.FC<HeaderProps> = ({
+  navigation = [],
+  className = '',
   variant = 'default',
-  user = { name: 'Admin User', email: 'admin@example.com' }
+  user: userProp,
 }) => {
+  const { user: sessionUser } = useUser();
+  const user = userProp ?? (sessionUser
+    ? { name: sessionUser.name, email: sessionUser.email, avatar: sessionUser.avatar }
+    : { name: 'Utilisateur', email: '' });
+  const router = useRouter();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -33,6 +42,24 @@ export const Header: React.FC<HeaderProps> = ({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  const handleSignOut = async () => {
+    setIsUserMenuOpen(false);
+    await supabase.auth.signOut();
+    router.push(ROUTES.LOGIN);
+    router.refresh();
+  };
 
   // Mode Admin (Dashboard)
   if (variant === 'admin') {
@@ -49,9 +76,10 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Header Content */}
-        <div className="flex-1 flex items-center justify-between px-4 sm:pl-6 sm:pr-4">
-          {/* Breadcrumb (dynamique, basé sur src/config/navigation.ts) */}
-          <Breadcrumb className="min-w-0" />
+        <div className="flex-1 flex items-center justify-between px-4">
+          <div className="flex items-center min-w-0">
+            <Breadcrumb variant="navigation" className="min-w-0" />
+          </div>
 
           <div className="flex items-center gap-2 sm:gap-2">
             {/* Search Trigger */}
@@ -134,7 +162,7 @@ export const Header: React.FC<HeaderProps> = ({
                       Paramètres
                     </Link>
                     <Link 
-                      href="/dashboard/admin" 
+                      href="/dashboard/admin/general" 
                       className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
                       onClick={() => setIsUserMenuOpen(false)}
                     >
@@ -145,7 +173,7 @@ export const Header: React.FC<HeaderProps> = ({
                       type="button"
                       variant="ghost"
                       className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 mt-1 justify-start h-auto border-0"
-                      onClick={() => setIsUserMenuOpen(false)}
+                      onClick={handleSignOut}
                     >
                       <LogOut size={16} />
                       Déconnexion
@@ -158,35 +186,8 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Search Modal */}
-        {isSearchOpen && mounted && createPortal(
-          <>
-            <div 
-              className="fixed inset-0 z-[var(--z-overlay)] bg-black/20 backdrop-blur-sm animate-in fade-in duration-200"
-              onClick={() => setIsSearchOpen(false)}
-            />
-            <div className="fixed inset-x-4 top-[20%] z-[var(--z-overlay)] max-w-2xl mx-auto overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-backend animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200">
-              <div className="flex items-center border-b border-zinc-100 dark:border-zinc-800 px-3">
-                <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                <Input
-                  autoFocus
-                  placeholder="Rechercher dans le site..."
-                  className="flex-1 min-w-0 border-0 shadow-none focus-visible:ring-0 h-11 py-3 bg-transparent"
-                />
-                <IconButton
-                  icon={X}
-                  ariaLabel="Fermer la recherche"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsSearchOpen(false)}
-                  className="ml-2 p-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 h-auto w-auto"
-                />
-              </div>
-              <div className="py-6 text-center text-sm text-zinc-500">
-                Aucun résultat trouvé.
-              </div>
-            </div>
-          </>,
-          document.body
+        {isSearchOpen && mounted && (
+          <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
         )}
       </header>
     );
@@ -221,16 +222,26 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* CTA Buttons */}
           <div className="flex items-center gap-2 sm:gap-3">
-            <Link href="/login">
-              <Button variant="outline" size="sm" className="hidden sm:inline-flex">
-                Connexion
-              </Button>
-            </Link>
-            <Link href="/register">
-              <Button variant="primary" size="sm" className="hidden sm:inline-flex">
-                S&apos;inscrire
-              </Button>
-            </Link>
+            {sessionUser ? (
+              <Link href={ROUTES.DASHBOARD}>
+                <Button variant="primary" size="sm" className="hidden sm:inline-flex">
+                  Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button variant="outline" size="sm" className="hidden sm:inline-flex">
+                    Connexion
+                  </Button>
+                </Link>
+                <Link href="/register">
+                  <Button variant="primary" size="sm" className="hidden sm:inline-flex">
+                    S&apos;inscrire
+                  </Button>
+                </Link>
+              </>
+            )}
             <Button variant="ghost" size="sm" className="md:hidden">
               Menu
             </Button>

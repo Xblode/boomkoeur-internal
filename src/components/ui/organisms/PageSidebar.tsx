@@ -87,8 +87,10 @@ export function PageSidebar({
                     {group.sections.map((section) => {
                       const href =
                         section.href ??
-                        (basePath && section.slug
-                          ? `${basePath}${section.slug}`
+                        (basePath
+                          ? section.slug
+                            ? `${basePath}${section.slug}`
+                            : basePath
                           : undefined);
                       const active = activeSectionId === section.id;
                       return (

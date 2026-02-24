@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { PageSidebar, PageAlert, PageContentLayout } from '@/components/ui';
+import { PageSidebar, PageAlert } from '@/components/ui';
 import { useToolbar } from '@/components/providers/ToolbarProvider';
 import { useAlert } from '@/components/providers/AlertProvider';
 import { usePageSidebar } from '@/components/providers/PageSidebarProvider';
@@ -33,7 +33,7 @@ export function DashboardShell({ children, className }: DashboardShellProps) {
   const { alert } = useAlert();
   const { config: pageSidebarConfig } = usePageSidebar();
   const { config: chatPanelConfig } = useChatPanel();
-  const { maxWidth } = usePageLayout();
+  const { maxWidth, fullBleed } = usePageLayout();
 
   const hasPageSidebar = pageSidebarConfig != null;
   const hasCustomSidebar = hasPageSidebar && pageSidebarConfig.customContent != null;
@@ -82,8 +82,8 @@ export function DashboardShell({ children, className }: DashboardShellProps) {
           </div>
         )}
 
-        <div className="flex-1 min-h-0 overflow-y-auto p-8 md:p-12">
-          <div className={cn('mx-auto', maxWidthClasses[maxWidth])}>
+        <div className={cn('flex-1 min-h-0 overflow-y-auto', !fullBleed && 'p-8 md:p-12')}>
+          <div className={cn(!fullBleed && 'mx-auto', !fullBleed && maxWidthClasses[maxWidth])}>
             {children}
           </div>
         </div>
@@ -94,6 +94,7 @@ export function DashboardShell({ children, className }: DashboardShellProps) {
         <ChatPanel
           comments={chatPanelConfig.comments}
           onSendComment={chatPanelConfig.onSendComment}
+          hideAuthorInput={chatPanelConfig.hideAuthorInput}
           title={chatPanelConfig.title}
           emptyTitle={chatPanelConfig.emptyTitle}
           emptyDescription={chatPanelConfig.emptyDescription}

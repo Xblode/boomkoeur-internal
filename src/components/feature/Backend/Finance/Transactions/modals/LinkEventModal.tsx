@@ -9,7 +9,13 @@ import { Badge } from '@/components/ui/atoms'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Search, Calendar } from 'lucide-react'
-import { useEvents } from '@/lib/stubs/supabase-stubs'
+import { useEvents } from '@/hooks/useEvents'
+
+const mapStatusToDisplay = (status: string) => {
+  if (status === 'confirmed' || status === 'preparation') return 'ongoing'
+  if (status === 'completed' || status === 'archived') return 'completed'
+  return 'planned'
+}
 
 interface LinkEventModalProps {
   isOpen: boolean
@@ -19,12 +25,25 @@ interface LinkEventModalProps {
 }
 
 export function LinkEventModal({ isOpen, onClose, transactionId, onLink }: LinkEventModalProps) {
-  const { data: allEvents = [], isLoading } = useEvents()
+  const { events: allEvents, isLoading } = useEvents()
   const [searchQuery, setSearchQuery] = useState('')
+
+  const mappedEvents = useMemo(
+    () =>
+      allEvents.map((e) => ({
+        id: e.id,
+        title: e.name,
+        date: e.date,
+        location: e.location,
+        notes: e.description,
+        status: mapStatusToDisplay(e.status),
+      })),
+    [allEvents]
+  )
 
   // Filtrer les evenements
   const filteredEvents = useMemo(() => {
-    let events = allEvents
+    let events = mappedEvents
 
     // Filtre par recherche
     if (searchQuery.trim()) {
@@ -33,19 +52,19 @@ export function LinkEventModal({ isOpen, onClose, transactionId, onLink }: LinkE
         (e) =>
           e.title.toLowerCase().includes(query) ||
           e.location?.toLowerCase().includes(query) ||
-          e.notes?.toLowerCase().includes(query)
+          (e.notes && e.notes.toLowerCase().includes(query))
       )
     }
 
     // Trier par date (plus recent en premier)
-    events.sort((a, b) => {
+    events = [...events].sort((a, b) => {
       const dateA = a.date ? new Date(a.date).getTime() : 0
       const dateB = b.date ? new Date(b.date).getTime() : 0
       return dateB - dateA
     })
 
     return events
-  }, [allEvents, searchQuery])
+  }, [mappedEvents, searchQuery])
 
   const handleLink = async (eventId: string) => {
     try {
