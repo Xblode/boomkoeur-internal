@@ -85,3 +85,21 @@ export { Calendar } from './Calendar';
 export type { CalendarProps } from './Calendar';
 
 export { Popover, PopoverContent, PopoverTrigger } from './Popover';
+
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from './Table';
+export type {
+  TableProps,
+  TableHeaderProps,
+  TableBodyProps,
+  TableRowProps,
+  TableHeadProps,
+  TableCellProps,
+  TableCellSelectOption,
+} from './Table';
