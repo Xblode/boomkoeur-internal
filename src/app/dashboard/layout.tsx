@@ -44,7 +44,7 @@ function BackendLayoutContent({
           <div
             className={cn(
               "fixed top-[52px] right-0 z-40 transition-all duration-300 ease-in-out",
-              "left-0 lg:left-[60px]",
+              "left-0 lg:left-[52px]",
               sidebarMode === 'expanded' && "lg:left-[200px]"
             )}
           >
@@ -62,7 +62,7 @@ function BackendLayoutContent({
         <div className={cn(
           "flex flex-col min-h-screen transition-all duration-300 ease-in-out",
           (toolbar && !isDetail) ? "pt-[97px]" : "pt-[52px]",
-          "pl-0 lg:pl-[60px]",
+          "pl-0 lg:pl-[52px]",
           sidebarMode === 'expanded' && "lg:pl-[200px]"
         )}>
           {useShell ? (

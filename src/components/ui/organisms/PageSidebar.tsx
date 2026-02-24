@@ -70,7 +70,7 @@ export function PageSidebar({
   const compactBar = compact && allSections.length > 0 ? (
     <div
       className={cn(
-        'lg:hidden shrink-0 flex flex-col gap-1 py-2 px-2 border-r border-border-custom bg-backend w-14',
+        'lg:hidden shrink-0 flex flex-col gap-1 py-2 px-1 border-r border-border-custom bg-backend w-[52px]',
         className
       )}
     >
@@ -95,7 +95,7 @@ export function PageSidebar({
         const content = (
           <span
               className={cn(
-                'flex items-center justify-center w-10 h-10 rounded-lg shrink-0 transition-colors mx-auto',
+                'flex items-center justify-center w-9 h-9 rounded-md shrink-0 transition-colors mx-auto',
               active
                 ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
                 : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:hover:text-zinc-50'

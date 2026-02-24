@@ -177,7 +177,7 @@ export function ProductCreatePage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-60px)] bg-backend">
+    <div className="min-h-[calc(100vh-52px)] bg-backend">
       <div className="max-w-4xl mx-auto p-8 md:p-12">
 
         <Button

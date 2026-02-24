@@ -9,32 +9,42 @@ export interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectE
   options?: { value: string; label: string }[];
   /** default = standard, sm = compact, xs = toolbar */
   size?: 'default' | 'sm' | 'xs';
+  /** borderless = sans bordure, table = cellule de tableau (sans bordure + padding) */
+  variant?: 'default' | 'borderless' | 'table';
 }
 
 const selectBase =
   'w-full appearance-none rounded-md border bg-transparent placeholder:text-zinc-500 focus:outline-none focus:ring-1 disabled:cursor-not-allowed disabled:opacity-50 transition-colors [&>option]:bg-white dark:[&>option]:bg-zinc-900 [&>option]:text-zinc-900 dark:[&>option]:text-zinc-100';
 
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, children, error, helperText, label, options, size = 'default', ...props }, ref) => {
+  ({ className, children, error, helperText, label, options, size = 'default', variant = 'default', ...props }, ref) => {
     const isXs = size === 'xs';
     const isSm = size === 'sm';
+    const isBorderless = variant === 'borderless' || variant === 'table';
+
+    const borderStyles = isBorderless
+      ? 'border-0 border-transparent focus:ring-0 focus-visible:ring-0'
+      : error
+        ? 'border-red-500 focus:ring-red-500 dark:border-red-500 dark:focus:ring-red-500'
+        : 'border-zinc-200 dark:border-zinc-800 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300';
 
     const selectStyles = isXs
       ? cn(
           selectBase,
-          "flex h-6 items-center px-2 py-0.5 text-xs pr-7 placeholder:text-zinc-500 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300",
-          error ? "border-red-500 focus:ring-red-500 dark:border-red-500 dark:focus:ring-red-500" : "border-zinc-200 dark:border-zinc-800"
+          "flex h-6 items-center text-xs pr-7 placeholder:text-zinc-500",
+          variant === 'table' ? 'px-2 py-1 min-h-8' : 'px-2 py-0.5',
+          borderStyles
         )
       : isSm
         ? cn(
             selectBase,
-            "flex h-8 items-center px-2.5 py-1 text-xs pr-8 placeholder:text-zinc-500 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300",
-            error ? "border-red-500 focus:ring-red-500 dark:border-red-500 dark:focus:ring-red-500" : "border-zinc-200 dark:border-zinc-800"
+            "flex h-8 items-center px-2.5 py-1 text-xs pr-8 placeholder:text-zinc-500",
+            borderStyles
           )
         : cn(
             selectBase,
-            "flex h-10 items-center justify-between px-3 py-2 text-sm pr-8 placeholder:text-zinc-500 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300",
-            error ? "border-red-500 focus:ring-red-500 dark:border-red-500 dark:focus:ring-red-500" : "border-zinc-200 dark:border-zinc-800"
+            "flex h-10 items-center justify-between px-3 py-2 text-sm pr-8 placeholder:text-zinc-500",
+            borderStyles
           );
 
     return (

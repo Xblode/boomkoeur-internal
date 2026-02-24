@@ -49,12 +49,12 @@ export function DashboardShell({ children, className }: DashboardShellProps) {
     ) : null;
 
   return (
-    <div className={cn('flex h-[calc(100vh-60px)] min-h-0 overflow-hidden', className)}>
+    <div className={cn('flex h-[calc(100vh-52px)] min-h-0 overflow-hidden', className)}>
       {/* PageSidebar — standard ou custom */}
       {hasPageSidebar && (
         <>
           {hasCustomSidebar ? (
-            <aside className="hidden lg:block w-64 shrink-0 bg-backend border-r border-border-custom sticky top-[52px] h-[calc(100vh-60px)] overflow-y-auto">
+            <aside className="hidden lg:block w-64 shrink-0 bg-backend border-r border-border-custom sticky top-[52px] h-[calc(100vh-52px)] overflow-y-auto">
               <div className="p-4 space-y-4">{pageSidebarConfig.customContent}</div>
             </aside>
           ) : hasStandardSidebar ? (

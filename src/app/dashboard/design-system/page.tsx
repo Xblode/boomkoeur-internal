@@ -274,10 +274,10 @@ export default function DesignSystemPage() {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-60px)]">
+    <div className="flex min-h-[calc(100vh-52px)]">
       
       {/* Sidebar de navigation (Sticky) - Collée à gauche */}
-      <aside className="w-64 shrink-0 bg-card border-r border-border-custom sticky top-[60px] h-[calc(100vh-60px)] overflow-y-auto">
+      <aside className="w-64 shrink-0 bg-card border-r border-border-custom sticky top-[52px] h-[calc(100vh-52px)] overflow-y-auto">
         <div className="p-4 space-y-4">
           <div className="px-2">
             <h2 className="font-bold text-lg mb-1">Design System</h2>

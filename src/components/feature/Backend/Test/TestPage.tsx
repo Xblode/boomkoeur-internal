@@ -27,6 +27,12 @@ import {
   CustomLink,
   Rating,
   InlineEdit,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
 } from '@/components/ui/atoms';
 import {
   BackLink,
@@ -948,6 +954,9 @@ export default function TestPage() {
   const [atomsRating, setAtomsRating] = useState(4);
   const [atomsInlineEdit, setAtomsInlineEdit] = useState('Texte éditable');
   const [atomsInlineEditSm, setAtomsInlineEditSm] = useState('Compact');
+  const [atomsTableNom, setAtomsTableNom] = useState('Dupont');
+  const [atomsTableEmail, setAtomsTableEmail] = useState('dupont@example.com');
+  const [atomsTableStatut, setAtomsTableStatut] = useState('actif');
 
   const activeFiltersCount =
     (filterType !== 'all' ? 1 : 0) + (filterStatus !== 'all' ? 1 : 0) + (searchQuery ? 1 : 0);
@@ -1515,6 +1524,110 @@ export default function TestPage() {
             <span>Droite</span>
           </div>
         </CardContent></Card>
+
+        {/* Table */}
+        <Card variant="outline"><CardContent className="p-6 space-y-4">
+          <Heading level={4}>Table</Heading>
+          <Text variant="muted" className="text-sm block mb-4">
+            Composant Table atomique réutilisable. Utilisez Table, TableHeader, TableBody, TableRow, TableHead, TableCell pour composer vos tableaux.
+          </Text>
+          <div className="space-y-6">
+            <div>
+              <Text variant="small" className="block mb-2">Variant default</Text>
+              <Table>
+                <TableHeader>
+                  <TableRow hoverCellOnly>
+                    <TableHead sortable minWidth={100}>Nom</TableHead>
+                    <TableHead sortable minWidth={150}>Email</TableHead>
+                    <TableHead align="right" sortable minWidth={90}>Statut</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell>Dupont</TableCell>
+                    <TableCell>dupont@example.com</TableCell>
+                    <TableCell align="right">Actif</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Martin</TableCell>
+                    <TableCell>martin@example.com</TableCell>
+                    <TableCell align="right">En attente</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Bernard</TableCell>
+                    <TableCell>bernard@example.com</TableCell>
+                    <TableCell align="right">Inactif</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+            <div>
+              <Text variant="small" className="block mb-2">Variant bordered</Text>
+              <Table variant="bordered">
+                <TableHeader>
+                  <TableRow hoverCellOnly>
+                    <TableHead sortable minWidth={100}>Colonne 1</TableHead>
+                    <TableHead align="center" sortable minWidth={100}>Colonne 2</TableHead>
+                    <TableHead align="right" sortable minWidth={100}>Colonne 3</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow clickable>
+                    <TableCell>Ligne 1</TableCell>
+                    <TableCell align="center">Centre</TableCell>
+                    <TableCell align="right">Droite</TableCell>
+                  </TableRow>
+                  <TableRow clickable>
+                    <TableCell>Ligne 2</TableCell>
+                    <TableCell align="center">Centre</TableCell>
+                    <TableCell align="right">Droite</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+            <div>
+              <Text variant="small" className="block mb-2">Cellules éditables (hover = bordure, clic = InlineEdit)</Text>
+              <Table variant="bordered">
+                <TableHeader>
+                  <TableRow hoverCellOnly>
+                    <TableHead sortable minWidth={120}>Nom</TableHead>
+                    <TableHead sortable minWidth={180}>Email</TableHead>
+                    <TableHead sortable minWidth={100}>Statut</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell
+                      editable
+                      value={atomsTableNom}
+                      onChange={(e) => setAtomsTableNom(e.target.value)}
+                      onBlur={() => toast.success('Nom sauvegardé')}
+                    />
+                    <TableCell
+                      editable
+                      value={atomsTableEmail}
+                      onChange={(e) => setAtomsTableEmail(e.target.value)}
+                      onBlur={() => toast.success('Email sauvegardé')}
+                    />
+                    <TableCell
+                      select
+                      selectOptions={[
+                        { value: 'actif', label: 'Actif' },
+                        { value: 'attente', label: 'En attente' },
+                        { value: 'inactif', label: 'Inactif' },
+                      ]}
+                      selectValue={atomsTableStatut}
+                      onSelectChange={(e) => {
+                        setAtomsTableStatut(e.target.value);
+                        toast.success('Statut mis à jour');
+                      }}
+                    />
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </CardContent></Card>
       </div>
       </>
     );
@@ -1615,8 +1728,8 @@ export default function TestPage() {
         <Heading level={3}>Schéma de structure</Heading>
         <pre className="bg-zinc-100 dark:bg-zinc-800 p-4 rounded-lg text-xs overflow-x-auto">
 {`BackendLayout
-├── Header (60px)
-├── Sidebar (200px/60px)
+├── Header (52px)
+├── Sidebar (200px/52px)
 └── Content
     └── PageLayout (flex)
         ├── PageSidebar (256px)
