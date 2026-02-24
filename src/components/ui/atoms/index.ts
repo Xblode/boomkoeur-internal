@@ -99,6 +99,7 @@ export type {
   TableHeaderProps,
   TableBodyProps,
   TableRowProps,
+  TableRowAction,
   TableHeadProps,
   TableCellProps,
   TableCellSelectOption,

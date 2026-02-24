@@ -957,6 +957,10 @@ export default function TestPage() {
   const [atomsTableNom, setAtomsTableNom] = useState('Dupont');
   const [atomsTableEmail, setAtomsTableEmail] = useState('dupont@example.com');
   const [atomsTableStatut, setAtomsTableStatut] = useState('actif');
+  const [atomsAddableRows, setAtomsAddableRows] = useState<{ nom: string; email: string; statut: string }[]>([
+    { nom: 'Dupont', email: 'dupont@example.com', statut: 'Actif' },
+    { nom: 'Martin', email: 'martin@example.com', statut: 'En attente' },
+  ]);
 
   const activeFiltersCount =
     (filterType !== 'all' ? 1 : 0) + (filterStatus !== 'all' ? 1 : 0) + (searchQuery ? 1 : 0);
@@ -1533,13 +1537,13 @@ export default function TestPage() {
           </Text>
           <div className="space-y-6">
             <div>
-              <Text variant="small" className="block mb-2">Variant default</Text>
+              <Text variant="small" className="block mb-2">Variant default (largeurs optimales par défaut, personnalisables)</Text>
               <Table>
                 <TableHeader>
                   <TableRow hoverCellOnly>
-                    <TableHead sortable minWidth={100}>Nom</TableHead>
-                    <TableHead sortable minWidth={150}>Email</TableHead>
-                    <TableHead align="right" sortable minWidth={90}>Statut</TableHead>
+                    <TableHead sortable minWidth={80} defaultWidth={140}>Nom</TableHead>
+                    <TableHead sortable minWidth={100} defaultWidth={220}>Email</TableHead>
+                    <TableHead align="right" sortable minWidth={60} defaultWidth={100}>Statut</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1562,25 +1566,79 @@ export default function TestPage() {
               </Table>
             </div>
             <div>
-              <Text variant="small" className="block mb-2">Variant bordered</Text>
+              <Text variant="small" className="block mb-2">Variant bordered + actions au hover (1ère colonne)</Text>
               <Table variant="bordered">
                 <TableHeader>
                   <TableRow hoverCellOnly>
-                    <TableHead sortable minWidth={100}>Colonne 1</TableHead>
-                    <TableHead align="center" sortable minWidth={100}>Colonne 2</TableHead>
-                    <TableHead align="right" sortable minWidth={100}>Colonne 3</TableHead>
+                    <TableHead sortable minWidth={80} defaultWidth={120}>Colonne 1</TableHead>
+                    <TableHead align="center" sortable minWidth={80} defaultWidth={180}>Colonne 2</TableHead>
+                    <TableHead align="right" sortable minWidth={60} defaultWidth={100}>Colonne 3</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <TableRow clickable>
+                  <TableRow
+                    clickable
+                    rowActions={[
+                      { icon: <Pencil size={14} />, onClick: () => toast.info('Éditer Ligne 1'), label: 'Éditer' },
+                      { icon: <Trash2 size={14} />, onClick: () => toast.error('Supprimer Ligne 1'), label: 'Supprimer' },
+                    ]}
+                  >
                     <TableCell>Ligne 1</TableCell>
                     <TableCell align="center">Centre</TableCell>
                     <TableCell align="right">Droite</TableCell>
                   </TableRow>
-                  <TableRow clickable>
+                  <TableRow
+                    clickable
+                    rowActions={[
+                      { icon: <Pencil size={14} />, onClick: () => toast.info('Éditer Ligne 2'), label: 'Éditer' },
+                      { icon: <Trash2 size={14} />, onClick: () => toast.error('Supprimer Ligne 2'), label: 'Supprimer' },
+                    ]}
+                  >
                     <TableCell>Ligne 2</TableCell>
                     <TableCell align="center">Centre</TableCell>
                     <TableCell align="right">Droite</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+            <div>
+              <Text variant="small" className="block mb-2">Lignes dépliables (chevron = contenu sous la ligne)</Text>
+              <Table variant="bordered" expandable>
+                <TableHeader>
+                  <TableRow hoverCellOnly>
+                    <TableHead sortable minWidth={80} defaultWidth={140}>Nom</TableHead>
+                    <TableHead sortable minWidth={100} defaultWidth={220}>Email</TableHead>
+                    <TableHead sortable minWidth={60} defaultWidth={100}>Statut</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow
+                    expandContent={
+                      <div className="text-xs text-zinc-600 dark:text-zinc-400 space-y-1">
+                        <p><strong>Détails :</strong> Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                        <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.</p>
+                      </div>
+                    }
+                  >
+                    <TableCell>Dupont</TableCell>
+                    <TableCell>dupont@example.com</TableCell>
+                    <TableCell align="right">Actif</TableCell>
+                  </TableRow>
+                  <TableRow
+                    expandContent={
+                      <div className="text-xs text-zinc-600 dark:text-zinc-400">
+                        <p>Contenu déplié pour Martin.</p>
+                      </div>
+                    }
+                  >
+                    <TableCell>Martin</TableCell>
+                    <TableCell>martin@example.com</TableCell>
+                    <TableCell align="right">En attente</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Bernard</TableCell>
+                    <TableCell>bernard@example.com</TableCell>
+                    <TableCell align="right">Inactif</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
@@ -1590,9 +1648,9 @@ export default function TestPage() {
               <Table variant="bordered">
                 <TableHeader>
                   <TableRow hoverCellOnly>
-                    <TableHead sortable minWidth={120}>Nom</TableHead>
-                    <TableHead sortable minWidth={180}>Email</TableHead>
-                    <TableHead sortable minWidth={100}>Statut</TableHead>
+                    <TableHead sortable minWidth={80} defaultWidth={140}>Nom</TableHead>
+                    <TableHead sortable minWidth={100} defaultWidth={220}>Email</TableHead>
+                    <TableHead sortable minWidth={60} defaultWidth={100}>Statut</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1623,6 +1681,33 @@ export default function TestPage() {
                       }}
                     />
                   </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+            <div>
+              <Text variant="small" className="block mb-2">Ligne d&apos;ajout (placeholder &quot;+ Ajouter une ligne&quot;, validation blur/Enter)</Text>
+              <Table variant="bordered" addable onAddRow={(values) => {
+                setAtomsAddableRows((prev) => [
+                  ...prev,
+                  { nom: values[0] ?? '', email: values[1] ?? '', statut: values[2] ?? '' },
+                ]);
+                toast.success('Ligne ajoutée');
+              }}>
+                <TableHeader>
+                  <TableRow hoverCellOnly>
+                    <TableHead sortable minWidth={80} defaultWidth={140}>Nom</TableHead>
+                    <TableHead sortable minWidth={100} defaultWidth={220}>Email</TableHead>
+                    <TableHead sortable minWidth={60} defaultWidth={100}>Statut</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {atomsAddableRows.map((r, i) => (
+                    <TableRow key={i}>
+                      <TableCell>{r.nom}</TableCell>
+                      <TableCell>{r.email}</TableCell>
+                      <TableCell align="right">{r.statut}</TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>
