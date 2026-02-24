@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
   }
   const calendarIds = googleCalendarIdRaw
     .split(',')
-    .map((id) => id.trim())
+    .map((id: string) => id.trim())
     .filter(Boolean);
 
   const calendar = await getCalendarClient(orgId);

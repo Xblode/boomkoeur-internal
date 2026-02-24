@@ -69,15 +69,8 @@ export async function GET(request: NextRequest) {
     };
     if (pageToken) params.pageToken = pageToken;
 
-    const { data: list, error } = await drive.files.list(params);
-
-    if (error) {
-      console.error('Drive API error:', error);
-      return NextResponse.json(
-        { error: error.message ?? 'Erreur lors du chargement du Drive' },
-        { status: 500 }
-      );
-    }
+    const response = await drive.files.list(params);
+    const list = response.data;
 
     let rawFiles = list?.files ?? [];
 

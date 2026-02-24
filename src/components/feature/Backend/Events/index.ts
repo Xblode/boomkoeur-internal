@@ -15,3 +15,4 @@ export * from './WorkflowStepper';
 export * from './ShotgunSearchModal';
 export * from './EventBilletterieSection';
 export * from './EventShotgunStats';
+export * from './EventInstagramStats';
