@@ -131,7 +131,7 @@ export function PageSidebar({
       {compactBar}
       <aside
         className={cn(
-          'w-64 shrink-0 bg-backend border-r border-border-custom sticky top-[60px] h-[calc(100vh-60px)] overflow-y-auto',
+          'w-64 shrink-0 bg-backend border-r border-border-custom sticky top-[52px] h-[calc(100vh-52px)] overflow-y-auto',
           compact && 'hidden lg:block',
           className
         )}

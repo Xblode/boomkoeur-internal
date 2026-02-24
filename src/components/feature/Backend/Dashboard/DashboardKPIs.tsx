@@ -61,7 +61,7 @@ export function DashboardKPIs({ data }: DashboardKPIsProps) {
 
   return (
     <motion.div
-      className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+      className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4"
       variants={staggerContainer}
       initial="hidden"
       animate="visible"

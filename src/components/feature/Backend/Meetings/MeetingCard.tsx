@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Meeting, MeetingStatus } from '@/types/meeting';
 import {
   Clock,
@@ -7,6 +8,7 @@ import {
   Trash2,
   Presentation,
   ListChecks,
+  MapPin,
 } from 'lucide-react';
 import { Card, CardContent, CardDateBadge } from '@/components/ui/molecules';
 import { IconButton } from '@/components/ui/atoms';
@@ -25,19 +27,66 @@ const STATUS_BADGE: Record<MeetingStatus, { label: string; className: string }> 
   },
 };
 
-interface MeetingCardProps {
+interface MeetingCardBaseProps {
   meeting: Meeting;
+}
+
+interface MeetingCardListProps extends MeetingCardBaseProps {
+  variant?: 'list';
   onView: (meeting: Meeting) => void;
   onDelete: (meeting: Meeting) => void;
   onPresent: (e: React.MouseEvent, meeting: Meeting) => void;
 }
 
-export default function MeetingCard({
-  meeting,
-  onView,
-  onDelete,
-  onPresent,
-}: MeetingCardProps) {
+interface MeetingCardCompactProps extends MeetingCardBaseProps {
+  variant: 'compact';
+}
+
+type MeetingCardProps = MeetingCardListProps | MeetingCardCompactProps;
+
+export default function MeetingCard(props: MeetingCardProps) {
+  const { meeting } = props;
+  const isCompact = props.variant === 'compact';
+
+  if (isCompact) {
+    const meetingDate = new Date(meeting.date);
+    const timeRange = `${meeting.startTime} – ${meeting.endTime}`;
+    return (
+      <Link href={`/dashboard/meetings/${meeting.id}`} className="block">
+        <Card
+          variant="outline"
+          className="group overflow-hidden transition-all duration-200 cursor-pointer hover:border-zinc-600"
+        >
+          <CardContent className="p-2 flex gap-3">
+            <CardDateBadge
+              month={format(meetingDate, 'MMM', { locale: fr })}
+              day={format(meetingDate, 'dd', { locale: fr })}
+              className="self-center flex-shrink-0"
+            />
+            <div className="flex-1 min-w-0 py-1 pr-2 flex flex-col justify-center overflow-hidden">
+              <h3 className="font-semibold text-sm text-foreground truncate group-hover:text-foreground/90">
+                {meeting.title || 'Sans titre'}
+              </h3>
+              {meeting.location && (
+                <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground">
+                  <MapPin size={12} className="flex-shrink-0" />
+                  <span className="truncate">{meeting.location}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
+                <Clock size={12} className="flex-shrink-0" />
+                <span>
+                  {format(meetingDate, 'd MMM yyyy', { locale: fr })} · {timeRange}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+    );
+  }
+
+  const { onView, onDelete, onPresent } = props;
   const badge = STATUS_BADGE[meeting.status];
 
   return (

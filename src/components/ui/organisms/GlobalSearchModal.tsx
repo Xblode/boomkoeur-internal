@@ -157,7 +157,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
           type: 'post',
           title: p.caption?.slice(0, 50) || p.type || 'Post',
           subtitle: camp.name,
-          href: `/dashboard/communication/${camp.id}`,
+          href: camp.eventIds?.[0] ? `/dashboard/events/${camp.eventIds[0]}/campagne` : '/dashboard/events',
         });
       });
       if (matchingPosts.length === 0 && camp.name.toLowerCase().includes(q)) {
@@ -166,7 +166,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
           type: 'post',
           title: camp.name,
           subtitle: 'Campagne',
-          href: `/dashboard/communication/${camp.id}`,
+          href: camp.eventIds?.[0] ? `/dashboard/events/${camp.eventIds[0]}/campagne` : '/dashboard/events',
         });
       }
     });

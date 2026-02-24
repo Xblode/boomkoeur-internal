@@ -36,7 +36,6 @@ const DASHBOARD_SHELL_PREFIXES = [
   '/dashboard/settings',
   '/dashboard/admin',
   '/dashboard/calendar',
-  '/dashboard/communication',
   '/dashboard/events/',
   '/dashboard/meetings/',
   '/dashboard/products',

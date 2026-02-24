@@ -87,7 +87,7 @@ export const mockSocialPosts: SocialPost[] = [
     caption: '🎉 SAVE THE DATE 🎉\n\n27 Février 2026 - Une soirée qui marquera les esprits !\n\n🎧 Line-up exceptionnel\n🔥 Ambiance garantie\n🎟️ Billets en vente bientôt\n\n#boomkoeur #techno #housemusic #paris #event2026',
     hashtags: ['boomkoeur', 'techno', 'housemusic', 'paris', 'event2026'],
     taggedUsers: [],
-    scheduledDate: new Date('2026-02-15T18:00:00'),
+    scheduledDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // J+2
     createdAt: new Date('2026-01-25'),
     updatedAt: new Date('2026-01-28'),
   },

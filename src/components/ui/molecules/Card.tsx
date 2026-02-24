@@ -11,6 +11,7 @@ const CARD_VARIANTS = {
   outline: "rounded-md border border-border-custom bg-transparent text-foreground overflow-hidden",
   list: "rounded-md border border-zinc-800 bg-card-bg text-foreground overflow-hidden",
   settings: "rounded-md border border-border-custom bg-card-bg text-foreground shadow-sm overflow-hidden",
+  none: "bg-transparent border-0 p-0 shadow-none",
 } as const
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -142,6 +143,7 @@ const CARD_FOOTER_BORDERS = {
   outline: "border-t border-border-custom",
   list: "border-t border-zinc-800",
   settings: "border-t border-border-custom",
+  none: "border-0",
 } as const
 
 export interface CardFooterProps extends React.HTMLAttributes<HTMLDivElement> {

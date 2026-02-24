@@ -119,7 +119,7 @@ export function DashboardActivity({ data }: DashboardActivityProps) {
         <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base font-semibold">Planning Social</CardTitle>
           <Link
-            href="/dashboard/communication"
+            href="/dashboard/events"
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowRight className="w-4 h-4" />
@@ -130,7 +130,7 @@ export function DashboardActivity({ data }: DashboardActivityProps) {
             <ul className="space-y-2">
               {data.scheduledPosts.slice(0, 3).map((post) => (
                 <li key={post.id}>
-                  <Link href={`/dashboard/communication/${post.id}`}>
+                  <Link href="/dashboard/events">
                     <motion.div
                       className="flex items-center justify-between p-3 rounded-lg transition-colors group bg-surface-elevated border border-border-custom hover:bg-surface-subtle hover:border-border-custom/80 cursor-pointer"
                       whileHover={{ y: -2 }}

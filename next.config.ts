@@ -19,10 +19,24 @@ const nextConfig: NextConfig = {
         hostname: 'lh3.googleusercontent.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',
+        pathname: '/storage/**',
+      },
     ],
   },
   turbopack: {
     root: path.resolve(__dirname),
+    resolveAlias: {
+      tailwindcss: path.join(__dirname, "node_modules/tailwindcss"),
+      "@tailwindcss/postcss": path.join(__dirname, "node_modules/@tailwindcss/postcss"),
+    },
   },
   webpack: (config) => {
     const projectRoot = path.resolve(__dirname);

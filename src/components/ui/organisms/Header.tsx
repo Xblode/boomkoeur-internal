@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button, IconButton } from '@/components/ui/atoms';
 import { cn } from '@/lib/utils';
-import { LogOut, User, Settings, Search, Calendar, Shield, Menu } from 'lucide-react';
+import { LogOut, User, Settings, Search, Calendar, Shield, Menu, X } from 'lucide-react';
 import { Breadcrumb } from '../molecules/Breadcrumb';
 import { GlobalSearchModal } from './GlobalSearchModal';
 import { useMobileNav } from '@/components/providers/MobileNavProvider';
@@ -38,6 +39,7 @@ export const Header: React.FC<HeaderProps> = ({
   const router = useRouter();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -68,11 +70,11 @@ export const Header: React.FC<HeaderProps> = ({
   if (variant === 'admin') {
     return (
       <header className={cn(
-        "fixed top-0 left-0 right-0 z-50 h-[60px] border-b border-zinc-200 bg-white backdrop-blur-md dark:border-zinc-800 dark:bg-backend flex",
+        "fixed top-0 left-0 right-0 z-50 h-[52px] border-b border-zinc-200 bg-white backdrop-blur-md dark:border-zinc-800 dark:bg-backend flex",
         className
       )}>
         {/* Logo / Hamburger Area — hamburger sur mobile, logo sur desktop */}
-        <div className="w-[60px] min-w-[60px] h-full flex items-center justify-center border-r border-zinc-200 dark:border-zinc-800 shrink-0">
+        <div className="w-[52px] min-w-[52px] h-full flex items-center justify-center border-r border-zinc-200 dark:border-zinc-800 shrink-0">
           <button
             type="button"
             onClick={toggleMobileNav}
@@ -91,7 +93,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Header Content */}
-        <div className="flex-1 flex items-center justify-between px-4">
+        <div className="flex-1 flex items-center justify-between px-3">
           <div className="flex items-center min-w-0">
             <Breadcrumb variant="navigation" className="min-w-0" />
           </div>
@@ -103,7 +105,7 @@ export const Header: React.FC<HeaderProps> = ({
               variant="ghost"
               onClick={() => setIsSearchOpen(true)}
               aria-label="Rechercher"
-              className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-sm text-zinc-500 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700/50 rounded-full w-48 lg:w-64 border-0 h-auto"
+              className="hidden sm:flex items-center gap-2 px-2.5 py-1 text-sm text-zinc-500 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700/50 rounded-full w-44 lg:w-56 border-0 h-8"
             >
               <Search size={14} />
               <span className="flex-1 text-left">Rechercher...</span>
@@ -136,9 +138,9 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 aria-label="Menu utilisateur"
                 aria-expanded={isUserMenuOpen}
-                className="relative flex items-center justify-center rounded-full p-0 h-8 w-8 min-w-8 border-0"
+                className="relative flex items-center justify-center rounded-full p-0 h-7 w-7 min-w-7 border-0"
               >
-                <div className="h-8 w-8 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden relative group">
+                <div className="h-7 w-7 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden relative group">
                    {user.avatar ? (
                      <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
                    ) : (
@@ -211,10 +213,10 @@ export const Header: React.FC<HeaderProps> = ({
   // Mode Default (Frontend)
   return (
     <header className={cn(
-      "sticky top-0 z-50 w-full border-b border-zinc-200 bg-white/80 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/80",
+      "sticky top-0 z-50 w-full border-b border-zinc-200 bg-white/80 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/80 overflow-visible",
       className
     )}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-visible">
         <div className="flex items-center justify-between h-14">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 font-bold text-lg tracking-tight">
@@ -235,7 +237,7 @@ export const Header: React.FC<HeaderProps> = ({
             ))}
           </nav>
 
-          {/* CTA Buttons */}
+          {/* CTA + Hamburger (mobile, à droite) */}
           <div className="flex items-center gap-2 sm:gap-3">
             {sessionUser ? (
               <Link href={ROUTES.DASHBOARD}>
@@ -257,12 +259,82 @@ export const Header: React.FC<HeaderProps> = ({
                 </Link>
               </>
             )}
-            <Button variant="ghost" size="sm" className="md:hidden">
-              Menu
-            </Button>
+            <IconButton
+              icon={Menu}
+              ariaLabel="Ouvrir le menu"
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsMobileNavOpen(true)}
+              className="md:hidden p-2"
+            />
           </div>
         </div>
       </div>
+
+      {/* Mobile Nav Drawer — à droite, z-index élevé, overflow visible */}
+      {isMobileNavOpen && mounted && typeof document !== 'undefined' && createPortal(
+        <>
+          <div
+            className="fixed inset-0 z-[9998] bg-black/30 backdrop-blur-sm md:hidden"
+            onClick={() => setIsMobileNavOpen(false)}
+            aria-hidden="true"
+          />
+          <aside
+            className="fixed right-0 top-0 bottom-0 z-[9999] w-[min(280px,85vw)] border-l border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 flex flex-col md:hidden overflow-visible shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between h-14 px-4 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+              <span className="font-semibold text-sm">Menu</span>
+              <IconButton
+                icon={X}
+                ariaLabel="Fermer le menu"
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsMobileNavOpen(false)}
+                className="p-2 rounded-lg"
+              />
+            </div>
+            <nav className="flex-1 overflow-y-auto py-4 px-3">
+              <div className="flex flex-col gap-1">
+                {navigation.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsMobileNavOpen(false)}
+                    className="block rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+              <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800 flex flex-col gap-2">
+                <span className="px-3 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Connexion</span>
+                {sessionUser ? (
+                  <Link href={ROUTES.DASHBOARD} onClick={() => setIsMobileNavOpen(false)}>
+                    <Button variant="primary" size="sm" className="w-full">
+                      Dashboard
+                    </Button>
+                  </Link>
+                ) : (
+                  <>
+                    <Link href="/login" onClick={() => setIsMobileNavOpen(false)}>
+                      <Button variant="outline" size="sm" className="w-full">
+                        Connexion
+                      </Button>
+                    </Link>
+                    <Link href="/register" onClick={() => setIsMobileNavOpen(false)}>
+                      <Button variant="primary" size="sm" className="w-full">
+                        S&apos;inscrire
+                      </Button>
+                    </Link>
+                  </>
+                )}
+              </div>
+            </nav>
+          </aside>
+        </>,
+        document.body
+      )}
     </header>
   );
 };
