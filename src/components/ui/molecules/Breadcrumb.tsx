@@ -280,9 +280,9 @@ function NavigationBreadcrumb({ className }: { className?: string }) {
           </Popover>
         </li>
 
-        {/* ── Separator + Page ── */}
-        <li className="text-zinc-400 dark:text-zinc-600 select-none shrink-0 text-sm">/</li>
-        <li className="shrink-0">
+        {/* ── Separator + Page ── (masqués sur mobile : on n'affiche que l'organisation) */}
+        <li className="hidden lg:flex text-zinc-400 dark:text-zinc-600 select-none shrink-0 text-sm">/</li>
+        <li className="hidden lg:flex shrink-0">
           {hasLocation ? (
             <Link href={pageHref} className={cn(segCls, hoverCls)}>
               <PageIcon size={16} className="shrink-0" />
@@ -296,11 +296,11 @@ function NavigationBreadcrumb({ className }: { className?: string }) {
           )}
         </li>
 
-        {/* ── Separator + Location parts ── */}
+        {/* ── Separator + Location parts ── (masqués sur mobile) */}
         {locationParts.map((part, i) => (
           <React.Fragment key={i}>
-            <li className="text-zinc-400 dark:text-zinc-600 select-none shrink-0 text-sm">/</li>
-            <li className="shrink-0 min-w-0">
+            <li className="hidden lg:flex text-zinc-400 dark:text-zinc-600 select-none shrink-0 text-sm">/</li>
+            <li className="hidden lg:flex shrink-0 min-w-0">
               {part.href ? (
                 <Link href={part.href} className={cn(segCls, hoverCls)}>
                   <FileText size={16} className="shrink-0" />

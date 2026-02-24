@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
+import { ChevronLeft } from 'lucide-react';
 import { BackLink, SectionNavLink } from '@/components/ui/molecules';
 import { cn } from '@/lib/utils';
 
@@ -30,6 +32,8 @@ export interface PageSidebarProps {
   basePath?: string;
   children?: React.ReactNode;
   className?: string;
+  /** Mode compact (icônes seules) — utilisé sur mobile */
+  compact?: boolean;
 }
 
 /**
@@ -54,19 +58,84 @@ export function PageSidebar({
   basePath,
   children,
   className,
+  compact = false,
 }: PageSidebarProps) {
   const groups: PageSidebarSectionGroup[] =
     sectionGroups ?? (sections.length > 0 ? [{ sections }] : []);
 
   const hasNav = entitySelector || groups.some((g) => g.sections.length > 0);
 
-  return (
-    <aside
+  const allSections = groups.flatMap((g) => g.sections);
+
+  const compactBar = compact && allSections.length > 0 ? (
+    <div
       className={cn(
-        'w-64 shrink-0 bg-backend border-r border-border-custom sticky top-[60px] h-[calc(100vh-60px)] overflow-y-auto',
+        'lg:hidden shrink-0 flex flex-col gap-1 py-2 px-2 border-r border-border-custom bg-backend w-14',
         className
       )}
     >
+      {backLink && (
+        <Link
+          href={backLink.href}
+          className="p-2 rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 shrink-0 flex items-center justify-center"
+          title={backLink.label}
+        >
+          <ChevronLeft size={20} />
+        </Link>
+      )}
+      {allSections.map((section) => {
+        const href =
+          section.href ??
+          (basePath
+            ? section.slug
+              ? `${basePath}${section.slug}`
+              : basePath
+            : undefined);
+        const active = activeSectionId === section.id;
+        const content = (
+          <span
+              className={cn(
+                'flex items-center justify-center w-10 h-10 rounded-lg shrink-0 transition-colors mx-auto',
+              active
+                ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
+                : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:hover:text-zinc-50'
+            )}
+            title={section.label}
+          >
+            {section.icon}
+          </span>
+        );
+        if (href) {
+            return (
+              <Link key={section.id} href={href} className="flex-shrink-0">
+                {content}
+              </Link>
+            );
+          }
+        return (
+          <button
+            key={section.id}
+            type="button"
+            onClick={() => onSectionChange?.(section.id)}
+            className="flex-shrink-0"
+          >
+            {content}
+          </button>
+        );
+      })}
+    </div>
+  ) : null;
+
+  return (
+    <>
+      {compactBar}
+      <aside
+        className={cn(
+          'w-64 shrink-0 bg-backend border-r border-border-custom sticky top-[60px] h-[calc(100vh-60px)] overflow-y-auto',
+          compact && 'hidden lg:block',
+          className
+        )}
+      >
       <div className="p-4 space-y-4">
         {backLink && (
           <BackLink href={backLink.href} label={backLink.label} />
@@ -116,5 +185,6 @@ export function PageSidebar({
         {children}
       </div>
     </aside>
+    </>
   );
 }

@@ -1046,31 +1046,34 @@ export function EventCampaignSection() {
         subtitle="Visuels, affiches et supports de communication."
       />
 
-      {/* Phase indicator */}
-      <div className="flex items-center gap-1">
-        {PHASE_ORDER.map((p, i) => (
-          <React.Fragment key={p}>
-            <Button
-              type="button"
-              variant={p === currentPhase ? 'primary' : 'ghost'}
-              size="xs"
-              onClick={() => goPhase(p)}
-              className={cn(
-                'rounded-full',
-                p !== currentPhase && 'text-zinc-500 hover:text-foreground'
-              )}
-            >
-              {PHASE_LABELS[p]}
-            </Button>
-            {i < PHASE_ORDER.length - 1 && (
-              <ChevronRight size={12} className="text-zinc-300 dark:text-zinc-700 shrink-0" />
-            )}
-          </React.Fragment>
-        ))}
-      </div>
+      {/* Phase indicator + Stepper — scroll horizontal ensemble sur mobile/tablette */}
+      <div className="overflow-x-auto lg:overflow-visible -mx-1 px-1">
+        <div className="min-w-max lg:min-w-0 space-y-4">
+          <div className="flex items-center gap-1 shrink-0">
+            {PHASE_ORDER.map((p, i) => (
+              <React.Fragment key={p}>
+                <Button
+                  type="button"
+                  variant={p === currentPhase ? 'primary' : 'ghost'}
+                  size="xs"
+                  onClick={() => goPhase(p)}
+                  className={cn(
+                    'rounded-full',
+                    p !== currentPhase && 'text-zinc-500 hover:text-foreground'
+                  )}
+                >
+                  {PHASE_LABELS[p]}
+                </Button>
+                {i < PHASE_ORDER.length - 1 && (
+                  <ChevronRight size={12} className="text-zinc-300 dark:text-zinc-700 shrink-0" />
+                )}
+              </React.Fragment>
+            ))}
+          </div>
 
-      {/* Stepper */}
-      <WorkflowStepper steps={steps} currentStep={currentStep} onStepChange={goToStep} />
+          <WorkflowStepper steps={steps} currentStep={currentStep} onStepChange={goToStep} />
+        </div>
+      </div>
 
       {/* Step content */}
       <div className="min-h-[180px]">
@@ -1499,7 +1502,7 @@ export function EventCampaignSection() {
         )}
 
         {wfSectionTab === 'instagram' && (
-          <EventInstagramStats />
+          <EventInstagramStats metaConnected={metaConnected} />
         )}
 
       </div>

@@ -21,12 +21,19 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  turbopack: {},
-  webpack: (config, { isServer }) => {
+  turbopack: {
+    root: path.resolve(__dirname),
+  },
+  webpack: (config) => {
+    const projectRoot = path.resolve(__dirname);
     config.resolve.modules = [
-      path.resolve(__dirname, "node_modules"),
+      path.join(projectRoot, "node_modules"),
       "node_modules",
     ];
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      tailwindcss: path.join(projectRoot, "node_modules/tailwindcss"),
+    };
     return config;
   },
 };

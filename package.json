@@ -33,6 +33,12 @@
     "tailwind-merge": "^3.4.0",
     "xlsx": "^0.18.5"
   },
+  "pnpm": {
+    "overrides": {
+      "@next/swc": "16.1.5",
+      "@next/swc-win32-x64-msvc": "16.1.5"
+    }
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

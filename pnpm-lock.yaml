@@ -4,6 +4,10 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@next/swc': 16.1.5
+  '@next/swc-win32-x64-msvc': 16.1.5
+
 importers:
 
   .:

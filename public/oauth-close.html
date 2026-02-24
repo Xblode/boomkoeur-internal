@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion en cours...</title>
+  <style>
+    body { font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+    p { color: #666; }
+  </style>
+</head>
+<body>
+  <p>Fermeture de la fenêtre...</p>
+  <script>
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var success = params.get('success');
+      var error = params.get('error');
+      var targetOrigin = window.location.origin;
+
+      if (window.opener) {
+        if (success === 'meta') {
+          window.opener.postMessage({ type: 'meta-oauth', success: true }, targetOrigin);
+        } else if (success === 'google') {
+          window.opener.postMessage({ type: 'google-oauth', success: true }, targetOrigin);
+        } else if (error) {
+          window.opener.postMessage({ type: 'oauth-popup-error', success: false, error: error }, targetOrigin);
+        }
+        window.close();
+      } else {
+        window.location.replace('/dashboard/admin/integration' + (success ? '?success=' + success : error ? '?error=' + encodeURIComponent(error) : ''));
+      }
+    })();
+  </script>
+</body>
+</html>

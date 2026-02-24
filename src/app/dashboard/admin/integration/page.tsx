@@ -20,8 +20,8 @@ const INTEGRATIONS: { id: IntegrationId; name: string; description: string; icon
   },
   {
     id: 'meta',
-    name: 'Meta',
-    description: 'API Facebook / Meta pour la publicité et les événements',
+    name: 'Instagram',
+    description: 'Instagram Business pour publications et statistiques',
     icon: <Share2 size={20} className="text-zinc-600 dark:text-zinc-400" />,
   },
 ];
@@ -711,7 +711,7 @@ export default function AdminIntegrationPage() {
                   {item.id === 'meta'
                     ? connectedStatus[item.id]
                       ? 'Déconnecter'
-                      : 'Connecter avec Facebook'
+                      : 'Connecter avec Instagram'
                     : connectedStatus[item.id]
                       ? 'Modifier'
                       : 'Connecter'}
@@ -766,8 +766,8 @@ export default function AdminIntegrationPage() {
                       Compte Instagram connecté. Cliquez sur Déconnecter pour révoquer l&apos;accès.
                     </p>
                     <p className="text-xs text-zinc-500">
-                      Les identifiants Meta (Client ID / Secret) sont configurés via les variables
-                      d&apos;environnement META_CLIENT_ID et META_CLIENT_SECRET.
+                      Les identifiants Instagram (App ID / Secret) sont configurés via les variables
+                      d&apos;environnement INSTA_CLIENT_ID et INSTA_CLIENT_SECRET.
                     </p>
                   </div>
                 )}

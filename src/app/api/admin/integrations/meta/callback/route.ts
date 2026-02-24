@@ -4,18 +4,18 @@ import { verifyAndParseMetaOAuthState } from '@/lib/integrations/meta-oauth';
 import { upsertOrgIntegration } from '@/lib/supabase/integrations';
 import type { MetaCredentials } from '@/lib/supabase/integrations';
 
-const DASHBOARD_INTEGRATION = '/dashboard/admin/integration';
+const OAUTH_CLOSE = '/oauth-close.html';
 const INSTAGRAM_OAUTH_API = 'https://api.instagram.com/oauth';
 const GRAPH_IG_API = 'https://graph.instagram.com';
 
 function redirectWithError(error: string) {
-  const url = new URL(DASHBOARD_INTEGRATION, process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000');
+  const url = new URL(OAUTH_CLOSE, process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000');
   url.searchParams.set('error', error);
   return NextResponse.redirect(url);
 }
 
 function redirectWithSuccess() {
-  const url = new URL(DASHBOARD_INTEGRATION, process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000');
+  const url = new URL(OAUTH_CLOSE, process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000');
   url.searchParams.set('success', 'meta');
   return NextResponse.redirect(url);
 }

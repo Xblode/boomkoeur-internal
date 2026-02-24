@@ -1,12 +1,14 @@
 /**
- * Meta OAuth - Génération et vérification du state
+ * Instagram OAuth - Génération et vérification du state (CSRF).
  * Le state contient org_id + nonce, signé pour éviter la manipulation.
+ * Utilise INSTA_CLIENT_SECRET (ou META_CLIENT_SECRET en fallback).
  */
 
 import { createHmac, randomBytes } from 'crypto';
 
 const STATE_SEPARATOR = '.';
 const SECRET =
+  process.env.INSTA_CLIENT_SECRET ??
   process.env.META_CLIENT_SECRET ??
   process.env.INTEGRATIONS_ENCRYPTION_KEY ??
   'fallback';

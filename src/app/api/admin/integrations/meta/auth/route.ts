@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createMetaOAuthState } from '@/lib/integrations/meta-oauth';
 
-// Instagram API with Instagram Login (OAuth Instagram, pas Facebook)
-// Utilisez META_CLIENT_ID = Instagram App ID depuis Dashboard > Instagram > Business login settings
-const INSTAGRAM_OAUTH_URL = 'https://www.instagram.com/oauth/authorize';
-const DASHBOARD_INTEGRATION = '/dashboard/admin/integration';
+// Instagram API with Instagram Login (Business Login)
+// Meta for Developers > Instagram > API setup with Instagram login > Business login settings
+const INSTAGRAM_OAUTH_URL = 'https://api.instagram.com/oauth/authorize';
+const OAUTH_CLOSE = '/oauth-close.html';
 
 async function ensureOrgAdmin(orgId: string) {
   const supabase = await createClient();
@@ -29,14 +29,14 @@ async function ensureOrgAdmin(orgId: string) {
 export async function GET(request: NextRequest) {
   const orgId = request.nextUrl.searchParams.get('org_id');
   if (!orgId) {
-    const url = new URL(DASHBOARD_INTEGRATION, process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000');
+    const url = new URL(OAUTH_CLOSE, process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000');
     url.searchParams.set('error', 'org_id requis');
     return NextResponse.redirect(url);
   }
 
   const authError = await ensureOrgAdmin(orgId);
   if (authError) {
-    const url = new URL(DASHBOARD_INTEGRATION, process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000');
+    const url = new URL(OAUTH_CLOSE, process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000');
     url.searchParams.set('error', authError.error ?? 'Accès refusé');
     return NextResponse.redirect(url);
   }
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     `${process.env.NEXT_PUBLIC_APP_URL ?? `http://localhost:${process.env.PORT ?? 3000}`}/api/admin/integrations/meta/callback`;
 
   if (!clientId) {
-    const url = new URL(DASHBOARD_INTEGRATION, process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000');
+    const url = new URL(OAUTH_CLOSE, process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000');
     url.searchParams.set('error', 'Configuration Instagram manquante (INSTA_CLIENT_ID)');
     return NextResponse.redirect(url);
   }

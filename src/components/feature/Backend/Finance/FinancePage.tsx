@@ -8,11 +8,12 @@ import { FacturesTab } from './Factures/components'
 import { BilanTab } from './Bilan/components'
 import { BudgetTab } from './Budget/components'
 import { financeDataService } from '@/lib/services/FinanceDataService'
-import { Plus, FileUp, FileDown, CheckCheck, Settings, Filter, ChevronDown, Package, FileText as FileTextIcon, Receipt, PieChart, FileText, BarChart3 } from 'lucide-react'
+import { Plus, FileUp, FileDown, CheckCheck, Settings, Filter, ChevronDown, Package, FileText as FileTextIcon, Receipt, PieChart, FileText, BarChart3, Menu } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToolbar } from '@/components/providers/ToolbarProvider'
 import { PageToolbar, PageToolbarFilters, PageToolbarActions } from '@/components/ui/organisms'
 import { DropdownPanel } from '@/components/ui/molecules'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/atoms'
 import { Button, Input, Label } from '@/components/ui/atoms'
 import { SectionHeader } from '@/components/ui'
 import {
@@ -166,9 +167,99 @@ export default function FinancePage() {
     }
 
     if (activeSection === 'transactions') {
+      const filterContent = (
+        <div className="space-y-4">
+          <div>
+            <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">Recherche</Label>
+            <Input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Rechercher une transaction..."
+              fullWidth
+              className="bg-zinc-100 dark:bg-zinc-800 border-border-custom"
+            />
+          </div>
+          <div>
+            <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">Type</Label>
+            <Select value={filterType} onChange={(e) => setFilterType(e.target.value as any)} options={[{ value: 'all', label: 'Tous' }, { value: 'income', label: 'Entrées' }, { value: 'expense', label: 'Sorties' }]} />
+          </div>
+          <div>
+            <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">Catégorie</Label>
+            <Select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} options={[{ value: 'all', label: 'Toutes' }, ...allCategories.map((cat) => ({ value: cat, label: cat }))]} />
+          </div>
+          <div>
+            <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">Statut</Label>
+            <Select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as any)} options={[{ value: 'all', label: 'Tous' }, { value: 'pending', label: 'En attente' }, { value: 'validated', label: 'Validé' }, { value: 'reconciled', label: 'Rapproché' }]} />
+          </div>
+          <div>
+            <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">Événement</Label>
+            <Select value={filterEventId} onChange={(e) => setFilterEventId(e.target.value)} options={[{ value: 'all', label: 'Tous' }, ...allEvents.map((e) => ({ value: e.id, label: e.title }))]} />
+          </div>
+          <div>
+            <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">Projet</Label>
+            <Select value={filterProjectId} onChange={(e) => setFilterProjectId(e.target.value)} options={[{ value: 'all', label: 'Tous' }, ...allProjects.map((p) => ({ value: p.id, label: p.title }))]} />
+          </div>
+          <div>
+            <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">Contact</Label>
+            <Select value={filterContactId} onChange={(e) => setFilterContactId(e.target.value)} options={[{ value: 'all', label: 'Tous' }, ...allContacts.map((c) => ({ value: c.id, label: c.name }))]} />
+          </div>
+          {(activeFiltersCount > 0 || searchQuery) && (
+            <Button variant="secondary" size="sm" onClick={() => { setFilterType('all'); setFilterCategory('all'); setFilterStatus('all'); setFilterEventId('all'); setFilterProjectId('all'); setFilterContactId('all'); setSearchQuery('') }} className="w-full">Réinitialiser les filtres</Button>
+          )}
+        </div>
+      )
+
+      const actionsContent = (
+        <>
+          <Button variant="outline" size="sm" onClick={() => setShowCategoriesModal(true)} className="w-full justify-start">
+            <Settings className="w-3 h-3 mr-1.5" /> Catégories
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowReconciliationModal(true)} className="w-full justify-start">
+            <CheckCheck className="w-3 h-3 mr-1.5" /> Rapprochement
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => exportTransactionsExcel(transactions, selectedYear)} className="w-full justify-start">
+            <FileDown className="w-3 h-3 mr-1.5" /> Export Excel
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowImportCSVModal(true)} className="w-full justify-start">
+            <FileUp className="w-3 h-3 mr-1.5" /> Import CSV
+          </Button>
+          <Button variant="primary" size="sm" onClick={() => setShowNewTransactionModal(true)} className="w-full justify-start">
+            <Plus className="w-3 h-3 mr-1.5" /> Nouvelle transaction
+          </Button>
+        </>
+      )
+
       setToolbar(
-        <PageToolbar
-          filters={
+        <div className={cn('h-10 min-h-0 flex items-center justify-between gap-4 p-0 px-4 border-b bg-backend text-foreground border-zinc-200 dark:border-zinc-800')}>
+          {/* Mobile : menu unique avec tous les boutons */}
+          <div className="lg:hidden flex-1 flex justify-end">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="flex items-center gap-1.5">
+                  <Menu className="w-4 h-4" />
+                  Menu
+                  {activeFiltersCount > 0 && (
+                    <span className="bg-accent text-white text-[10px] px-1.5 py-0.5 rounded-full">{activeFiltersCount}</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[min(320px,90vw)] max-h-[85vh] overflow-y-auto p-4" align="end">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase mb-3">Filtres</h3>
+                    {filterContent}
+                  </div>
+                  <div className="border-t border-border-custom pt-4">
+                    <h3 className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase mb-3">Actions</h3>
+                    <div className="flex flex-col gap-2">{actionsContent}</div>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+          {/* Desktop : toolbar normale */}
+          <div className="hidden lg:flex flex-1 items-center gap-4 min-w-0">
             <PageToolbarFilters>
               <div className="relative">
                 <Button
@@ -176,190 +267,36 @@ export default function FinancePage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
-                  className={cn(
-                    "px-2 py-1 rounded text-xs font-medium flex items-center gap-1.5",
-                    "bg-transparent border-zinc-700 text-zinc-400",
-                    "hover:text-white hover:border-zinc-500"
-                  )}
+                  className={cn("px-2 py-1 rounded text-xs font-medium flex items-center gap-1.5", "bg-transparent border-zinc-700 text-zinc-400", "hover:text-white hover:border-zinc-500")}
                 >
                   <Filter className="w-3 h-3" />
                   Filtres
-                  {activeFiltersCount > 0 && (
-                    <span className="bg-accent text-white text-[10px] px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-                      {activeFiltersCount}
-                    </span>
-                  )}
-                  <ChevronDown className={cn(
-                    "w-3 h-3 transition-transform",
-                    isFilterDropdownOpen && "rotate-180"
-                  )} />
+                  {activeFiltersCount > 0 && <span className="bg-accent text-white text-[10px] px-1.5 py-0.5 rounded-full min-w-[18px] text-center">{activeFiltersCount}</span>}
+                  <ChevronDown className={cn("w-3 h-3 transition-transform", isFilterDropdownOpen && "rotate-180")} />
                 </Button>
-
                 <AnimatePresence>
                   {isFilterDropdownOpen && (
                     <>
-                      <div
-                        className="fixed inset-0 z-[100]"
-                        onClick={() => setIsFilterDropdownOpen(false)}
-                      />
-                      <DropdownPanel
-                        style={getDropdownPosition(filterButtonRef)}
-                        className="min-w-[300px] max-w-[400px] max-h-[600px] overflow-y-auto p-4"
-                        data-filter-dropdown={true}
-                      >
-                        <div className="space-y-4">
-                          <div>
-                            <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">
-                              Recherche
-                            </Label>
-                            <Input
-                              type="text"
-                              value={searchQuery}
-                              onChange={(e) => setSearchQuery(e.target.value)}
-                              placeholder="Rechercher une transaction..."
-                              fullWidth
-                              className="bg-zinc-100 dark:bg-zinc-800 border-border-custom"
-                            />
-                          </div>
-
-                          <div>
-                            <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">
-                              Type
-                            </Label>
-                            <Select
-                              value={filterType}
-                              onChange={(e) => setFilterType(e.target.value as any)}
-                              options={[
-                                { value: 'all', label: 'Tous' },
-                                { value: 'income', label: 'Entrées' },
-                                { value: 'expense', label: 'Sorties' },
-                              ]}
-                            />
-                          </div>
-
-                          <div>
-                            <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">
-                              Catégorie
-                            </Label>
-                            <Select
-                              value={filterCategory}
-                              onChange={(e) => setFilterCategory(e.target.value)}
-                              options={[
-                                { value: 'all', label: 'Toutes' },
-                                ...allCategories.map((cat) => ({ value: cat, label: cat })),
-                              ]}
-                            />
-                          </div>
-
-                          <div>
-                            <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">
-                              Statut
-                            </Label>
-                            <Select
-                              value={filterStatus}
-                              onChange={(e) => setFilterStatus(e.target.value as any)}
-                              options={[
-                                { value: 'all', label: 'Tous' },
-                                { value: 'pending', label: 'En attente' },
-                                { value: 'validated', label: 'Validé' },
-                                { value: 'reconciled', label: 'Rapproché' },
-                              ]}
-                            />
-                          </div>
-
-                          <div>
-                            <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">
-                              Événement
-                            </Label>
-                            <Select
-                              value={filterEventId}
-                              onChange={(e) => setFilterEventId(e.target.value)}
-                              options={[
-                                { value: 'all', label: 'Tous' },
-                                ...allEvents.map((e) => ({ value: e.id, label: e.title })),
-                              ]}
-                            />
-                          </div>
-
-                          <div>
-                            <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">
-                              Projet
-                            </Label>
-                            <Select
-                              value={filterProjectId}
-                              onChange={(e) => setFilterProjectId(e.target.value)}
-                              options={[
-                                { value: 'all', label: 'Tous' },
-                                ...allProjects.map((p) => ({ value: p.id, label: p.title })),
-                              ]}
-                            />
-                          </div>
-
-                          <div>
-                            <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">
-                              Contact
-                            </Label>
-                            <Select
-                              value={filterContactId}
-                              onChange={(e) => setFilterContactId(e.target.value)}
-                              options={[
-                                { value: 'all', label: 'Tous' },
-                                ...allContacts.map((c) => ({ value: c.id, label: c.name })),
-                              ]}
-                            />
-                          </div>
-
-                          {(activeFiltersCount > 0 || searchQuery) && (
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => {
-                                setFilterType('all')
-                                setFilterCategory('all')
-                                setFilterStatus('all')
-                                setFilterEventId('all')
-                                setFilterProjectId('all')
-                                setFilterContactId('all')
-                                setSearchQuery('')
-                              }}
-                              className="w-full"
-                            >
-                              Réinitialiser les filtres
-                            </Button>
-                          )}
-                        </div>
+                      <div className="fixed inset-0 z-[100]" onClick={() => setIsFilterDropdownOpen(false)} />
+                      <DropdownPanel style={getDropdownPosition(filterButtonRef)} className="min-w-[300px] max-w-[400px] max-h-[600px] overflow-y-auto p-4" data-filter-dropdown={true}>
+                        {filterContent}
                       </DropdownPanel>
                     </>
                   )}
                 </AnimatePresence>
               </div>
             </PageToolbarFilters>
-          }
-          actions={
+          </div>
+          <div className="hidden lg:flex items-center gap-2 shrink-0">
             <PageToolbarActions>
-              <Button onClick={() => setShowCategoriesModal(true)}>
-                <Settings className="w-3 h-3 mr-1.5" />
-                Catégories
-              </Button>
-              <Button onClick={() => setShowReconciliationModal(true)}>
-                <CheckCheck className="w-3 h-3 mr-1.5" />
-                Rapprochement
-              </Button>
-              <Button onClick={() => exportTransactionsExcel(transactions, selectedYear)}>
-                <FileDown className="w-3 h-3 mr-1.5" />
-                Export Excel
-              </Button>
-              <Button onClick={() => setShowImportCSVModal(true)}>
-                <FileUp className="w-3 h-3 mr-1.5" />
-                Import CSV
-              </Button>
-              <Button onClick={() => setShowNewTransactionModal(true)}>
-                <Plus className="w-3 h-3 mr-1.5" />
-                Nouvelle transaction
-              </Button>
+              <Button onClick={() => setShowCategoriesModal(true)}><Settings className="w-3 h-3 mr-1.5" /> Catégories</Button>
+              <Button onClick={() => setShowReconciliationModal(true)}><CheckCheck className="w-3 h-3 mr-1.5" /> Rapprochement</Button>
+              <Button onClick={() => exportTransactionsExcel(transactions, selectedYear)}><FileDown className="w-3 h-3 mr-1.5" /> Export Excel</Button>
+              <Button onClick={() => setShowImportCSVModal(true)}><FileUp className="w-3 h-3 mr-1.5" /> Import CSV</Button>
+              <Button onClick={() => setShowNewTransactionModal(true)}><Plus className="w-3 h-3 mr-1.5" /> Nouvelle transaction</Button>
             </PageToolbarActions>
-          }
-        />
+          </div>
+        </div>
       )
       return () => { setToolbar(null) }
     }
@@ -838,7 +775,14 @@ export default function FinancePage() {
           />
         )}
         {activeSection === 'transactions' && (
-          <TransactionsTab
+          <>
+            <div className="mb-4 lg:hidden">
+              <Button variant="primary" size="sm" onClick={() => setShowNewTransactionModal(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Nouvelle transaction
+              </Button>
+            </div>
+            <TransactionsTab
             selectedYear={selectedYear}
             searchQuery={searchQuery}
             filterType={filterType}
@@ -856,6 +800,7 @@ export default function FinancePage() {
             onError={setTransactionsError}
             refreshTrigger={refreshTrigger}
           />
+          </>
         )}
         {activeSection === 'budget' && (
           <BudgetTab

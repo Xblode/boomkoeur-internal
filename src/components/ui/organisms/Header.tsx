@@ -6,9 +6,10 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button, IconButton } from '@/components/ui/atoms';
 import { cn } from '@/lib/utils';
-import { LogOut, User, Settings, Search, Calendar, Shield } from 'lucide-react';
+import { LogOut, User, Settings, Search, Calendar, Shield, Menu } from 'lucide-react';
 import { Breadcrumb } from '../molecules/Breadcrumb';
 import { GlobalSearchModal } from './GlobalSearchModal';
+import { useMobileNav } from '@/components/providers/MobileNavProvider';
 import { supabase } from '@/lib/supabase/client';
 import { ROUTES } from '@/lib/constants';
 import { useUser } from '@/hooks';
@@ -61,6 +62,8 @@ export const Header: React.FC<HeaderProps> = ({
     router.refresh();
   };
 
+  const { toggle: toggleMobileNav } = useMobileNav();
+
   // Mode Admin (Dashboard)
   if (variant === 'admin') {
     return (
@@ -68,9 +71,21 @@ export const Header: React.FC<HeaderProps> = ({
         "fixed top-0 left-0 right-0 z-50 h-[60px] border-b border-zinc-200 bg-white backdrop-blur-md dark:border-zinc-800 dark:bg-backend flex",
         className
       )}>
-        {/* Logo Area (60px width to match sidebar) */}
-        <div className="w-[60px] min-w-[60px] h-full flex items-center justify-center border-r border-zinc-200 dark:border-zinc-800">
-          <Link href="/" className="flex items-center justify-center" title="Retour à l'accueil">
+        {/* Logo / Hamburger Area — hamburger sur mobile, logo sur desktop */}
+        <div className="w-[60px] min-w-[60px] h-full flex items-center justify-center border-r border-zinc-200 dark:border-zinc-800 shrink-0">
+          <button
+            type="button"
+            onClick={toggleMobileNav}
+            aria-label="Ouvrir le menu de navigation"
+            className="lg:hidden p-2 -m-2 rounded-lg text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+          >
+            <Menu size={24} />
+          </button>
+          <Link
+            href="/"
+            className="hidden lg:flex items-center justify-center"
+            title="Retour à l'accueil"
+          >
             <Image src="/next.svg" alt="Logo" width={32} height={32} className="dark:invert" />
           </Link>
         </div>
@@ -81,8 +96,8 @@ export const Header: React.FC<HeaderProps> = ({
             <Breadcrumb variant="navigation" className="min-w-0" />
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-2">
-            {/* Search Trigger */}
+          <div className="flex items-center gap-1 sm:gap-2">
+            {/* Search — icône sur mobile, barre complète sur desktop */}
             <Button
               type="button"
               variant="ghost"
@@ -104,10 +119,10 @@ export const Header: React.FC<HeaderProps> = ({
               className="sm:hidden p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full h-auto w-auto"
             />
 
-            {/* Calendar */}
+            {/* Calendrier */}
             <Link
               href="/dashboard/calendar"
-              className="p-1.5 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors border border-zinc-200 dark:border-zinc-600"
+              className="p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
               title="Calendrier"
             >
               <Calendar size={18} />

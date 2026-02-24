@@ -2,6 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Card, CardContent, CardMedia, CardFooter, CardDateBadge } from "@/components/ui/molecules";
 import { Badge, Chip, IconButton } from "@/components/ui/atoms";
 import { Event, EventStatus } from "@/types/event";
@@ -12,38 +13,47 @@ import {
   Trash2,
   Music,
   CalendarDays,
+  MapPin,
+  Clock,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
-interface EventCardProps {
+interface EventCardBaseProps {
   event: Event;
+}
+
+interface EventCardListProps extends EventCardBaseProps {
+  variant?: "list";
   onEdit: (event: Event) => void;
   onDelete: (event: Event) => void;
   onDuplicate: (id: string) => void;
   onClick: (event: Event) => void;
 }
 
-export const EventCard: React.FC<EventCardProps> = ({
-  event,
-  onEdit,
-  onDelete,
-  onDuplicate,
-  onClick,
-}) => {
+interface EventCardCompactProps extends EventCardBaseProps {
+  variant: "compact";
+}
+
+type EventCardProps = EventCardListProps | EventCardCompactProps;
+
+export const EventCard: React.FC<EventCardProps> = (props) => {
+  const { event } = props;
+  const isCompact = props.variant === "compact";
+
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onEdit(event);
+    if (!isCompact && "onEdit" in props) props.onEdit(event);
   };
 
   const handleDuplicate = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onDuplicate(event.id);
+    if (!isCompact && "onDuplicate" in props) props.onDuplicate(event.id);
   };
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onDelete(event);
+    if (!isCompact && "onDelete" in props) props.onDelete(event);
   };
 
   const STATUS_VARIANT: Record<EventStatus, 'warning' | 'info' | 'success' | 'secondary' | 'default'> = {
@@ -70,11 +80,55 @@ export const EventCard: React.FC<EventCardProps> = ({
     ? `${format(event.date, "HH:mm", { locale: fr })} - ${event.endTime}`
     : format(event.date, "HH:mm", { locale: fr });
 
+  if (isCompact) {
+    return (
+      <Link href={`/dashboard/events/${event.id}`} className="block">
+        <Card
+          variant="outline"
+          className="group overflow-hidden transition-all duration-200 cursor-pointer hover:border-zinc-600"
+        >
+          <CardContent className="p-0 flex gap-3">
+            <div className="w-20 h-20 flex-shrink-0 rounded-l-md overflow-hidden bg-zinc-800">
+              {hasImage ? (
+                <Image
+                  src={event.media!.posterShotgun!}
+                  alt={event.name}
+                  width={80}
+                  height={80}
+                  className="object-cover w-full h-full"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <CalendarDays size={24} className="text-zinc-600" aria-hidden />
+                </div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0 py-2 pr-3 flex flex-col justify-center">
+              <h3 className="font-semibold text-sm text-foreground line-clamp-1 group-hover:text-foreground/90">
+                {event.name}
+              </h3>
+              <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground">
+                <MapPin size={12} className="flex-shrink-0" />
+                <span className="line-clamp-1">{event.location}</span>
+              </div>
+              <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
+                <Clock size={12} className="flex-shrink-0" />
+                <span>
+                  {format(event.date, "d MMM yyyy", { locale: fr })} · {timeRange}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+    );
+  }
+
   return (
     <Card
       variant="list"
       className="group relative overflow-hidden transition-all duration-300 cursor-pointer flex flex-col h-full hover:shadow-xl"
-      onClick={() => onClick(event)}
+      onClick={() => props.onClick(event)}
     >
       <CardContent className="p-0 flex flex-col h-full">
         {/* Image d'en-tête - format paysage (16:9) avec padding et coins arrondis */}

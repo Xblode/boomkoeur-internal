@@ -25,6 +25,7 @@ import { DashboardKPIs } from './DashboardKPIs';
 import { DashboardAlerts, type DashboardAlert } from './DashboardAlerts';
 import { DashboardCharts } from './DashboardCharts';
 import { DashboardActivity } from './DashboardActivity';
+import { EventCard } from '@/components/feature/Backend/Events';
 import { fadeInUp } from '@/lib/animations';
 
 const MONTH_NAMES = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
@@ -256,6 +257,13 @@ export const DashboardStats: React.FC = () => {
           postsToValidate: data.communication.postsToValidate.length,
         }}
       />
+
+      {data.events.next && (
+        <section className="md:hidden space-y-3">
+          <h2 className="text-base font-semibold text-foreground">Prochain Event</h2>
+          <EventCard event={data.events.next} variant="compact" />
+        </section>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-3 space-y-4">

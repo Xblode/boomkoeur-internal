@@ -37,7 +37,11 @@ interface MediaWithInsights extends InstagramMedia {
   insights?: { reach?: number; impressions?: number; engagement?: number };
 }
 
-export function EventInstagramStats() {
+interface EventInstagramStatsProps {
+  metaConnected?: boolean;
+}
+
+export function EventInstagramStats({ metaConnected = false }: EventInstagramStatsProps) {
   const { event } = useEventDetail();
   const { activeOrg } = useOrg();
   const [media, setMedia] = useState<MediaWithInsights[]>([]);
@@ -58,6 +62,13 @@ export function EventInstagramStats() {
     if (!orgId) {
       setLoading(false);
       setError('Organisation non définie');
+      return;
+    }
+    if (!metaConnected) {
+      setLoading(false);
+      setError({ message: 'Meta non connecté', reason: 'no_credentials' });
+      setMedia([]);
+      setAccountStats(null);
       return;
     }
     setLoading(true);
@@ -105,7 +116,7 @@ export function EventInstagramStats() {
     } finally {
       setLoading(false);
     }
-  }, [orgId]);
+  }, [orgId, metaConnected]);
 
   useEffect(() => {
     fetchMedia();

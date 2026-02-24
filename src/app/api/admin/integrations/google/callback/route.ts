@@ -5,7 +5,7 @@ import { upsertOrgIntegration } from '@/lib/supabase/integrations';
 import type { GoogleCredentials } from '@/lib/supabase/integrations';
 import { google } from 'googleapis';
 
-const DASHBOARD_INTEGRATION = '/dashboard/admin/integration';
+const OAUTH_CLOSE = '/oauth-close.html';
 
 async function ensureOrgAdmin(orgId: string) {
   const supabase = await createClient();
@@ -27,13 +27,13 @@ async function ensureOrgAdmin(orgId: string) {
 }
 
 function redirectWithError(error: string) {
-  const url = new URL(DASHBOARD_INTEGRATION, process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000');
+  const url = new URL(OAUTH_CLOSE, process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000');
   url.searchParams.set('error', error);
   return NextResponse.redirect(url);
 }
 
 function redirectWithSuccess() {
-  const url = new URL(DASHBOARD_INTEGRATION, process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000');
+  const url = new URL(OAUTH_CLOSE, process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000');
   url.searchParams.set('success', 'google');
   return NextResponse.redirect(url);
 }

@@ -25,7 +25,7 @@ export function WorkflowStepper({
 }: WorkflowStepperProps) {
   return (
     <div className={cn('w-full', className)}>
-      <div className="flex items-start">
+      <div className="min-w-max lg:min-w-0 flex items-start">
         {steps.map((step, index) => {
           const isCurrent = index === currentStep;
           const isCompleted = step.isCompleted;
@@ -72,7 +72,7 @@ export function WorkflowStepper({
               {!isLast && (
                 <div
                   className={cn(
-                    'mt-4 mx-2 h-[2px] flex-1 rounded-full transition-colors',
+                    'mt-4 mx-2 h-[2px] min-w-[24px] flex-1 rounded-full transition-colors shrink-0',
                     isCompleted ? 'bg-zinc-900 dark:bg-white' : 'bg-zinc-200 dark:bg-zinc-700',
                   )}
                 />

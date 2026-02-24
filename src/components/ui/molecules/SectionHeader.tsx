@@ -54,11 +54,12 @@ export function SectionHeader({
   return (
     <div
       className={cn(
-        'space-y-3',
+        'overflow-x-auto lg:overflow-visible',
         hasMetadata && 'pb-6 border-b border-border-custom',
         className
       )}
     >
+      <div className="min-w-max lg:min-w-0 space-y-3">
       {/* Ligne titre : icon + title (+ actions) */}
       <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div className="flex items-center gap-3 min-w-0">
@@ -144,6 +145,7 @@ export function SectionHeader({
 
       {/* Barre de recherche, filtres — sous métadonnées ou sous titre */}
       {filters && <div className="pt-4">{filters}</div>}
+      </div>
     </div>
   );
 }

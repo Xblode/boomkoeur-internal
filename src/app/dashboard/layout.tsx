@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Sidebar, Header, DashboardShell } from '@/components/ui/organisms';
+import { Sidebar, Header, DashboardShell, MobileNavDrawer } from '@/components/ui/organisms';
 import { backendNavigation } from '@/config/navigation';
+import { MobileNavProvider } from '@/components/providers/MobileNavProvider';
 import { isDetailPage, usesDashboardShell } from '@/config/layout';
 import { useSidebarMode } from '@/hooks';
 import { cn } from '@/lib/utils';
@@ -33,42 +34,49 @@ function BackendLayoutContent({
   }
 
   return (
-    <div className="min-h-screen bg-backend">
-      {/* Header Fixed Top */}
-      <Header variant="admin" />
+    <MobileNavProvider>
+      <div className="min-h-screen bg-backend">
+        {/* Header Fixed Top */}
+        <Header variant="admin" />
 
-      {/* Toolbar dynamique (sous le header) — uniquement hors pages detail */}
-      {toolbar && !isDetail && (
-        <div
-          className={cn(
-            "fixed top-[60px] right-0 z-40 transition-all duration-300 ease-in-out",
-            sidebarMode === 'expanded' ? 'left-[200px]' : 'left-[60px]'
-          )}
-        >
-          {toolbar}
-        </div>
-      )}
-
-      {/* Sidebar Fixed Left (sous le header) */}
-      <Sidebar items={backendNavigation} mode={sidebarMode} />
-      
-      {/* Contenu principal décalé */}
-      <div className={cn(
-        "flex flex-col min-h-screen transition-all duration-300 ease-in-out",
-        (toolbar && !isDetail) ? "pt-[105px]" : "pt-[60px]",
-        sidebarMode === 'expanded' ? 'pl-[200px]' : 'pl-[60px]'
-      )}>
-        {useShell ? (
-          <DashboardShell>{children}</DashboardShell>
-        ) : (
-          <main className="flex-1 min-w-0">
-            <div className="flex-1 min-h-0 overflow-y-auto p-6 md:p-8">
-              <div className="max-w-7xl mx-auto">{children}</div>
-            </div>
-          </main>
+        {/* Toolbar dynamique (sous le header) — uniquement hors pages detail */}
+        {toolbar && !isDetail && (
+          <div
+            className={cn(
+              "fixed top-[60px] right-0 z-40 transition-all duration-300 ease-in-out",
+              "left-0 lg:left-[60px]",
+              sidebarMode === 'expanded' && "lg:left-[200px]"
+            )}
+          >
+            {toolbar}
+          </div>
         )}
+
+        {/* Sidebar Fixed Left — masquée sur mobile (remplacée par MobileNavDrawer) */}
+        <Sidebar items={backendNavigation} mode={sidebarMode} className="hidden lg:flex" />
+        
+        {/* Mobile Nav Drawer */}
+        <MobileNavDrawer items={backendNavigation} />
+        
+        {/* Contenu principal décalé — pas de padding gauche sur mobile */}
+        <div className={cn(
+          "flex flex-col min-h-screen transition-all duration-300 ease-in-out",
+          (toolbar && !isDetail) ? "pt-[105px]" : "pt-[60px]",
+          "pl-0 lg:pl-[60px]",
+          sidebarMode === 'expanded' && "lg:pl-[200px]"
+        )}>
+          {useShell ? (
+            <DashboardShell>{children}</DashboardShell>
+          ) : (
+            <main className="flex-1 min-w-0">
+              <div className="flex-1 min-h-0 overflow-y-auto p-6 lg:p-8">
+                <div className="max-w-7xl mx-auto">{children}</div>
+              </div>
+            </main>
+          )}
+        </div>
       </div>
-    </div>
+    </MobileNavProvider>
   );
 }
 
