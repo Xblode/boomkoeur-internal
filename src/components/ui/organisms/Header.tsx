@@ -92,8 +92,8 @@ export const Header: React.FC<HeaderProps> = ({
             <Image
               src="/svg/Fichier 2.svg"
               alt="Logo"
-              width={15}
-              height={30}
+              width={20}
+              height={40}
               className="brightness-0 invert"
             />
           </Link>
@@ -228,10 +228,10 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 font-bold text-lg tracking-tight">
             <Image
-              src="/svg/Fichier 4.svg"
+              src="/svg/logo.svg"
               alt="Logo"
               width={120}
-              height={42}
+              height={34}
               className="brightness-0 invert"
             />
           </Link>

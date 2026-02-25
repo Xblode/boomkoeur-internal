@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Calque_2" data-name="Calque 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 653.37 185.6">
+  <defs>
+    <style>
+      .cls-1, .cls-2, .cls-3 {
+        isolation: isolate;
+      }
+
+      .cls-4 {
+        stroke-width: 0px;
+      }
+
+      .cls-2, .cls-3 {
+        font-family: MinionPro-Regular, 'Minion Pro';
+        font-size: 192.58px;
+      }
+
+      .cls-3 {
+        letter-spacing: -.04em;
+      }
+    </style>
+  </defs>
+  <g id="Calque_1-2" data-name="Calque 1-2">
+    <g>
+      <rect class="cls-4" y="85.1" width="67" height="100.5"/>
+      <path class="cls-4" d="m67,5.1h0v67H0C0,35.12,30.02,5.1,67,5.1Z"/>
+      <path class="cls-4" d="m78,5.1h0c36.98,0,67,30.02,67,67h0c0,36.98-30.02,67-67,67h0V5.1h0Z"/>
+    </g>
+    <g class="cls-1">
+      <text class="cls-3" transform="translate(181.75 158.88)"><tspan x="0" y="0">P</tspan></text>
+      <text class="cls-2" transform="translate(285.74 158.88)"><tspan x="0" y="0">er</tspan></text>
+      <text class="cls-2" transform="translate(440.57 158.88)"><tspan x="0" y="0">r</tspan></text>
+      <text class="cls-2" transform="translate(510.48 158.88)"><tspan x="0" y="0">e</tspan></text>
+      <text class="cls-2" transform="translate(594.83 158.88)"><tspan x="0" y="0">t</tspan></text>
+    </g>
+  </g>
+</svg>

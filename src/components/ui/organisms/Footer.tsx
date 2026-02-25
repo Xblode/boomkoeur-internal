@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Twitter, Linkedin, Github } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/hooks';
@@ -35,8 +36,13 @@ export const Footer: React.FC<FooterProps> = ({
           {/* Brand */}
           <div className="col-span-1 md:col-span-2 space-y-4">
             <Link href="/" className="flex items-center gap-2 font-bold text-lg tracking-tight">
-              <div className="h-6 w-6 rounded bg-zinc-900 dark:bg-white" />
-              <span>{siteConfig.name}</span>
+              <Image
+                src="/svg/logo.svg"
+                alt="Logo"
+                width={150}
+                height={35}
+                className="brightness-0 invert"
+              />
             </Link>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-xs leading-relaxed">
               Plateforme tout-en-un pour gérer vos événements, billetterie, finances, contacts et campagnes.
