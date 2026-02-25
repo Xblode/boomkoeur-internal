@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
+import { ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PageSidebar, PageAlert } from '@/components/ui';
 import { useToolbar } from '@/components/providers/ToolbarProvider';
@@ -67,6 +69,7 @@ export function DashboardShell({ children, className }: DashboardShellProps) {
               onSectionChange={pageSidebarConfig.onSectionChange}
               basePath={pageSidebarConfig.basePath}
               compact
+              compactBarInToolbar
             >
               {pageSidebarConfig.children}
             </PageSidebar>
@@ -76,10 +79,55 @@ export function DashboardShell({ children, className }: DashboardShellProps) {
 
       {/* Zone droite : Alert (toujours slot) + Toolbar + Main */}
       <main className="flex-1 min-w-0 flex flex-col min-h-0">
-        {(alertNode || toolbar) && (
+        {(alertNode || toolbar || (hasStandardSidebar && pageSidebarConfig && (pageSidebarConfig.sectionGroups?.some((g) => g.sections.length > 0) || (pageSidebarConfig.sections?.length ?? 0) > 0))) && (
           <div className="shrink-0 flex flex-col z-20">
             {alertNode}
-            {toolbar}
+            {(toolbar || (hasStandardSidebar && pageSidebarConfig && (pageSidebarConfig.sectionGroups?.some((g) => g.sections.length > 0) || (pageSidebarConfig.sections?.length ?? 0) > 0))) && (
+            <div className="flex items-center border-b border-zinc-200 dark:border-zinc-800 bg-backend text-foreground min-h-10">
+              {hasStandardSidebar && pageSidebarConfig && (() => {
+                const groups = pageSidebarConfig.sectionGroups ?? (pageSidebarConfig.sections?.length ? [{ sections: pageSidebarConfig.sections }] : []);
+                const allSections = groups.flatMap((g) => g.sections);
+                if (allSections.length === 0) return null;
+                return (
+                  <div className="lg:hidden flex items-center gap-1 px-2 py-1.5 border-r border-border-custom shrink-0">
+                    {pageSidebarConfig.backLink && (
+                      <Link
+                        href={pageSidebarConfig.backLink.href}
+                        className="p-2 rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 shrink-0 flex items-center justify-center"
+                        title={pageSidebarConfig.backLink.label}
+                      >
+                        <ChevronLeft size={18} />
+                      </Link>
+                    )}
+                    {allSections.map((section) => {
+                      const href = section.href ?? (pageSidebarConfig!.basePath ? (section.slug ? `${pageSidebarConfig!.basePath}${section.slug}` : pageSidebarConfig!.basePath) : undefined);
+                      const active = pageSidebarConfig!.activeSectionId === section.id;
+                      const content = (
+                        <span
+                          className={cn(
+                            'flex items-center justify-center w-8 h-8 rounded-md shrink-0 transition-colors',
+                            active ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:hover:text-zinc-50'
+                          )}
+                          title={section.label}
+                        >
+                          {section.icon}
+                        </span>
+                      );
+                      if (href) {
+                        return <Link key={section.id} href={href} className="shrink-0">{content}</Link>;
+                      }
+                      return (
+                        <button key={section.id} type="button" onClick={() => pageSidebarConfig!.onSectionChange?.(section.id)} className="shrink-0">
+                          {content}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+              {toolbar}
+            </div>
+            )}
           </div>
         )}
 

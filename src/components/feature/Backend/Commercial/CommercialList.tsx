@@ -1124,7 +1124,7 @@ export default function CommercialList({ contacts, isLoading, onRefetch, onConta
         </Table>
       </div>
       ) : (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4">
         {[...filteredContacts, ...(pendingNewContact ? [pendingNewContact] : [])].map((contact) => {
           const isPending = contact.id === PENDING_ID;
           return (

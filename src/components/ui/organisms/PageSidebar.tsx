@@ -34,6 +34,8 @@ export interface PageSidebarProps {
   className?: string;
   /** Mode compact (icônes seules) — utilisé sur mobile */
   compact?: boolean;
+  /** Quand true, la barre compacte est rendue dans la toolbar (par le parent), pas ici */
+  compactBarInToolbar?: boolean;
 }
 
 /**
@@ -59,6 +61,7 @@ export function PageSidebar({
   children,
   className,
   compact = false,
+  compactBarInToolbar = false,
 }: PageSidebarProps) {
   const groups: PageSidebarSectionGroup[] =
     sectionGroups ?? (sections.length > 0 ? [{ sections }] : []);
@@ -67,7 +70,7 @@ export function PageSidebar({
 
   const allSections = groups.flatMap((g) => g.sections);
 
-  const compactBar = compact && allSections.length > 0 ? (
+  const compactBar = compact && !compactBarInToolbar && allSections.length > 0 ? (
     <div
       className={cn(
         'lg:hidden shrink-0 flex flex-col gap-1 py-2 px-1 border-r border-border-custom bg-backend w-[52px]',
