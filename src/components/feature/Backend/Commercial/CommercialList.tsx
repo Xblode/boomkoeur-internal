@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   createCommercialContact,
   updateCommercialContact,
@@ -51,6 +51,8 @@ const STATUS_OPTIONS = [
   { value: 'active' as ContactStatus, label: 'Actif' },
   { value: 'inactive' as ContactStatus, label: 'Inactif' },
 ];
+
+type SortColumn = 'name' | 'type' | 'status' | 'email' | 'phone';
 
 type EditableDetailProps = {
   icon: React.ReactNode;
@@ -291,6 +293,8 @@ export default function CommercialList({ contacts, isLoading, onRefetch, onConta
   }, [editValue]);
   const [popoverOpen, setPopoverOpen] = useState<string | null>(null);
   const [filterPopoverOpen, setFilterPopoverOpen] = useState<'type' | 'status' | null>(null);
+  const [sortBy, setSortBy] = useState<SortColumn | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [contactToDelete, setContactToDelete] = useState<CommercialContact | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
@@ -313,7 +317,9 @@ export default function CommercialList({ contacts, isLoading, onRefetch, onConta
           c.name.toLowerCase().includes(s) ||
           c.company?.toLowerCase().includes(s) ||
           c.email?.toLowerCase().includes(s) ||
-          c.contact_person?.toLowerCase().includes(s)
+          c.contact_person?.toLowerCase().includes(s) ||
+          c.phone?.toLowerCase().includes(s) ||
+          c.mobile?.toLowerCase().includes(s)
       );
     }
     if (typeFilter !== 'all') filtered = filtered.filter((c) => c.type === typeFilter);
@@ -321,6 +327,35 @@ export default function CommercialList({ contacts, isLoading, onRefetch, onConta
     filtered.sort((a, b) => (b.is_favorite ? 1 : 0) - (a.is_favorite ? 1 : 0)); // Favoris en premier
     setFilteredContacts(filtered);
   }, [contacts, searchTerm, typeFilter, statusFilter]);
+
+  const handleSort = (column: SortColumn) => {
+    if (sortBy === column) {
+      setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedContacts = useMemo(() => {
+    if (!sortBy) return filteredContacts;
+    const dir = sortDirection === 'asc' ? 1 : -1;
+    const getValue = (c: CommercialContact) => {
+      switch (sortBy) {
+        case 'name': return (c.name || '').toLowerCase();
+        case 'type': return TYPE_OPTIONS.find((o) => o.value === c.type)?.label ?? '';
+        case 'status': return STATUS_OPTIONS.find((o) => o.value === c.status)?.label ?? '';
+        case 'email': return (c.email || '').toLowerCase();
+        case 'phone': return (c.phone || c.mobile || '').toLowerCase();
+        default: return '';
+      }
+    };
+    return [...filteredContacts].sort((a, b) => {
+      const va = getValue(a);
+      const vb = getValue(b);
+      return dir * va.localeCompare(vb);
+    });
+  }, [filteredContacts, sortBy, sortDirection]);
 
   const handleAddContact = () => {
     setPendingNewContact(createPendingContact());
@@ -650,7 +685,7 @@ export default function CommercialList({ contacts, isLoading, onRefetch, onConta
     );
   }
 
-  const allSelected = filteredContacts.length > 0 && selectedIds.size === filteredContacts.length;
+  const allSelected = sortedContacts.length > 0 && selectedIds.size === sortedContacts.length;
 
   return (
     <div className="w-full space-y-4">
@@ -811,21 +846,56 @@ export default function CommercialList({ contacts, isLoading, onRefetch, onConta
           fillColumn={false}
           selectAllChecked={allSelected}
           onSelectAllChange={(checked) =>
-            setSelectedIds(checked ? new Set(filteredContacts.map((c) => c.id)) : new Set())
+            setSelectedIds(checked ? new Set(sortedContacts.map((c) => c.id)) : new Set())
           }
         >
           <TableHeader>
             <TableRow hoverCellOnly>
-              <TableHead minWidth={140} defaultWidth={200}>Nom</TableHead>
-              <TableHead minWidth={100} defaultWidth={120}>Type</TableHead>
-              <TableHead minWidth={80} defaultWidth={100}>Statut</TableHead>
-              <TableHead minWidth={160} defaultWidth={220}>Mail</TableHead>
-              <TableHead minWidth={120} defaultWidth={140}>Téléphone</TableHead>
+              <TableHead
+                minWidth={140}
+                defaultWidth={200}
+                sortable
+                onSortClick={() => handleSort('name')}
+              >
+                Nom
+              </TableHead>
+              <TableHead
+                minWidth={100}
+                defaultWidth={120}
+                sortable
+                onSortClick={() => handleSort('type')}
+              >
+                Type
+              </TableHead>
+              <TableHead
+                minWidth={80}
+                defaultWidth={100}
+                sortable
+                onSortClick={() => handleSort('status')}
+              >
+                Statut
+              </TableHead>
+              <TableHead
+                minWidth={160}
+                defaultWidth={220}
+                sortable
+                onSortClick={() => handleSort('email')}
+              >
+                Mail
+              </TableHead>
+              <TableHead
+                minWidth={120}
+                defaultWidth={140}
+                sortable
+                onSortClick={() => handleSort('phone')}
+              >
+                Téléphone
+              </TableHead>
               <TableHead align="center" minWidth={48} defaultWidth={48} maxWidth={48} />
             </TableRow>
           </TableHeader>
           <TableBody>
-            {[...filteredContacts, ...(pendingNewContact ? [pendingNewContact] : [])].map((contact) => {
+            {[...sortedContacts, ...(pendingNewContact ? [pendingNewContact] : [])].map((contact) => {
               const isPending = contact.id === PENDING_ID;
               const isExpanded = expandedId === contact.id;
               return (
@@ -1125,7 +1195,7 @@ export default function CommercialList({ contacts, isLoading, onRefetch, onConta
       </div>
       ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4">
-        {[...filteredContacts, ...(pendingNewContact ? [pendingNewContact] : [])].map((contact) => {
+        {[...sortedContacts, ...(pendingNewContact ? [pendingNewContact] : [])].map((contact) => {
           const isPending = contact.id === PENDING_ID;
           return (
             <EditableCard

@@ -79,15 +79,16 @@ export function DashboardShell({ children, className }: DashboardShellProps) {
 
       {/* Zone droite : Alert (toujours slot) + Toolbar + Main */}
       <main className="flex-1 min-w-0 flex flex-col min-h-0">
-        {(alertNode || toolbar || (hasStandardSidebar && pageSidebarConfig && (pageSidebarConfig.sectionGroups?.some((g) => g.sections.length > 0) || (pageSidebarConfig.sections?.length ?? 0) > 0))) && (
+        {(alertNode || toolbar || (hasStandardSidebar && pageSidebarConfig && (pageSidebarConfig.backLink || pageSidebarConfig.sectionGroups?.some((g) => g.sections.length > 0) || (pageSidebarConfig.sections?.length ?? 0) > 0))) && (
           <div className="shrink-0 flex flex-col z-20">
             {alertNode}
-            {(toolbar || (hasStandardSidebar && pageSidebarConfig && (pageSidebarConfig.sectionGroups?.some((g) => g.sections.length > 0) || (pageSidebarConfig.sections?.length ?? 0) > 0))) && (
+            {(toolbar || (hasStandardSidebar && pageSidebarConfig && (pageSidebarConfig.backLink || pageSidebarConfig.sectionGroups?.some((g) => g.sections.length > 0) || (pageSidebarConfig.sections?.length ?? 0) > 0))) && (
             <div className="flex items-center border-b border-zinc-200 dark:border-zinc-800 bg-backend text-foreground min-h-10">
               {hasStandardSidebar && pageSidebarConfig && (() => {
                 const groups = pageSidebarConfig.sectionGroups ?? (pageSidebarConfig.sections?.length ? [{ sections: pageSidebarConfig.sections }] : []);
                 const allSections = groups.flatMap((g) => g.sections);
-                if (allSections.length === 0) return null;
+                const hasContent = pageSidebarConfig.backLink || allSections.length > 0;
+                if (!hasContent) return null;
                 return (
                   <div className="lg:hidden flex items-center gap-1 px-2 py-1.5 border-r border-border-custom shrink-0">
                     {pageSidebarConfig.backLink && (

@@ -4,7 +4,9 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/atoms/Popover';
 import { useTableContext } from './Table.context';
 import { COL_PREFIX } from './Table.types';
 import type { TableHeadProps } from './Table.types';
@@ -23,6 +25,11 @@ const TableHead = React.forwardRef<HTMLTableCellElement, TableHeadProps>(
       status,
       onStatusChange,
       statusContent,
+      filterable,
+      filterContent,
+      filterOpen,
+      onFilterOpenChange,
+      onSortClick,
       children,
       ...props
     },
@@ -130,9 +137,42 @@ const TableHead = React.forwardRef<HTMLTableCellElement, TableHeadProps>(
         <span className="inline-flex items-center gap-1.5">
           {children}
           {sortable && (
-            <span className="text-zinc-400 dark:text-zinc-500 font-normal" aria-hidden>
-              ⇅
-            </span>
+            onSortClick ? (
+              <button
+                type="button"
+                className="p-0.5 rounded text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-normal"
+                aria-label="Trier par colonne"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSortClick();
+                }}
+              >
+                ⇅
+              </button>
+            ) : (
+              <span className="text-zinc-400 dark:text-zinc-500 font-normal" aria-hidden>
+                ⇅
+              </span>
+            )
+          )}
+          {filterable && filterContent && (
+            <Popover
+              {...(onFilterOpenChange != null ? { open: filterOpen, onOpenChange: onFilterOpenChange } : {})}
+            >
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="p-0.5 rounded text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  aria-label="Filtrer par colonne"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Filter size={14} />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-1" align="start">
+                {filterContent}
+              </PopoverContent>
+            </Popover>
           )}
         </span>
         {isResizing && (

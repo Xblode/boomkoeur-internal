@@ -33,6 +33,7 @@ export function CommercialLayoutConfig({ children }: { children: React.ReactNode
   useEffect(() => {
     setMaxWidth('6xl');
     setPageSidebarConfig({
+      backLink: { href: '/dashboard', label: 'Retour au tableau de bord' },
       sections: COMMERCIAL_SECTIONS,
       activeSectionId: activeSection,
       onSectionChange: (id) => setActiveSection(id as CommercialSectionId),

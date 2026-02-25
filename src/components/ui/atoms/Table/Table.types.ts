@@ -131,6 +131,16 @@ export interface TableHeadProps extends React.HTMLAttributes<HTMLTableCellElemen
   onStatusChange?: () => void;
   /** Identifiant unique pour le DnD des colonnes (requis si reorderableColumns) */
   columnId?: string;
+  /** Affiche une icône filtre à droite du titre ; au clic, ouvre filterContent */
+  filterable?: boolean;
+  /** Contenu du popover de filtre (ex: options Type, Statut) */
+  filterContent?: React.ReactNode;
+  /** État contrôlé du popover filtre */
+  filterOpen?: boolean;
+  /** Callback quand le popover filtre s'ouvre/ferme */
+  onFilterOpenChange?: (open: boolean) => void;
+  /** Callback quand on clique sur l'icône de tri (sortable) */
+  onSortClick?: () => void;
 }
 
 export interface TableCellSelectOption {
