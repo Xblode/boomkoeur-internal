@@ -30,6 +30,7 @@ const TableHead = React.forwardRef<HTMLTableCellElement, TableHeadProps>(
       filterOpen,
       onFilterOpenChange,
       onSortClick,
+      centerContent,
       children,
       ...props
     },
@@ -121,7 +122,7 @@ const TableHead = React.forwardRef<HTMLTableCellElement, TableHeadProps>(
       <th
         ref={setRef}
         className={cn(
-          'relative px-3 py-2.5 text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400',
+          'relative w-full h-full px-2 py-2.5 text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400',
           'transition-colors rounded hover:bg-zinc-100 dark:hover:bg-zinc-800/50',
           align === 'center' && 'text-center',
           align === 'right' && 'text-right',
@@ -134,7 +135,7 @@ const TableHead = React.forwardRef<HTMLTableCellElement, TableHeadProps>(
         {...(reorderableColumns && sortableId ? listeners : {})}
         {...props}
       >
-        <span className="inline-flex items-center gap-1.5">
+        <span className={cn('inline-flex w-full h-full items-center gap-1.5', centerContent && 'justify-center')}>
           {children}
           {sortable && (
             onSortClick ? (

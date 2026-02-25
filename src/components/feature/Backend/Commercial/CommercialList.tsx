@@ -694,34 +694,34 @@ export default function CommercialList({ contacts, isLoading, onRefetch, onConta
         title="Commercial"
         subtitle="Gérez vos contacts, partenaires et fournisseurs"
         actions={
-          <Button variant="primary" size="sm" onClick={handleAddContact}>
-            <Plus size={14} className="mr-1.5" />
-            Nouveau contact
-          </Button>
+            <Button variant="primary" size="sm" onClick={handleAddContact}>
+              <Plus size={14} className="mr-1.5" />
+              Nouveau contact
+            </Button>
         }
         filters={
           <div className="flex items-end gap-2 md:grid md:grid-cols-3 md:gap-4">
             {/* Recherche: ~50% sur mobile, 1 col sur desktop */}
             <div className="min-w-0 flex-[2] md:col-span-1">
-              <SearchInput
-                label="Recherche"
-                placeholder="Nom, société, email..."
-                value={searchTerm}
-                onChange={setSearchTerm}
-              />
+            <SearchInput
+              label="Recherche"
+              placeholder="Nom, société, email..."
+              value={searchTerm}
+              onChange={setSearchTerm}
+            />
             </div>
             {/* Type: Select sur desktop, icône + Popover sur mobile */}
             <div className="hidden md:block">
-              <FilterField label="Type">
-                <Select
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value as ContactType | 'all')}
-                  options={[
-                    { value: 'all', label: 'Tous les types' },
-                    ...TYPE_OPTIONS,
-                  ]}
-                />
-              </FilterField>
+            <FilterField label="Type">
+              <Select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value as ContactType | 'all')}
+                options={[
+                  { value: 'all', label: 'Tous les types' },
+                  ...TYPE_OPTIONS,
+                ]}
+              />
+            </FilterField>
             </div>
             <div className="shrink-0 md:hidden">
               <Popover
@@ -765,16 +765,16 @@ export default function CommercialList({ contacts, isLoading, onRefetch, onConta
             </div>
             {/* Statut: Select sur desktop, icône + Popover sur mobile */}
             <div className="hidden md:block">
-              <FilterField label="Statut">
-                <Select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as ContactStatus | 'all')}
-                  options={[
-                    { value: 'all', label: 'Tous les statuts' },
-                    ...STATUS_OPTIONS,
-                  ]}
-                />
-              </FilterField>
+            <FilterField label="Statut">
+              <Select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as ContactStatus | 'all')}
+                options={[
+                  { value: 'all', label: 'Tous les statuts' },
+                  ...STATUS_OPTIONS,
+                ]}
+              />
+            </FilterField>
             </div>
             <div className="shrink-0 md:hidden">
               <Popover
@@ -830,8 +830,8 @@ export default function CommercialList({ contacts, isLoading, onRefetch, onConta
           onChange={setViewMode}
         />
         <span className="text-sm text-zinc-600 dark:text-zinc-400">
-          {filteredContacts.length} contact{filteredContacts.length !== 1 ? 's' : ''}
-          {filteredContacts.length !== contacts.length && ` sur ${contacts.length}`}
+        {filteredContacts.length} contact{filteredContacts.length !== 1 ? 's' : ''}
+        {filteredContacts.length !== contacts.length && ` sur ${contacts.length}`}
         </span>
       </div>
 
@@ -963,7 +963,7 @@ export default function CommercialList({ contacts, isLoading, onRefetch, onConta
                         <Badge variant={TYPE_BADGE_VARIANT[contact.type]} className="text-xs">
                           {getTypeLabel(contact.type)}
                         </Badge>
-                      </div>
+    </div>
                     ) : (
                       <Popover
                         open={popoverOpen === `${contact.id}-type`}

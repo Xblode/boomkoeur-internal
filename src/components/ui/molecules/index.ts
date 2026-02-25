@@ -22,6 +22,9 @@ export type { SearchInputProps } from './SearchInput';
 export { DatePicker, TimePicker } from './DatePicker';
 export type { DatePickerProps, TimePickerProps } from './DatePicker';
 
+export { SelectPicker } from './SelectPicker';
+export type { SelectPickerProps, SelectPickerOption } from './SelectPicker';
+
 export { EventSelector } from './EventSelector';
 export type { EventSelectorProps } from './EventSelector';
 

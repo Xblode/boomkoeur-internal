@@ -90,6 +90,30 @@ function meetingToDbPayload(meeting: Partial<Meeting> | Partial<MeetingInput>): 
   };
 }
 
+/** Construit un payload partiel pour les mises à jour (n'envoie que les champs fournis) */
+function buildPartialUpdatePayload(updates: Partial<Meeting> | Partial<MeetingInput>): Record<string, unknown> {
+  const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (updates.title !== undefined) payload.title = updates.title ?? '';
+  if (updates.description !== undefined) payload.description = updates.description ?? null;
+  if (updates.date !== undefined) payload.date = updates.date instanceof Date ? updates.date.toISOString() : updates.date;
+  if (updates.startTime !== undefined) payload.start_time = updates.startTime ?? '09:00';
+  if (updates.endTime !== undefined) payload.end_time = updates.endTime ?? '10:00';
+  if (updates.location !== undefined) payload.location = updates.location ?? null;
+  if (updates.participants !== undefined) payload.participants = updates.participants ?? [];
+  if (updates.status !== undefined) payload.status = updates.status ?? 'upcoming';
+  if (updates.agenda !== undefined) payload.agenda = updates.agenda ?? [];
+  if (updates.minutes !== undefined) {
+    const m = updates.minutes;
+    payload.minutes = {
+      freeText: m.freeText ?? '',
+      createdAt: m.createdAt instanceof Date ? m.createdAt.toISOString() : m.createdAt,
+      updatedAt: m.updatedAt instanceof Date ? m.updatedAt.toISOString() : m.updatedAt,
+    };
+  }
+  if (updates.calendar_event_id !== undefined) payload.calendar_event_id = updates.calendar_event_id ?? null;
+  return payload;
+}
+
 // --- API ---
 
 export async function getMeetings(): Promise<Meeting[]> {
@@ -134,7 +158,7 @@ export async function createMeeting(input: MeetingInput): Promise<Meeting> {
 }
 
 export async function updateMeeting(id: string, updates: Partial<MeetingInput>): Promise<Meeting | null> {
-  const payload = meetingToDbPayload(updates);
+  const payload = buildPartialUpdatePayload(updates);
   const { data, error } = await supabase
     .from('meetings')
     .update(payload)

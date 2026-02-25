@@ -13,6 +13,8 @@ interface EditTransactionModalProps {
   onClose: () => void
   onSuccess: () => void
   transaction: Transaction | null
+  /** Quand true, rend le formulaire sans wrapper Modal (pour panneau latéral) */
+  renderAsPanel?: boolean
 }
 
 export default function EditTransactionModal({
@@ -20,6 +22,7 @@ export default function EditTransactionModal({
   onClose,
   onSuccess,
   transaction,
+  renderAsPanel = false,
 }: EditTransactionModalProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -225,14 +228,8 @@ export default function EditTransactionModal({
     return null
   }
 
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Modifier la transaction"
-      size="lg"
-      scrollable={true}
-    >
+  const formContent = (
+    <>
       {error && (
         <div className="mb-4 p-4 bg-red-500/10 border-2 border-red-500 rounded">
           <p className="font-body text-sm text-red-400">{error}</p>
@@ -507,7 +504,53 @@ export default function EditTransactionModal({
           />
         </div>
       </form>
+    </>
+  )
 
+  const footerContent = (
+    <div className="flex items-center justify-end gap-2 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onClose}
+        disabled={loading}
+        type="button"
+      >
+        Annuler
+      </Button>
+      <Button
+        variant="primary"
+        size="sm"
+        onClick={(e) => {
+          e.preventDefault()
+          handleSubmit(e)
+        }}
+        disabled={loading || updateTags.isLoading}
+        type="submit"
+      >
+        {loading || updateTags.isLoading ? 'Modification...' : 'Enregistrer'}
+      </Button>
+    </div>
+  )
+
+  if (renderAsPanel) {
+    return (
+      <>
+        {formContent}
+        {footerContent}
+      </>
+    )
+  }
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Modifier la transaction"
+      size="lg"
+      scrollable={true}
+    >
+      {formContent}
       <ModalFooter>
         <Button
           variant="outline"

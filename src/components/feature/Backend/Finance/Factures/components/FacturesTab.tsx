@@ -3,20 +3,29 @@
 import { useState, useEffect, useMemo } from 'react'
 import { financeDataService } from '@/lib/services/FinanceDataService'
 import { Button } from '@/components/ui/atoms'
-import { Edit2, Download, Check, Trash2, FileText, Plus } from 'lucide-react'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/atoms'
+import { Edit2, Download, Check, Trash2, FileText, Plus, MoreVertical } from 'lucide-react'
 import type { Invoice, InvoiceLine } from '@/types/finance'
 import EditInvoiceModal from '../modals/EditInvoiceModal'
 import ViewInvoiceModal from '../modals/ViewInvoiceModal'
 import { generateInvoicePDF } from '@/lib/utils/finance/pdf-generator'
 import {
   LoadingState,
-  DataTable,
-  Column,
-  StatusBadge,
-  EmptyState
+  TablePagination,
+  EmptyState,
 } from '../../shared/components'
+import { Badge, Popover, PopoverTrigger, PopoverContent } from '@/components/ui/atoms'
+import { SelectPicker } from '@/components/ui/molecules'
 
 type FilterStatus = 'all' | 'quote' | 'pending' | 'paid' | 'overdue'
+type SortColumn = 'client_name' | 'invoice_number' | 'client_type' | 'category' | 'total_incl_tax' | 'due_date' | 'status'
 
 interface FacturesTabProps {
   filterStatus?: FilterStatus
@@ -26,10 +35,16 @@ interface FacturesTabProps {
   refreshTrigger?: number
 }
 
-export default function FacturesTab({ filterStatus: externalFilterStatus, selectedYear, onCreateInvoice, onError, refreshTrigger }: FacturesTabProps) {
+export default function FacturesTab({
+  filterStatus: externalFilterStatus,
+  selectedYear,
+  onCreateInvoice,
+  onError,
+  refreshTrigger,
+}: FacturesTabProps) {
   const filterStatus = externalFilterStatus ?? 'all'
   const year = selectedYear ?? new Date().getFullYear()
-  const [searchQuery, setSearchQuery] = useState('')
+
   const [invoices, setInvoices] = useState<(Invoice & { invoice_lines: InvoiceLine[] })[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -37,7 +52,12 @@ export default function FacturesTab({ filterStatus: externalFilterStatus, select
   const [showViewInvoiceModal, setShowViewInvoiceModal] = useState(false)
   const [viewingInvoice, setViewingInvoice] = useState<(Invoice & { invoice_lines: InvoiceLine[] }) | null>(null)
   const [editingInvoice, setEditingInvoice] = useState<(Invoice & { invoice_lines: InvoiceLine[] }) | null>(null)
-  const [hoveredRow, setHoveredRow] = useState<string | null>(null)
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [sortBy, setSortBy] = useState<SortColumn | null>(null)
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   useEffect(() => {
     loadInvoices()
@@ -49,9 +69,7 @@ export default function FacturesTab({ filterStatus: externalFilterStatus, select
       setError(null)
       onError?.(null)
       const filters: { status?: string; year?: number } = {}
-      if (filterStatus !== 'all') {
-        filters.status = filterStatus
-      }
+      if (filterStatus !== 'all') filters.status = filterStatus
       filters.year = year
       const data = await financeDataService.getInvoices(filters)
       setInvoices(data || [])
@@ -66,39 +84,84 @@ export default function FacturesTab({ filterStatus: externalFilterStatus, select
     }
   }
 
-  // Filtrer les factures
-  const filteredInvoices = useMemo(() => {
-    return invoices.filter((inv) => {
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase()
-        return (
-          inv.invoice_number.toLowerCase().includes(query) ||
-          inv.client_name.toLowerCase().includes(query)
-        )
+  const filteredInvoices = useMemo(() => invoices, [invoices])
+
+  const handleSort = (column: SortColumn) => {
+    if (sortBy === column) {
+      setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortBy(column)
+      setSortDirection('asc')
+    }
+  }
+
+  const sortedInvoices = useMemo(() => {
+    if (!sortBy) return filteredInvoices
+    const dir = sortDirection === 'asc' ? 1 : -1
+    const getValue = (inv: Invoice & { invoice_lines: InvoiceLine[] }) => {
+      switch (sortBy) {
+        case 'client_name':
+          return (inv.client_name || '').toLowerCase()
+        case 'invoice_number':
+          return (inv.invoice_number || '').toLowerCase()
+        case 'client_type':
+          return inv.client_type || ''
+        case 'category':
+          return (inv.category || '').toLowerCase()
+        case 'total_incl_tax':
+          return inv.total_incl_tax ?? 0
+        case 'due_date':
+          return inv.due_date ? new Date(inv.due_date).getTime() : 0
+        case 'status':
+          return inv.status || ''
+        default:
+          return ''
       }
-      return true
+    }
+    return [...filteredInvoices].sort((a, b) => {
+      const va = getValue(a)
+      const vb = getValue(b)
+      if (typeof va === 'number' && typeof vb === 'number') return dir * (va - vb)
+      return dir * String(va).localeCompare(String(vb))
     })
-  }, [invoices, searchQuery])
+  }, [filteredInvoices, sortBy, sortDirection])
+
+  const paginatedInvoices = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    return sortedInvoices.slice(startIndex, startIndex + itemsPerPage)
+  }, [sortedInvoices, currentPage])
+
+  const totalPages = Math.ceil(sortedInvoices.length / itemsPerPage)
+
+  const handleView = (invoice: Invoice & { invoice_lines: InvoiceLine[] }) => {
+    setViewingInvoice(invoice)
+    setShowViewInvoiceModal(true)
+  }
+
+  const handleEdit = (invoice: Invoice & { invoice_lines: InvoiceLine[] }) => {
+    setEditingInvoice(invoice)
+    setShowEditInvoiceModal(true)
+  }
 
   const handleMarkAsPaid = async (invoice: Invoice) => {
-    if (confirm('Marquer cette facture comme payee ? Une transaction sera automatiquement creee.')) {
+    if (confirm('Marquer cette facture comme payée ? Une transaction sera automatiquement créée.')) {
       try {
         await financeDataService.markInvoiceAsPaid(invoice.id!)
         await loadInvoices()
-      } catch (error) {
-        console.error('Erreur:', error)
-        alert('Erreur lors de la mise a jour')
+      } catch (err) {
+        console.error('Erreur:', err)
+        alert('Erreur lors de la mise à jour')
       }
     }
   }
 
   const handleDelete = async (invoice: Invoice) => {
-    if (confirm('Etes-vous sur de vouloir supprimer cette facture ?')) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')) {
       try {
         await financeDataService.deleteInvoice(invoice.id!)
         await loadInvoices()
-      } catch (error) {
-        console.error('Erreur:', error)
+      } catch (err) {
+        console.error('Erreur:', err)
         alert('Erreur lors de la suppression')
       }
     }
@@ -107,261 +170,299 @@ export default function FacturesTab({ filterStatus: externalFilterStatus, select
   const handleDownloadPDF = async (invoice: Invoice & { invoice_lines: InvoiceLine[] }) => {
     try {
       await generateInvoicePDF(invoice)
-    } catch (error) {
-      console.error('Erreur lors de la generation du PDF:', error)
-      alert('Erreur lors de la generation du PDF')
+    } catch (err) {
+      console.error('Erreur lors de la génération du PDF:', err)
+      alert('Erreur lors de la génération du PDF')
     }
   }
 
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'paid': return 'success'
-      case 'quote': return 'default'
-      case 'overdue': return 'danger'
-      default: return 'warning'
+  const invoiceCategories = useMemo(() => {
+    const cats = new Set<string>()
+    invoices.forEach((inv) => { if (inv.category) cats.add(inv.category) })
+    return Array.from(cats).sort()
+  }, [invoices])
+
+  const updateClientType = async (inv: Invoice & { invoice_lines: InvoiceLine[] }, clientType: 'client' | 'supplier') => {
+    try {
+      await financeDataService.updateInvoice(inv.id, { invoice: { client_type: clientType } })
+      await loadInvoices()
+    } catch (err) {
+      console.error('Erreur:', err)
     }
   }
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'paid': return 'Payee'
-      case 'quote': return 'Devis'
-      case 'overdue': return 'En retard'
-      default: return 'En attente'
+  const updateCategory = async (inv: Invoice & { invoice_lines: InvoiceLine[] }, category: string) => {
+    try {
+      await financeDataService.updateInvoice(inv.id, { invoice: { category: category || undefined } })
+      await loadInvoices()
+    } catch (err) {
+      console.error('Erreur:', err)
     }
   }
 
-  const getTypeLabel = (type: string) => {
-    return type === 'invoice' ? 'Facture' : 'Devis'
+  const updateStatus = async (inv: Invoice & { invoice_lines: InvoiceLine[] }, status: string) => {
+    try {
+      await financeDataService.updateInvoice(inv.id, { invoice: { status: status as Invoice['status'] } })
+      await loadInvoices()
+    } catch (err) {
+      console.error('Erreur:', err)
+    }
   }
-
-  const getTypeVariant = (type: string) => {
-    return type === 'invoice' ? 'success' : 'info'
-  }
-
-  const getClientTypeLabel = (clientType?: string) => {
-    if (!clientType) return 'Client'
-    return clientType === 'client' ? 'Client' : 'Fournisseur'
-  }
-
-  const getClientTypeVariant = (clientType?: string) => {
-    return clientType === 'supplier' ? 'warning' : 'info'
-  }
-
-  const getCategoryStyle = (category?: string) => {
-    if (!category) return 'bg-zinc-100 text-zinc-500 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700'
-    
-    const hash = category.split('').reduce((acc, char) => char.charCodeAt(0) + acc, 0)
-    const styles = [
-      'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800',
-      'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800',
-      'bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-900/20 dark:text-pink-300 dark:border-pink-800',
-      'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800',
-      'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800',
-      'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800',
-      'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/20 dark:text-teal-300 dark:border-teal-800',
-      'bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-900/20 dark:text-cyan-300 dark:border-cyan-800',
-      'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-300 dark:border-indigo-800',
-      'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-900/20 dark:text-violet-300 dark:border-violet-800',
-    ]
-    return styles[hash % styles.length]
-  }
-
-  const tableColumns: Column<Invoice & { invoice_lines: InvoiceLine[] }>[] = [
-    {
-      key: 'invoice_number',
-      label: 'No Facture',
-      sortable: true,
-      width: 'w-auto',
-      render: (invoice) => (
-        <span className="font-mono text-xs text-zinc-500 whitespace-nowrap">{invoice.invoice_number}</span>
-      ),
-    },
-    {
-      key: 'type',
-      label: 'Type',
-      sortable: true,
-      width: 'w-auto',
-      render: (invoice) => (
-        <StatusBadge
-          label={getTypeLabel(invoice.type)}
-          variant={getTypeVariant(invoice.type)}
-          className="px-2 py-0.5 text-[10px] uppercase tracking-wide"
-          showIcon={false}
-        />
-      ),
-    },
-    {
-      key: 'client_name',
-      label: 'Client',
-      sortable: true,
-      width: 'w-full',
-      render: (invoice) => (
-        <div className="flex items-center justify-between gap-2 h-full group/row">
-          <div className="truncate min-w-0">
-            <div className="font-medium text-sm text-zinc-900 dark:text-zinc-100 truncate">{invoice.client_name}</div>
-          </div>
-          {hoveredRow === invoice.id && (
-            <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setEditingInvoice(invoice)
-                  setShowEditInvoiceModal(true)
-                }}
-                className="h-6 w-6 p-0 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600"
-                title="Modifier"
-              >
-                <Edit2 className="w-3.5 h-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDownloadPDF(invoice)}
-                className="h-6 w-6 p-0 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600"
-                title="Telecharger PDF"
-              >
-                <Download className="w-3.5 h-3.5" />
-              </Button>
-              {invoice.status !== 'paid' && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleMarkAsPaid(invoice)}
-                  className="h-6 w-6 p-0 hover:bg-green-50 dark:hover:bg-green-900/20 text-zinc-400 hover:text-green-500"
-                  title="Marquer comme payee"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDelete(invoice)}
-                className="h-6 w-6 p-0 hover:bg-red-50 dark:hover:bg-red-900/20 text-zinc-400 hover:text-red-500"
-                title="Supprimer"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'client_type',
-      label: 'Type Client',
-      sortable: true,
-      width: 'w-auto',
-      render: (invoice) => (
-        <StatusBadge
-          label={getClientTypeLabel(invoice.client_type)}
-          variant={getClientTypeVariant(invoice.client_type)}
-          className="px-2 py-0.5 text-[10px]"
-          showIcon={false}
-        />
-      ),
-    },
-    {
-      key: 'category',
-      label: 'Categorie',
-      sortable: true,
-      width: 'w-auto',
-      render: (invoice) => (
-        invoice.category ? (
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-md border text-[10px] font-medium whitespace-nowrap transition-colors ${getCategoryStyle(invoice.category)}`}>
-            {invoice.category}
-          </span>
-        ) : (
-          <span className="text-xs text-zinc-400 whitespace-nowrap">-</span>
-        )
-      ),
-    },
-    {
-      key: 'total_incl_tax',
-      label: 'Montant TTC',
-      sortable: true,
-      width: 'w-auto',
-      align: 'right',
-      render: (invoice) => (
-        <span className="font-mono font-bold text-zinc-900 dark:text-zinc-100 text-sm whitespace-nowrap">
-          {(invoice.total_incl_tax || 0).toLocaleString('fr-FR')} EUR
-        </span>
-      ),
-    },
-    {
-      key: 'due_date',
-      label: 'Echeance',
-      sortable: true,
-      width: 'w-auto',
-      render: (invoice) => (
-        invoice.due_date ? (
-          <span className="font-mono text-xs text-zinc-500 whitespace-nowrap">
-            {new Date(invoice.due_date).toLocaleDateString('fr-FR')}
-          </span>
-        ) : (
-          <span className="text-xs text-zinc-500 whitespace-nowrap">-</span>
-        )
-      ),
-    },
-    {
-      key: 'status',
-      label: 'Statut',
-      width: 'w-auto',
-      align: 'right',
-      render: (invoice) => (
-        <StatusBadge
-          label={getStatusLabel(invoice.status)}
-          variant={getStatusVariant(invoice.status)}
-          className="px-2 py-0.5 text-[10px]"
-          showIcon={true}
-        />
-      ),
-    },
-  ]
 
   if (loading) {
     return <LoadingState message="Chargement des factures..." className="h-96" />
   }
 
+  const allSelected = paginatedInvoices.length > 0 && selectedIds.size === paginatedInvoices.length
+
   return (
     <div className="space-y-6">
-      {/* Vue Liste */}
-      <DataTable
-        data={filteredInvoices}
-        columns={tableColumns}
-        onRowClick={(invoice) => {
-          setViewingInvoice(invoice)
-          setShowViewInvoiceModal(true)
-        }}
-        onRowHover={setHoveredRow}
-        emptyMessage="Aucune facture a afficher"
-        emptyState={
-          <EmptyState
-            icon={FileText}
-            title="Aucune facture"
-            description="Creez votre premiere facture ou devis pour commencer."
-            action={
-              onCreateInvoice && (
-                <Button variant="primary" size="sm" onClick={onCreateInvoice}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nouvelle facture
-                </Button>
-              )
+      {paginatedInvoices.length === 0 ? (
+        <EmptyState
+          icon={FileText}
+          title="Aucune facture"
+          description="Créez votre première facture ou devis pour commencer."
+          action={
+            onCreateInvoice && (
+              <Button variant="primary" size="sm" onClick={onCreateInvoice}>
+                <Plus className="w-4 h-4 mr-2" />
+                Nouvelle facture
+              </Button>
+            )
+          }
+        />
+      ) : (
+        <div className="rounded-xl overflow-visible">
+          <Table
+            variant="default"
+            resizable={false}
+            statusColumn={false}
+            fillColumn={false}
+            selectionColumn
+            addable={!!onCreateInvoice}
+            onAddRow={onCreateInvoice ? () => onCreateInvoice() : undefined}
+            selectAllChecked={allSelected}
+            onSelectAllChange={(checked) =>
+              setSelectedIds(checked ? new Set(paginatedInvoices.map((i) => i.id)) : new Set())
             }
-          />
-        }
-      />
+          >
+            <TableHeader>
+              <TableRow hoverCellOnly>
+                <TableHead minWidth={180} defaultWidth={220} sortable onSortClick={() => handleSort('client_name')}>
+                  Client
+                </TableHead>
+                <TableHead minWidth={100} defaultWidth={120} sortable onSortClick={() => handleSort('invoice_number')}>
+                  N° Facture
+                </TableHead>
+                <TableHead minWidth={100} defaultWidth={120} sortable onSortClick={() => handleSort('client_type')}>
+                  Type client
+                </TableHead>
+                <TableHead minWidth={120} defaultWidth={140} sortable onSortClick={() => handleSort('category')}>
+                  Catégorie
+                </TableHead>
+                <TableHead minWidth={100} defaultWidth={120} align="center" sortable onSortClick={() => handleSort('total_incl_tax')}>
+                  Montant
+                </TableHead>
+                <TableHead minWidth={95} defaultWidth={110} sortable onSortClick={() => handleSort('due_date')}>
+                  Échéance
+                </TableHead>
+                <TableHead minWidth={90} defaultWidth={120} align="center" sortable onSortClick={() => handleSort('status')}>
+                  Statut
+                </TableHead>
+                <TableHead align="center" centerContent minWidth={48} defaultWidth={48} maxWidth={48}>
+                  +
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedInvoices.map((inv) => (
+                <TableRow
+                  key={inv.id}
+                  selected={selectedIds.has(inv.id)}
+                  onSelectChange={(checked) =>
+                    setSelectedIds((prev) => {
+                      const next = new Set(prev)
+                      if (checked) next.add(inv.id)
+                      else next.delete(inv.id)
+                      return next
+                    })
+                  }
+                >
+                  <TableCell
+                    noHoverBorder
+                    className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                    onClick={() => handleView(inv)}
+                  >
+                    <div className="flex items-center justify-between gap-2 h-full group/row">
+                      <div className="truncate min-w-0 flex-1">
+                        <div className="font-medium text-sm text-zinc-900 dark:text-zinc-100 truncate">
+                          {inv.client_name}
+                        </div>
+                      </div>
+                      <div
+                        className="shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleEdit(inv)
+                          }}
+                          className="h-6 w-6 p-0 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600"
+                          title="Modifier"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50" onClick={() => handleView(inv)}>
+                    <span className="font-mono text-xs text-zinc-500 whitespace-nowrap">{inv.invoice_number}</span>
+                  </TableCell>
+                  <TableCell className="p-0">
+                    <SelectPicker
+                      variant="table"
+                      size="xs"
+                      value={inv.client_type || 'client'}
+                      onChange={(v) => updateClientType(inv, v as 'client' | 'supplier')}
+                      options={[
+                        { value: 'client', label: 'Client' },
+                        { value: 'supplier', label: 'Fournisseur' },
+                      ]}
+                      placeholder="Type client"
+                      className="w-full h-8 min-h-8"
+                    />
+                  </TableCell>
+                  <TableCell className="p-0">
+                    <SelectPicker
+                      variant="table"
+                      size="xs"
+                      value={inv.category || ''}
+                      onChange={(v) => updateCategory(inv, v)}
+                      options={[
+                        { value: '', label: 'Catégorie' },
+                        ...invoiceCategories.map((c) => ({ value: c, label: c })),
+                      ]}
+                      placeholder="Catégorie"
+                      searchable
+                      searchPlaceholder="Rechercher une catégorie..."
+                      className="w-full h-8 min-h-8"
+                    />
+                  </TableCell>
+                  <TableCell align="right" className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50" onClick={() => handleView(inv)}>
+                    <span className="font-mono font-bold text-sm text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
+                      {(inv.total_incl_tax || 0).toLocaleString('fr-FR')} €
+                    </span>
+                  </TableCell>
+                  <TableCell className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50" onClick={() => handleView(inv)}>
+                    {inv.due_date ? (
+                      <span className="font-mono text-xs text-zinc-500 whitespace-nowrap">
+                        {new Date(inv.due_date).toLocaleDateString('fr-FR')}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-zinc-400">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell align="center" className="p-0">
+                    <SelectPicker
+                      variant="table"
+                      size="xs"
+                      value={inv.status}
+                      onChange={(v) => updateStatus(inv, v)}
+                      options={[
+                        { value: 'quote', label: 'Devis' },
+                        { value: 'pending', label: 'En attente' },
+                        { value: 'paid', label: 'Payée' },
+                        { value: 'overdue', label: 'En retard' },
+                        { value: 'cancelled', label: 'Annulée' },
+                      ]}
+                      placeholder="Statut"
+                      className="w-full h-8 min-h-8"
+                    />
+                  </TableCell>
+                  <TableCell noHoverBorder className="p-0 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="w-full h-full min-h-8 flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400"
+                          title="Actions"
+                        >
+                          <MoreVertical className="w-3.5 h-3.5" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-1" align="end">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(inv)}
+                          className="w-full justify-start"
+                        >
+                          <Edit2 className="w-3.5 h-3.5 mr-2" />
+                          Modifier
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDownloadPDF(inv)}
+                          className="w-full justify-start"
+                        >
+                          <Download className="w-3.5 h-3.5 mr-2" />
+                          Télécharger PDF
+                        </Button>
+                        {inv.status !== 'paid' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleMarkAsPaid(inv)}
+                            className="w-full justify-start text-green-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+                          >
+                            <Check className="w-3.5 h-3.5 mr-2" />
+                            Marquer comme payée
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(inv)}
+                          className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-2" />
+                          Supprimer
+                        </Button>
+                      </PopoverContent>
+                    </Popover>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
-      {/* Modals */}
+      {totalPages > 1 && (
+        <TablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={sortedInvoices.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+        />
+      )}
+
       <EditInvoiceModal
         isOpen={showEditInvoiceModal}
         onClose={() => {
           setShowEditInvoiceModal(false)
           setEditingInvoice(null)
         }}
-        onSuccess={loadInvoices}
+        onSuccess={() => {
+          loadInvoices()
+          setShowEditInvoiceModal(false)
+          setEditingInvoice(null)
+        }}
         invoice={editingInvoice}
       />
 

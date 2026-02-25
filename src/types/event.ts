@@ -18,7 +18,7 @@ export interface Artist {
 
 export interface LinkedElement {
   id: string;
-  type: 'campaign' | 'transaction';
+  type: 'campaign' | 'transaction' | 'budget';
   label: string;
 }
 
@@ -71,6 +71,7 @@ export interface ComWorkflow {
     eventDayPassed?: boolean;
     photosPublished?: boolean;
     statsAnalyzed?: boolean;
+    securityContacted?: boolean;
   };
   shotgunUrl?: string;
   posts?: ComWorkflowPost[];
@@ -90,6 +91,9 @@ export interface Event {
   date: Date;
   endTime?: string;
   location: string;
+  /** Brief de campagne (étape 1 communication) */
+  brief?: string;
+  /** Bio / description publique de l'événement */
   description: string;
   status: EventStatus;
   artists: Artist[];

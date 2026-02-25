@@ -34,7 +34,7 @@ export function EventLinkedSection() {
           {event.linkedElements.map((element) => (
             <div key={element.id} className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg flex items-center gap-2">
               <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400 uppercase">
-                {element.type === 'campaign' ? 'Campagne' : 'Transaction'}
+                {element.type === 'campaign' ? 'Campagne' : element.type === 'budget' ? 'Budget' : 'Transaction'}
               </span>
               <span className="text-zinc-400">•</span>
               <span className="text-sm">{element.label}</span>

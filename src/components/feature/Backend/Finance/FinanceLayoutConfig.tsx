@@ -45,7 +45,7 @@ const VALID_SECTIONS: FinanceSectionId[] = ['tresorerie', 'transactions', 'budge
 
 export function FinanceLayoutConfig({ children }: { children: React.ReactNode }) {
   const { setPageSidebarConfig } = usePageSidebar();
-  const { setMaxWidth } = usePageLayout();
+  const { setMaxWidth, setFullBleed } = usePageLayout();
   const searchParams = useSearchParams();
 
   const sectionFromUrl = searchParams.get('section') as FinanceSectionId | null;
@@ -63,6 +63,7 @@ export function FinanceLayoutConfig({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     setMaxWidth('6xl');
+    setFullBleed(false);
     setPageSidebarConfig({
       backLink: { href: '/dashboard', label: 'Retour au dashboard' },
       entitySelector: (
@@ -79,8 +80,11 @@ export function FinanceLayoutConfig({ children }: { children: React.ReactNode })
       activeSectionId: activeSection,
       onSectionChange: (id) => setActiveSection(id as FinanceSectionId),
     });
-    return () => setPageSidebarConfig(null);
-  }, [activeSection, selectedYear, setPageSidebarConfig, setMaxWidth]);
+    return () => {
+      setPageSidebarConfig(null);
+      setFullBleed(false);
+    };
+  }, [activeSection, selectedYear, setPageSidebarConfig, setMaxWidth, setFullBleed]);
 
   return (
     <FinanceLayoutContext.Provider value={{ activeSection, setActiveSection, selectedYear, setSelectedYear }}>

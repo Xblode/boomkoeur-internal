@@ -34,6 +34,7 @@ export const EventForm: React.FC<EventFormProps> = ({
     time: eventTime,
     endTime: eventEndTime,
     location: event?.location || '',
+    brief: event?.brief || '',
     description: event?.description || '',
     status: event?.status || 'idea' as EventStatus,
   });
@@ -135,6 +136,7 @@ export const EventForm: React.FC<EventFormProps> = ({
       date: combinedDate,
       endTime: formData.endTime,
       location: formData.location,
+      brief: formData.brief,
       description: formData.description,
       status: formData.status,
       artists,
@@ -238,12 +240,22 @@ export const EventForm: React.FC<EventFormProps> = ({
         </div>
 
         <div>
-          <Label>Description</Label>
+          <Label>Brief</Label>
+          <Textarea
+            name="brief"
+            value={formData.brief}
+            onChange={handleChange}
+            placeholder="Brief de campagne : objectifs, ton, cibles..."
+            rows={3}
+          />
+        </div>
+        <div>
+          <Label>Bio</Label>
           <Textarea
             name="description"
             value={formData.description}
             onChange={handleChange}
-            placeholder="Décrivez votre événement..."
+            placeholder="Description publique de l'événement..."
             rows={4}
           />
         </div>

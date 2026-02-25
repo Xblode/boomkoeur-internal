@@ -13,6 +13,7 @@ import { ToolbarProvider, useToolbar } from '@/components/providers/ToolbarProvi
 import { AlertProvider } from '@/components/providers/AlertProvider';
 import { PageSidebarProvider } from '@/components/providers/PageSidebarProvider';
 import { ChatPanelProvider } from '@/components/providers/ChatPanelProvider';
+import { DetailPanelProvider } from '@/components/providers/DetailPanelProvider';
 import { PageLayoutProvider } from '@/components/providers/PageLayoutProvider';
 import { OrgProvider } from '@/components/providers/OrgProvider';
 
@@ -43,7 +44,7 @@ function BackendLayoutContent({
         {toolbar && !isDetail && (
           <div
             className={cn(
-              "fixed top-[52px] right-0 z-40 transition-all duration-300 ease-in-out",
+              "fixed top-[52px] right-0 z-40 flex w-full transition-all duration-300 ease-in-out",
               "left-0 lg:left-[52px]",
               sidebarMode === 'expanded' && "lg:left-[200px]"
             )}
@@ -98,11 +99,13 @@ export default function BackendLayout({
           <AlertProvider>
             <PageSidebarProvider>
               <ChatPanelProvider>
+                <DetailPanelProvider>
                 <PageLayoutProvider>
                   <BackendLayoutContent>
                     {children}
                   </BackendLayoutContent>
                 </PageLayoutProvider>
+                </DetailPanelProvider>
               </ChatPanelProvider>
             </PageSidebarProvider>
           </AlertProvider>

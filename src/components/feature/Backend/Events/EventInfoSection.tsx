@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { EventStatus, EventPriority } from '@/types/event';
 import { EventStatusBadge } from './EventStatusBadge';
+import { EventProgressTimeline } from './EventProgressTimeline';
 import { Button, Textarea, Calendar, Popover, PopoverContent, PopoverTrigger, InlineEdit } from '@/components/ui/atoms';
 import { TimePicker, MemberPicker, SectionHeader, TagMultiSelect } from '@/components/ui/molecules';
 import { cn } from '@/lib/utils';
@@ -52,6 +53,7 @@ export function EventInfoSection() {
   const [editingField, setEditingField] = useState<string | null>(null);
   const [nameValue, setNameValue] = useState(event.name);
   const [locationValue, setLocationValue] = useState(event.location);
+  const [briefValue, setBriefValue] = useState(event.brief ?? '');
   const [descriptionValue, setDescriptionValue] = useState(event.description);
   const [dateValue, setDateValue] = useState<Date>(new Date(event.date));
   const [startTime, setStartTime] = useState(format(new Date(event.date), 'HH:mm'));
@@ -69,14 +71,14 @@ export function EventInfoSection() {
   useEffect(() => {
     setNameValue(event.name);
     setLocationValue(event.location);
+    setBriefValue(event.brief ?? '');
     setDescriptionValue(event.description);
     setDateValue(new Date(event.date));
     setStartTime(format(new Date(event.date), 'HH:mm'));
     setEndTimeValue(event.endTime ?? '');
     setPriorityValue(event.priority);
     setAssigneesValue(event.assignees ?? []);
-
-  }, [event.name, event.location, event.description, event.date, event.endTime, event.priority, event.assignees]);
+  }, [event.name, event.location, event.brief, event.description, event.date, event.endTime, event.priority, event.assignees]);
 
   // ── Name ──
   const startEditingName = () => {
@@ -157,7 +159,18 @@ export function EventInfoSection() {
     persistField({ tags });
   };
 
-  // ── Description ──
+  // ── Brief ──
+  const saveBrief = () => {
+    const trimmed = briefValue.trim();
+    if (trimmed !== (event.brief ?? '')) persistField({ brief: trimmed });
+    setEditingField(null);
+  };
+  const handleBriefKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') { setBriefValue(event.brief ?? ''); setEditingField(null); }
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') saveBrief();
+  };
+
+  // ── Description (Bio) ──
   const saveDescription = () => {
     const trimmed = descriptionValue.trim();
     if (trimmed !== event.description) persistField({ description: trimmed });
@@ -361,11 +374,39 @@ export function EventInfoSection() {
         tags={tagsSection}
       />
 
-      {/* Inline editable description */}
+      {/* Timeline avancement */}
+      <EventProgressTimeline />
+
+      {/* Brief (étape 1 communication) */}
       <div>
         <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
           <AlignLeft className="h-5 w-5 text-zinc-500" />
-          Description
+          Brief
+        </h2>
+        <div
+          className="space-y-2"
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+              saveBrief();
+            }
+          }}
+        >
+          <Textarea
+            value={briefValue}
+            onChange={(e) => setBriefValue(e.target.value)}
+            onKeyDown={handleBriefKeyDown}
+            rows={4}
+            placeholder="Brief de campagne : objectifs, ton, cibles, contraintes..."
+            className="resize-none py-3 px-4"
+          />
+        </div>
+      </div>
+
+      {/* Bio (description publique) */}
+      <div>
+        <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+          <AlignLeft className="h-5 w-5 text-zinc-500" />
+          Bio
         </h2>
         <div
           className="space-y-2"
@@ -379,9 +420,8 @@ export function EventInfoSection() {
             value={descriptionValue}
             onChange={(e) => setDescriptionValue(e.target.value)}
             onKeyDown={handleDescriptionKeyDown}
-
             rows={7}
-            placeholder="Ajouter une description..."
+            placeholder="Description publique de l'événement..."
             className="resize-none py-3 px-4"
           />
         </div>

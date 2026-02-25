@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
+import { Plus, ArrowRight, Instagram, Facebook, MessageCircle, Inbox, CalendarDays } from 'lucide-react';
 
 // Services & Constants
 import { getMeetings } from '@/lib/supabase/meetings';
@@ -16,27 +18,42 @@ import { mockSocialPosts } from '@/lib/mocks/communication';
 // Types
 import type { Meeting } from '@/types/meeting';
 import type { Order } from '@/types/order';
-import type { Event, ComWorkflowPost } from '@/types/event';
+import type { Event } from '@/types/event';
 import type { Invoice } from '@/types/finance';
 import type { SocialPost } from '@/types/communication';
 
 // Components
 import { DashboardHero } from './DashboardHero';
 import { DashboardKPIs } from './DashboardKPIs';
-import { DashboardAlerts, type DashboardAlert } from './DashboardAlerts';
-import { DashboardNextPostCard, type NextPostForDashboard } from './DashboardNextPostCard';
-import { DashboardCharts } from './DashboardCharts';
-import { DashboardActivity } from './DashboardActivity';
 import { EventCard } from '@/components/feature/Backend/Events';
 import MeetingCard from '@/components/feature/Backend/Meetings/MeetingCard';
 import { CampaignWorkflowCard } from './CampaignWorkflowCard';
+import { Card, CardContent, CardHeader, CardTitle, EmptyState } from '@/components/ui/molecules';
+import { Badge } from '@/components/ui/atoms';
 import { fadeInUp } from '@/lib/animations';
 
-const MONTH_NAMES = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+function getPlatformIcon(platform: string) {
+  switch (platform) {
+    case 'instagram': return <Instagram className="w-3.5 h-3.5" />;
+    case 'facebook': return <Facebook className="w-3.5 h-3.5" />;
+    default: return <MessageCircle className="w-3.5 h-3.5" />;
+  }
+}
+
+function getStatusBadgeVariant(status: string) {
+  switch (status) {
+    case 'brainstorming': return 'outline';
+    case 'created': return 'secondary';
+    case 'review': return 'warning';
+    case 'validated': return 'success';
+    case 'scheduled': return 'info';
+    default: return 'default';
+  }
+}
 
 interface DashboardData {
-  events: { inPreparation: Event[]; next: Event | null };
-  communication: { postsToValidate: unknown[]; scheduledThisWeek: SocialPost[]; nextScheduledPost: NextPostForDashboard | null };
+  events: { inPreparation: Event[]; next: Event | null; upcomingOthers: Event[] };
+  communication: { postsToValidate: unknown[]; scheduledThisWeek: SocialPost[] };
   meetings: { next: Meeting | null; daysUntilNext: number | null; last: Meeting | null };
   orders: { pending: Order[]; count: number };
   products: { lowStock: unknown[] };
@@ -79,14 +96,18 @@ export const DashboardStats: React.FC = () => {
         eventDate.setHours(0, 0, 0, 0);
         return eventDate.getTime() >= now.getTime();
       });
-      let nextEvent =
-        upcomingEvents.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] ||
-        null;
+      const sortedUpcoming = [...upcomingEvents].sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
+      let nextEvent = sortedUpcoming[0] || null;
       if (!nextEvent && events.length > 0) {
         nextEvent = events
           .filter((e) => e.status !== 'archived')
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0] || null;
       }
+      const upcomingOthers = nextEvent
+        ? sortedUpcoming.filter((e) => e.id !== nextEvent!.id).slice(0, 5)
+        : sortedUpcoming.slice(0, 5);
 
       const postsToValidate = mockSocialPosts.filter(
         (p) => p.status === 'brainstorming' || p.status === 'created' || p.status === 'review'
@@ -95,46 +116,6 @@ export const DashboardStats: React.FC = () => {
       const scheduledThisWeek = mockSocialPosts.filter(
         (p) => p.scheduledDate && p.scheduledDate >= now && p.scheduledDate <= weekFromNow
       );
-      // Même source que Calendar: events.comWorkflow.posts
-      const allScheduledPosts: { post: ComWorkflowPost; event: Event }[] = [];
-      for (const e of events) {
-        for (const p of e.comWorkflow?.posts ?? []) {
-          if (p.scheduledDate && new Date(p.scheduledDate) >= now) {
-            allScheduledPosts.push({ post: p, event: e });
-          }
-        }
-      }
-      allScheduledPosts.sort((a, b) => new Date(a.post.scheduledDate!).getTime() - new Date(b.post.scheduledDate!).getTime());
-      const nextScheduledPostRaw = allScheduledPosts[0];
-      let nextScheduledPost = nextScheduledPostRaw
-        ? {
-            id: nextScheduledPostRaw.post.id,
-            eventId: nextScheduledPostRaw.event.id,
-            name: nextScheduledPostRaw.post.name || 'Post',
-            visuals: nextScheduledPostRaw.post.visuals?.map((v) => v.url) ?? [],
-          }
-        : null;
-      // Fallback: si events n'ont pas de posts avec visuels, utiliser mockSocialPosts (URLs Unsplash fiables)
-      if (!nextScheduledPost || nextScheduledPost.visuals.length === 0) {
-        const mockWithMedia = mockSocialPosts
-          .filter((p) => p.scheduledDate && new Date(p.scheduledDate) >= now)
-          .sort((a, b) => (a.scheduledDate!.getTime() - b.scheduledDate!.getTime()))[0];
-        if (mockWithMedia) {
-          const mockVisuals: string[] = [];
-          if (mockWithMedia.carouselSlides?.length) {
-            mockWithMedia.carouselSlides.sort((a, b) => a.order - b.order).forEach((s) => s.image && mockVisuals.push(s.image));
-          }
-          if (mockVisuals.length === 0 && mockWithMedia.media?.length) mockVisuals.push(...mockWithMedia.media);
-          if (mockVisuals.length > 0) {
-            nextScheduledPost = {
-              id: mockWithMedia.id,
-              eventId: nextEvent?.id ?? 'fallback',
-              name: mockWithMedia.brainstorming?.brief?.slice(0, 50) || 'Post',
-              visuals: mockVisuals,
-            };
-          }
-        }
-      }
 
       const upcomingMeetings = meetings.filter((m) => m.status === 'upcoming' && m.date >= new Date());
       const nextMeeting = upcomingMeetings.sort((a, b) => a.date.getTime() - b.date.getTime())[0] || null;
@@ -220,8 +201,8 @@ export const DashboardStats: React.FC = () => {
       });
 
       setData({
-        events: { inPreparation: eventsInPreparation, next: nextEvent },
-        communication: { postsToValidate, scheduledThisWeek, nextScheduledPost },
+        events: { inPreparation: eventsInPreparation, next: nextEvent, upcomingOthers },
+        communication: { postsToValidate, scheduledThisWeek },
         meetings: { next: nextMeeting, daysUntilNext, last: lastMeeting },
         orders: { pending: pendingOrders, count: pendingOrders.length },
         products: { lowStock: lowStockProducts },
@@ -254,37 +235,6 @@ export const DashboardStats: React.FC = () => {
 
   if (!data) return null;
 
-  const alerts: DashboardAlert[] = [
-    ...(data.products.lowStock.length > 0
-      ? [{ id: 'low-stock', type: 'danger' as const, message: `${data.products.lowStock.length} rupture(s) stock`, link: '/dashboard/products' }]
-      : []),
-    ...(data.finance.overdueInvoices.length > 0
-      ? [{ id: 'overdue', type: 'danger' as const, message: `${data.finance.overdueInvoices.length} facture(s) retard`, link: '/dashboard/finance' }]
-      : []),
-    ...(data.meetings.next && data.meetings.daysUntilNext !== null && data.meetings.daysUntilNext <= 7
-      ? [{ id: 'meeting', type: 'warning' as const, message: `Réunion J-${data.meetings.daysUntilNext}`, link: '/dashboard/meetings' }]
-      : []),
-    ...(data.communication.postsToValidate.length > 0
-      ? [{ id: 'posts', type: 'warning' as const, message: `${data.communication.postsToValidate.length} post(s) à valider`, link: data.events.next ? `/dashboard/events/${data.events.next.id}/campagne` : '/dashboard/events' }]
-      : []),
-  ];
-
-  const currentMonthName = MONTH_NAMES[new Date().getMonth()];
-  const previousMonthName = MONTH_NAMES[new Date().getMonth() === 0 ? 11 : new Date().getMonth() - 1];
-
-  const comparisonData = [
-    {
-      name: previousMonthName,
-      Revenus: data.finance.monthComparison.previous.revenue,
-      Dépenses: data.finance.monthComparison.previous.expense,
-    },
-    {
-      name: currentMonthName,
-      Revenus: data.finance.monthComparison.current.revenue,
-      Dépenses: data.finance.monthComparison.current.expense,
-    },
-  ];
-
   const revenueChange =
     data.finance.monthComparison.previous.revenue > 0
       ? Number(
@@ -315,72 +265,230 @@ export const DashboardStats: React.FC = () => {
         }}
       />
 
-      <section className="space-y-6">
-        <div className="space-y-3">
-          <h2 className="text-base font-semibold text-foreground">Prochain Event</h2>
-          {data.events.next ? (
-            <>
-              <EventCard event={data.events.next} variant="compact" />
-              <div className="mt-3 space-y-2">
-                <h3 className="text-sm font-medium text-foreground">Campagne</h3>
-                {data.events.next.comWorkflow ? (
-                  <CampaignWorkflowCard event={data.events.next} />
+      {/* Desktop: 2 colonnes (30% gauche, 70% droite). Mobile: empilé, Prochain Event en premier */}
+      <section className="flex flex-col gap-6 lg:grid lg:grid-cols-[3fr_7fr] lg:gap-6">
+        {/* Colonne gauche (30%) — Prochaine réunion + Planning social */}
+        <div className="flex flex-col gap-3 order-2 lg:order-1">
+          <div className="space-y-3">
+            <h2 className="text-base font-semibold text-foreground">Prochaine Réunion</h2>
+            {data.meetings.next ? (
+              <MeetingCard meeting={data.meetings.next} variant="compact" />
+            ) : (
+              <Link
+                href="/dashboard/meetings"
+                className="block rounded-md border border-border-custom bg-transparent p-4 text-center text-sm text-muted-foreground hover:bg-surface-subtle transition-colors"
+              >
+                Aucune réunion à venir
+              </Link>
+            )}
+          </div>
+
+          <div>
+            <Card variant="outline" className="overflow-hidden">
+              <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <Plus className="w-4 h-4 text-muted-foreground" />
+                  Planning social
+                </CardTitle>
+                <Link
+                  href="/dashboard/events"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                {data.communication.scheduledThisWeek.length > 0 ? (
+                  <ul className="space-y-2">
+                    {data.communication.scheduledThisWeek.slice(0, 3).map((post) => (
+                      <li key={post.id}>
+                        <Link href="/dashboard/events">
+                          <motion.div
+                            className="flex items-center justify-between p-3 rounded-lg transition-colors group bg-surface-elevated border border-border-custom hover:bg-surface-subtle hover:border-border-custom/80 cursor-pointer"
+                            whileHover={{ y: -2 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0">
+                                {getPlatformIcon(post.platform)}
+                              </span>
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-sm font-medium capitalize group-hover:underline truncate">
+                                  {post.type}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {post.scheduledDate &&
+                                    new Date(post.scheduledDate).toLocaleDateString('fr-FR', {
+                                      weekday: 'short',
+                                      day: 'numeric',
+                                    })}
+                                </span>
+                              </div>
+                            </div>
+                            <Badge
+                              variant={getStatusBadgeVariant(post.status)}
+                              className="text-xs flex-shrink-0"
+                            >
+                              {post.status}
+                            </Badge>
+                          </motion.div>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
                 ) : (
-                  <Link
-                    href={`/dashboard/events/${data.events.next.id}/campagne`}
-                    className="block py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Démarrer la campagne →
-                  </Link>
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <Inbox className="w-10 h-10 text-muted-foreground mb-3 opacity-50" />
+                    <p className="text-sm font-medium text-foreground">Aucun post planifié cette semaine</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Planifiez vos publications dans Communication
+                    </p>
+                  </div>
                 )}
-              </div>
-            </>
-          ) : (
-            <Link
-              href="/dashboard/events"
-              className="block rounded-md border border-border-custom bg-transparent p-4 text-center text-sm text-muted-foreground hover:bg-surface-subtle transition-colors"
-            >
-              Aucun événement à venir
-            </Link>
-          )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
-        <div className="space-y-3">
-          <h2 className="text-base font-semibold text-foreground">Prochaine Réunion</h2>
-          {data.meetings.next ? (
-            <MeetingCard meeting={data.meetings.next} variant="compact" />
-          ) : (
-            <Link
-              href="/dashboard/meetings"
-              className="block rounded-md border border-border-custom bg-transparent p-4 text-center text-sm text-muted-foreground hover:bg-surface-subtle transition-colors"
-            >
-              Aucune réunion à venir
-            </Link>
-          )}
+
+        {/* Colonne droite (70%) — Prochain Event + Compte rendu dernière réunion */}
+        <div className="space-y-6 order-1 lg:order-2">
+          <div className="space-y-3">
+            <h2 className="text-base font-semibold text-foreground">Prochain Event</h2>
+            {data.events.next ? (
+              <>
+                <EventCard event={data.events.next} variant="compact" compactSize="lg" />
+                {/* Autres events à venir — images carrées (desktop uniquement) */}
+                {data.events.upcomingOthers.length > 0 && (
+                  <div className="hidden lg:flex gap-2 mt-3">
+                    {data.events.upcomingOthers.map((ev) => {
+                      const imgUrl = ev.media?.posterShotgun || ev.media?.posterInsta || ev.media?.posterA4;
+                      const hasImg = !!imgUrl;
+                      return (
+                        <Link
+                          key={ev.id}
+                          href={`/dashboard/events/${ev.id}`}
+                          className="w-14 h-14 flex-shrink-0 rounded-md overflow-hidden bg-zinc-800 border border-border-custom hover:border-zinc-500 transition-colors"
+                        >
+                          {hasImg ? (
+                            <Image
+                              src={imgUrl}
+                              alt={ev.name}
+                              width={56}
+                              height={56}
+                              className="object-cover w-full h-full"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <CalendarDays size={20} className="text-zinc-600" aria-hidden />
+                            </div>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+                <div className="mt-3 space-y-2">
+                  <h3 className="text-sm font-medium text-foreground">Campagne</h3>
+                  {data.events.next.comWorkflow ? (
+                    <CampaignWorkflowCard event={data.events.next} />
+                  ) : (
+                    <Link
+                      href={`/dashboard/events/${data.events.next.id}/campagne`}
+                      className="block py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Démarrer la campagne →
+                    </Link>
+                  )}
+                </div>
+              </>
+            ) : (
+              <Link
+                href="/dashboard/events"
+                className="block rounded-md border border-border-custom bg-transparent p-4 text-center text-sm text-muted-foreground hover:bg-surface-subtle transition-colors"
+              >
+                Aucun événement à venir
+              </Link>
+            )}
+          </div>
+
+          {/* Compte rendu de la dernière réunion */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold text-foreground">
+                Compte rendu de la dernière réunion
+              </h3>
+              {data.meetings.last && (
+                <Link
+                  href="/dashboard/meetings"
+                  className="text-xs text-accent hover:underline flex items-center gap-1"
+                >
+                  Voir les réunions <ArrowRight size={12} />
+                </Link>
+              )}
+            </div>
+            {data.meetings.last ? (
+              (() => {
+                const lastMeeting = data.meetings.last;
+                const hasMinutes = !!lastMeeting.minutes?.freeText?.trim();
+                return (
+                  <Card variant="outline" className="overflow-hidden">
+                    {hasMinutes ? (
+                      <CardContent className="p-4">
+                        <p className="text-xs text-muted-foreground mb-2">
+                          {lastMeeting.title} —{' '}
+                          {new Date(lastMeeting.date).toLocaleDateString('fr-FR', {
+                            weekday: 'long',
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                          })}
+                        </p>
+                        <div className="text-sm text-foreground whitespace-pre-wrap max-h-[200px] overflow-y-auto">
+                          {lastMeeting.minutes?.freeText ?? ''}
+                        </div>
+                      </CardContent>
+                    ) : (
+                      <CardContent className="p-0">
+                        <EmptyState
+                          title="Aucun compte rendu rédigé"
+                          description="La dernière réunion n'a pas encore de compte rendu."
+                          action={
+                            <Link
+                              href="/dashboard/meetings"
+                              className="inline-flex items-center gap-1 text-sm text-accent hover:underline"
+                            >
+                              Voir les réunions <ArrowRight size={14} />
+                            </Link>
+                          }
+                          variant="compact"
+                        />
+                      </CardContent>
+                    )}
+                  </Card>
+                );
+              })()
+            ) : (
+              <Card variant="outline" className="overflow-hidden">
+                <CardContent className="p-0">
+                  <EmptyState
+                    title="Aucune réunion passée"
+                    description="Les comptes rendus des réunions apparaîtront ici."
+                    action={
+                      <Link
+                        href="/dashboard/meetings"
+                        className="inline-flex items-center gap-1 text-sm text-accent hover:underline"
+                      >
+                        Voir les réunions <ArrowRight size={14} />
+                      </Link>
+                    }
+                    variant="compact"
+                  />
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
       </section>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-3 space-y-4">
-          <DashboardAlerts data={{ alerts }} />
-          <DashboardNextPostCard nextPost={data.communication.nextScheduledPost} />
-        </div>
-
-        <div className="lg:col-span-9 space-y-6">
-          <DashboardCharts
-            data={{
-              comparisonData,
-              revenueBreakdown: data.finance.revenueBreakdown,
-            }}
-          />
-
-          <DashboardActivity
-            data={{
-              pendingOrders: data.orders.pending,
-              scheduledPosts: data.communication.scheduledThisWeek,
-            }}
-          />
-        </div>
-      </div>
     </motion.div>
   );
 };

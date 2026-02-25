@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useRef } from 'react';
 import { Event } from '@/types/event';
 import { Campaign } from '@/types/communication';
-import { saveEvent, getEventWithMergedArtists } from '@/lib/supabase/events';
+import { saveEvent, updateEvent, getEventWithMergedArtists } from '@/lib/supabase/events';
 import { getCampaigns } from '@/lib/localStorage/communication';
 
 interface EventDetailContextValue {
@@ -33,8 +33,14 @@ export function EventDetailProvider({ initialEvent, children }: EventDetailProvi
   eventRef.current = event;
 
   const persistField = useCallback(async (updates: Partial<Event>) => {
-    const saved = await saveEvent({ ...eventRef.current, ...updates });
-    setEvent(saved);
+    const current = eventRef.current;
+    if (current.id) {
+      const saved = await updateEvent(current.id, updates);
+      setEvent(saved);
+    } else {
+      const saved = await saveEvent({ ...current, ...updates });
+      setEvent(saved);
+    }
   }, []);
 
   const reloadEvent = useCallback(async () => {

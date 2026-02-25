@@ -23,6 +23,7 @@ import {
   CategoriesManagementModal
 } from './Transactions/modals'
 import { exportTransactionsExcel, exportBilanPDF, exportBilanExcel } from '@/lib/utils/finance/export-transactions'
+import { addLinkedElementToEvent } from '@/lib/supabase/events'
 import { Select } from '@/components/ui/atoms'
 import {
   CreateEventBudgetModal,
@@ -231,7 +232,7 @@ export default function FinancePage() {
       )
 
       setToolbar(
-        <div className={cn('h-10 min-h-0 flex items-center justify-between gap-4 p-0 px-4 border-b bg-backend text-foreground border-zinc-200 dark:border-zinc-800')}>
+        <div className={cn('h-10 min-h-0 flex flex-1 min-w-0 w-full items-center justify-between gap-4 p-0 px-4 border-b bg-backend text-foreground border-zinc-200 dark:border-zinc-800')}>
           {/* Mobile : menu unique avec tous les boutons */}
           <div className="lg:hidden flex-1 flex justify-end">
             <Popover>
@@ -754,7 +755,7 @@ export default function FinancePage() {
   const sectionHeaderConfig = activeSection !== 'tresorerie' ? SECTION_HEADERS[activeSection] : null
 
   return (
-    <>
+    <div className="max-w-7xl mx-auto">
       {sectionHeaderConfig && (
         <div className="mb-6">
           <SectionHeader
@@ -851,9 +852,17 @@ export default function FinancePage() {
               setShowCreateBudgetModal(false)
               setSelectedEventForBudget(null)
             }}
-            onSuccess={() => {
+            onSuccess={(eventId, isNew) => {
               setShowCreateBudgetModal(false)
               setSelectedEventForBudget(null)
+              if (eventId && isNew) {
+                addLinkedElementToEvent(eventId, {
+                  id: `budget-${eventId}`,
+                  type: 'budget',
+                  label: 'Budget',
+                }).catch(console.error)
+              }
+              setRefreshTrigger((prev) => prev + 1)
             }}
             eventId={selectedEventForBudget}
           />
@@ -937,6 +946,6 @@ export default function FinancePage() {
           type={invoiceType}
         />
       )}
-    </>
+    </div>
   )
 }

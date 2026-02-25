@@ -205,6 +205,10 @@ export const EventsView: React.FC = () => {
 
     const startDate = new Date(sgEvent.startTime);
     const endDate = new Date(sgEvent.endTime);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      setAlert({ variant: 'error', message: 'Les dates de l\'événement Shotgun sont invalides.' });
+      return;
+    }
     const endTimeStr = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
 
     try {
@@ -235,7 +239,9 @@ export const EventsView: React.FC = () => {
       await refetch();
       router.push(`/dashboard/events/${newEvent.id}`);
     } catch (err) {
-      console.error('Erreur import Shotgun:', err);
+      const msg = getErrorMessage(err);
+      console.error('Erreur import Shotgun:', msg, err);
+      setAlert({ variant: 'error', message: `Erreur import Shotgun : ${msg}` });
     }
   };
 

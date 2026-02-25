@@ -108,6 +108,8 @@ function TableAddRow() {
       onBlur={i === 0 ? handleFirstCellBlur : undefined}
       onKeyDown={i === 0 ? handleFirstCellKeyDown : undefined}
       placeholder={i === 0 ? '+ Ajouter une ligne' : ''}
+      noHoverBorder={i === 0}
+      editClassName={i > 0 ? 'cursor-not-allowed' : undefined}
     />
   ));
 

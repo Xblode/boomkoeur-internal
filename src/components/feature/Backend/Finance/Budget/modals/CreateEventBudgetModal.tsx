@@ -7,19 +7,20 @@ import { Button } from '@/components/ui/atoms'
 import { Input } from '@/components/ui/atoms'
 import { Select } from '@/components/ui/atoms'
 import { Plus, Trash2, Copy } from 'lucide-react'
-import { getAllBudgetTemplatesWithLines } from '@/lib/supabase/finance'
+import {
+  getAllBudgetTemplatesWithLines,
+  getEventBudgets,
+  createEventBudgets,
+  deleteAllEventBudgets,
+} from '@/lib/supabase/finance'
 import { getEventById } from '@/lib/supabase/events'
 import type { EventBudget, BudgetTemplateWithLines } from '@/types/finance'
-
-// Stubs temporaires pour les fonctions manquantes
-const getEventBudgets = async (_eventId: string): Promise<EventBudget[]> => []
-const createEventBudgets = async (data: any) => {}
-const deleteAllEventBudgets = async (eventId: string) => {}
 
 interface CreateEventBudgetModalProps {
   isOpen: boolean
   onClose: () => void
-  onSuccess: () => void
+  /** Appelé après succès. eventId et isNew permettent d'ajouter l'élément lié à l'event. */
+  onSuccess?: (eventId?: string, isNew?: boolean) => void
   eventId: string | null
 }
 
@@ -182,7 +183,7 @@ export default function CreateEventBudgetModal({
 
       await createEventBudgets(budgetsToCreate)
 
-      onSuccess()
+      onSuccess?.(eventId, !isEditMode)
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error)
       alert('Erreur lors de la sauvegarde du budget')

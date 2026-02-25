@@ -141,6 +141,8 @@ export interface TableHeadProps extends React.HTMLAttributes<HTMLTableCellElemen
   onFilterOpenChange?: (open: boolean) => void;
   /** Callback quand on clique sur l'icône de tri (sortable) */
   onSortClick?: () => void;
+  /** Centre le contenu dans la cellule (ex: colonne +) */
+  centerContent?: boolean;
 }
 
 export interface TableCellSelectOption {
@@ -186,6 +188,8 @@ export interface TableCellProps
   favoriteConfig?: { isFavorite: boolean; onToggle: () => void };
   /** Ref optionnelle pour l'input éditable (focus programmatique) */
   inputRef?: React.RefObject<HTMLInputElement | null>;
+  /** Classe appliquée à l'input/InlineEdit quand editable (ex: cursor-not-allowed) */
+  editClassName?: string;
   /** Identifiant de colonne pour alignement avec TableHead (requis si reorderableColumns) */
   columnId?: string;
 }

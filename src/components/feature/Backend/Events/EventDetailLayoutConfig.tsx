@@ -73,7 +73,7 @@ function EventDetailLayoutConfigInner({ children }: { children: React.ReactNode 
       backLink: { href: '/dashboard/events', label: 'Retour aux événements' },
       entitySelector: (
         <EntitySelectorDropdown<Event>
-          value={allEvents.find((e) => e.id === event.id) ?? event}
+          value={event}
           options={allEvents}
           onSelect={(e) => router.push(`/dashboard/events/${e.id}`)}
           renderValue={(e) => e.name}

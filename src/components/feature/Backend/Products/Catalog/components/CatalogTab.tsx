@@ -8,8 +8,9 @@ import { useProduct } from '@/components/providers';
 import ProductCard from './ProductCard';
 import CatalogSkeleton from './CatalogSkeleton';
 import { Card, SectionHeader, SearchInput, FilterField, EmptyState } from '@/components/ui/molecules';
-import { Button, Select, Checkbox, Label } from '@/components/ui/atoms';
-import { Plus, Package } from 'lucide-react';
+import { Button, Select, Checkbox, Label, Popover, PopoverContent, PopoverTrigger } from '@/components/ui/atoms';
+import { Plus, Package, Tag, Activity, PackageCheck } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const DEFAULT_FILTERS: ProductFilters = {
   search: '',
@@ -26,6 +27,24 @@ interface CatalogTabProps {
   onError?: (error: string | null) => void;
 }
 
+const TYPE_OPTIONS = [
+  { value: 'all' as const, label: 'Tous les types' },
+  { value: 'tshirt' as ProductType, label: 'T-shirts' },
+  { value: 'poster' as ProductType, label: 'Affiches' },
+  { value: 'keychain' as ProductType, label: 'Porte-clés' },
+  { value: 'fan' as ProductType, label: 'Éventails' },
+  { value: 'other' as ProductType, label: 'Autre' },
+];
+
+const STATUS_OPTIONS = [
+  { value: 'all' as const, label: 'Tous les statuts' },
+  { value: 'idea' as ProductStatus, label: 'Idée' },
+  { value: 'in_production' as ProductStatus, label: 'En production' },
+  { value: 'available' as ProductStatus, label: 'Disponible' },
+  { value: 'out_of_stock' as ProductStatus, label: 'Rupture' },
+  { value: 'archived' as ProductStatus, label: 'Archivé' },
+];
+
 export default function CatalogTab({ filters: externalFilters, onError }: CatalogTabProps) {
   const router = useRouter();
   const { refreshTrigger, triggerRefresh } = useProduct();
@@ -33,6 +52,7 @@ export default function CatalogTab({ filters: externalFilters, onError }: Catalo
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState<ProductFilters>(externalFilters || DEFAULT_FILTERS);
+  const [filterPopoverOpen, setFilterPopoverOpen] = useState<string | null>(null);
 
   // Sync with external filters when they change
   useEffect(() => {
@@ -112,50 +132,141 @@ export default function CatalogTab({ filters: externalFilters, onError }: Catalo
           </Button>
         }
         filters={
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <SearchInput
-              label="Recherche"
-              placeholder="Nom, SKU..."
-              value={filters.search}
-              onChange={(v) => updateFilter('search', v)}
-            />
-            <FilterField label="Type">
-              <Select
-                value={filters.type}
-                onChange={e => updateFilter('type', e.target.value as ProductType | 'all')}
-                options={[
-                  { value: 'all', label: 'Tous les types' },
-                  { value: 'tshirt', label: 'T-shirts' },
-                  { value: 'poster', label: 'Affiches' },
-                  { value: 'keychain', label: 'Porte-clés' },
-                  { value: 'fan', label: 'Éventails' },
-                  { value: 'other', label: 'Autre' },
-                ]}
+          <div className="flex flex-col gap-2 md:grid md:grid-cols-4 md:gap-4">
+            {/* Recherche - pleine largeur sur mobile */}
+            <div className="w-full min-w-0 md:col-span-1">
+              <SearchInput
+                label="Recherche"
+                placeholder="Nom, SKU..."
+                value={filters.search}
+                onChange={(v) => updateFilter('search', v)}
               />
-            </FilterField>
-            <FilterField label="Statut">
-              <Select
-                value={filters.status}
-                onChange={e => updateFilter('status', e.target.value as ProductStatus | 'all')}
-                options={[
-                  { value: 'all', label: 'Tous les statuts' },
-                  { value: 'idea', label: 'Idée' },
-                  { value: 'in_production', label: 'En production' },
-                  { value: 'available', label: 'Disponible' },
-                  { value: 'out_of_stock', label: 'Rupture' },
-                  { value: 'archived', label: 'Archivé' },
-                ]}
-              />
-            </FilterField>
-            <FilterField label="Stock">
-              <Label className="flex items-center gap-2 cursor-pointer h-[38px]">
-                <Checkbox
-                  checked={filters.low_stock}
-                  onChange={e => updateFilter('low_stock', e.target.checked)}
+            </div>
+            {/* Mobile: boutons filtres en ligne */}
+            <div className="flex flex-wrap items-end gap-2 md:hidden">
+              <Popover open={filterPopoverOpen === 'type'} onOpenChange={(o) => setFilterPopoverOpen(o ? 'type' : null)}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex h-10 w-10 items-center justify-center rounded-md border border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                    aria-label="Filtrer par type"
+                  >
+                    <Tag size={18} />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-1" align="end">
+                  <div className="px-2 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">Type</div>
+                  {TYPE_OPTIONS.map((opt) => (
+                    <Button
+                      key={opt.value}
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        updateFilter('type', opt.value);
+                        setFilterPopoverOpen(null);
+                      }}
+                      className={cn(
+                        'w-full justify-start px-3 py-1.5 rounded-md text-sm',
+                        filters.type === opt.value && 'bg-zinc-100 dark:bg-zinc-800'
+                      )}
+                    >
+                      {opt.label}
+                    </Button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+              <Popover open={filterPopoverOpen === 'status'} onOpenChange={(o) => setFilterPopoverOpen(o ? 'status' : null)}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex h-10 w-10 items-center justify-center rounded-md border border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                    aria-label="Filtrer par statut"
+                  >
+                    <Activity size={18} />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-1" align="end">
+                  <div className="px-2 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">Statut</div>
+                  {STATUS_OPTIONS.map((opt) => (
+                    <Button
+                      key={opt.value}
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        updateFilter('status', opt.value);
+                        setFilterPopoverOpen(null);
+                      }}
+                      className={cn(
+                        'w-full justify-start px-3 py-1.5 rounded-md text-sm',
+                        filters.status === opt.value && 'bg-zinc-100 dark:bg-zinc-800'
+                      )}
+                    >
+                      {opt.label}
+                    </Button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+              <Popover open={filterPopoverOpen === 'stock'} onOpenChange={(o) => setFilterPopoverOpen(o ? 'stock' : null)}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-md border bg-transparent",
+                      filters.low_stock
+                        ? "border-zinc-400 dark:border-zinc-500 text-zinc-700 dark:text-zinc-300"
+                        : "border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                    )}
+                    aria-label="Filtrer par stock"
+                  >
+                    <PackageCheck size={18} />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-1" align="end">
+                  <div className="px-2 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">Stock</div>
+                  <Label className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                    <Checkbox
+                      checked={filters.low_stock}
+                      onChange={e => updateFilter('low_stock', e.target.checked)}
+                    />
+                    <span className="text-sm text-foreground">Stock faible uniquement</span>
+                  </Label>
+                </PopoverContent>
+              </Popover>
+            </div>
+            {/* Type - desktop */}
+            <div className="hidden md:block">
+              <FilterField label="Type">
+                <Select
+                  value={filters.type}
+                  onChange={e => updateFilter('type', e.target.value as ProductType | 'all')}
+                  options={TYPE_OPTIONS}
                 />
-                <span className="text-sm text-foreground">Stock faible uniquement</span>
-              </Label>
-            </FilterField>
+              </FilterField>
+            </div>
+            {/* Statut - desktop */}
+            <div className="hidden md:block">
+              <FilterField label="Statut">
+                <Select
+                  value={filters.status}
+                  onChange={e => updateFilter('status', e.target.value as ProductStatus | 'all')}
+                  options={STATUS_OPTIONS}
+                />
+              </FilterField>
+            </div>
+            {/* Stock - desktop */}
+            <div className="hidden md:block">
+              <FilterField label="Stock">
+                <Label className="flex items-center gap-2 cursor-pointer h-[38px]">
+                  <Checkbox
+                    checked={filters.low_stock}
+                    onChange={e => updateFilter('low_stock', e.target.checked)}
+                  />
+                  <span className="text-sm text-foreground">Stock faible uniquement</span>
+                </Label>
+              </FilterField>
+            </div>
           </div>
         }
       />

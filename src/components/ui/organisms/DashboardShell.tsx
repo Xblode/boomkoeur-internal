@@ -2,15 +2,17 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PageSidebar, PageAlert } from '@/components/ui';
 import { useToolbar } from '@/components/providers/ToolbarProvider';
 import { useAlert } from '@/components/providers/AlertProvider';
 import { usePageSidebar } from '@/components/providers/PageSidebarProvider';
 import { useChatPanel } from '@/components/providers/ChatPanelProvider';
+import { useDetailPanel } from '@/components/providers/DetailPanelProvider';
 import { usePageLayout } from '@/components/providers/PageLayoutProvider';
 import { ChatPanel } from '@/components/ui/molecules/ChatPanel';
+import { Button } from '@/components/ui/atoms';
 import type { PageContentMaxWidth } from './PageContentLayout';
 
 const maxWidthClasses: Record<PageContentMaxWidth, string> = {
@@ -35,6 +37,7 @@ export function DashboardShell({ children, className }: DashboardShellProps) {
   const { alert } = useAlert();
   const { config: pageSidebarConfig } = usePageSidebar();
   const { config: chatPanelConfig } = useChatPanel();
+  const { config: detailPanelConfig } = useDetailPanel();
   const { maxWidth, fullBleed } = usePageLayout();
 
   const hasPageSidebar = pageSidebarConfig != null;
@@ -83,7 +86,7 @@ export function DashboardShell({ children, className }: DashboardShellProps) {
           <div className="shrink-0 flex flex-col z-20">
             {alertNode}
             {(toolbar || (hasStandardSidebar && pageSidebarConfig && (pageSidebarConfig.backLink || pageSidebarConfig.sectionGroups?.some((g) => g.sections.length > 0) || (pageSidebarConfig.sections?.length ?? 0) > 0))) && (
-            <div className="flex items-center border-b border-zinc-200 dark:border-zinc-800 bg-backend text-foreground min-h-10">
+            <div className="flex items-center w-full border-b border-zinc-200 dark:border-zinc-800 bg-backend text-foreground min-h-10">
               {hasStandardSidebar && pageSidebarConfig && (() => {
                 const groups = pageSidebarConfig.sectionGroups ?? (pageSidebarConfig.sections?.length ? [{ sections: pageSidebarConfig.sections }] : []);
                 const allSections = groups.flatMap((g) => g.sections);
@@ -132,12 +135,35 @@ export function DashboardShell({ children, className }: DashboardShellProps) {
           </div>
         )}
 
-        <div className={cn('flex-1 min-h-0 overflow-y-auto scrollbar-gutter-stable', !fullBleed && 'p-6 md:p-8 lg:p-12')}>
+        <div className={cn('flex-1 min-h-0 overflow-y-auto scrollbar-gutter-stable', fullBleed ? 'p-6' : 'p-6 md:p-8 lg:p-12')}>
           <div className={cn(!fullBleed && 'mx-auto', !fullBleed && maxWidthClasses[maxWidth])}>
             {children}
           </div>
         </div>
       </main>
+
+      {/* DetailPanel — panneau latéral droit pour édition */}
+      {detailPanelConfig != null && (
+        <aside className="fixed top-[52px] right-0 bottom-0 w-full max-w-md lg:max-w-lg xl:max-w-xl bg-backend border-l border-zinc-200 dark:border-zinc-800 shadow-xl z-30 flex flex-col overflow-hidden">
+          <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
+            <h2 className="text-lg font-semibold text-foreground truncate">
+              {detailPanelConfig.title ?? 'Détail'}
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 shrink-0"
+              onClick={detailPanelConfig.onClose}
+              aria-label="Fermer"
+            >
+              <X size={18} />
+            </Button>
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto p-4">
+            {detailPanelConfig.content}
+          </div>
+        </aside>
+      )}
 
       {/* ChatPanel — flottant si activé */}
       {chatPanelConfig != null && (

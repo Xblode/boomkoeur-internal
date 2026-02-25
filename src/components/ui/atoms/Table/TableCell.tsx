@@ -9,7 +9,7 @@ import { TagMultiSelect } from '@/components/ui/molecules/TagMultiSelect';
 import type { TableCellProps } from './Table.types';
 
 const CELL_WRAPPER_BASE = cn(
-  'relative z-0 h-full min-h-8 min-w-0 rounded px-2 py-1 transition-[box-shadow]',
+  'relative z-0 h-full min-h-8 min-w-0 rounded py-1 transition-[box-shadow]',
   'overflow-hidden text-ellipsis whitespace-nowrap',
   'focus-within:z-20 focus-within:ring-0'
 );
@@ -51,6 +51,7 @@ const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
       hasSubTasks = true,
       favoriteConfig,
       inputRef: inputRefProp,
+      editClassName,
       children,
       style: styleProp,
       ...props
@@ -82,7 +83,7 @@ const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
           return (
             <div
               className={cn(
-                'flex min-h-8 min-w-0 items-center px-1 py-0.5 text-sm font-semibold text-foreground',
+                'flex w-full h-full min-h-8 min-w-0 items-center py-0.5 text-sm font-semibold text-foreground',
                 align === 'center' && 'justify-center',
                 align === 'right' && 'justify-end'
               )}
@@ -104,7 +105,7 @@ const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
             onKeyDown={onKeyDown}
             placeholder={placeholder}
             showEditIcon={false}
-            className={cn('min-w-0', align === 'center' && 'justify-center', align === 'right' && 'justify-end')}
+            className={cn('min-w-0', align === 'center' && 'justify-center', align === 'right' && 'justify-end', editClassName)}
           />
         );
       }
@@ -134,7 +135,7 @@ const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
         );
       }
       return (
-        <div className={cn('flex min-h-8 min-w-0 items-center truncate px-2 py-1 text-sm font-semibold', alignClass)}>
+        <div className={cn('flex w-full h-full min-h-8 min-w-0 items-center truncate py-1 text-sm font-semibold', alignClass)}>
           {children}
         </div>
       );

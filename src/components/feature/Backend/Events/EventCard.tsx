@@ -33,6 +33,8 @@ interface EventCardListProps extends EventCardBaseProps {
 
 interface EventCardCompactProps extends EventCardBaseProps {
   variant: "compact";
+  /** Taille plus grande sur desktop (dashboard) */
+  compactSize?: "default" | "lg";
 }
 
 type EventCardProps = EventCardListProps | EventCardCompactProps;
@@ -40,6 +42,7 @@ type EventCardProps = EventCardListProps | EventCardCompactProps;
 export const EventCard: React.FC<EventCardProps> = (props) => {
   const { event } = props;
   const isCompact = props.variant === "compact";
+  const compactSize = isCompact && "compactSize" in props ? (props.compactSize ?? "default") : "default";
 
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -81,20 +84,22 @@ export const EventCard: React.FC<EventCardProps> = (props) => {
     : format(event.date, "HH:mm", { locale: fr });
 
   if (isCompact) {
+    const imgSize = compactSize === "lg" ? "w-28 h-28 lg:w-32 lg:h-32" : "w-20 h-20";
+    const imgPx = compactSize === "lg" ? 128 : 80;
     return (
       <Link href={`/dashboard/events/${event.id}`} className="block">
         <Card
           variant="outline"
           className="group overflow-hidden transition-all duration-200 cursor-pointer hover:border-zinc-600"
         >
-          <CardContent className="p-0 flex gap-3">
-            <div className="w-20 h-20 flex-shrink-0 rounded-l-md overflow-hidden bg-zinc-800">
+          <CardContent className={`p-0 flex gap-3 ${compactSize === "lg" ? "lg:gap-4" : ""}`}>
+            <div className={`${imgSize} flex-shrink-0 rounded-l-md overflow-hidden bg-zinc-800`}>
               {hasImage ? (
                 <Image
                   src={event.media!.posterShotgun!}
                   alt={event.name}
-                  width={80}
-                  height={80}
+                  width={imgPx}
+                  height={imgPx}
                   className="object-cover w-full h-full"
                 />
               ) : (
@@ -103,15 +108,15 @@ export const EventCard: React.FC<EventCardProps> = (props) => {
                 </div>
               )}
             </div>
-            <div className="flex-1 min-w-0 py-2 pr-3 flex flex-col justify-center">
-              <h3 className="font-semibold text-sm text-foreground line-clamp-1 group-hover:text-foreground/90">
+            <div className={`flex-1 min-w-0 py-2 pr-3 flex flex-col justify-center ${compactSize === "lg" ? "lg:py-3 lg:pr-4" : ""}`}>
+              <h3 className={`font-semibold text-foreground line-clamp-1 group-hover:text-foreground/90 ${compactSize === "lg" ? "text-sm lg:text-base" : "text-sm"}`}>
                 {event.name}
               </h3>
-              <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground">
+              <div className={`flex items-center gap-1.5 mt-0.5 text-muted-foreground ${compactSize === "lg" ? "text-xs lg:text-sm" : "text-xs"}`}>
                 <MapPin size={12} className="flex-shrink-0" />
                 <span className="line-clamp-1">{event.location}</span>
               </div>
-              <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
+              <div className={`flex items-center gap-1.5 mt-1 text-muted-foreground ${compactSize === "lg" ? "text-xs lg:text-sm" : "text-xs"}`}>
                 <Clock size={12} className="flex-shrink-0" />
                 <span>
                   {format(event.date, "d MMM yyyy", { locale: fr })} · {timeRange}

@@ -22,6 +22,7 @@ interface DbEvent {
   date: string;
   end_time: string | null;
   location: string;
+  brief: string | null;
   description: string;
   status: string;
   priority: string | null;
@@ -73,6 +74,7 @@ function mapDbEventToEvent(
     date: new Date(row.date),
     endTime: row.end_time ?? undefined,
     location: row.location ?? '',
+    brief: (row.brief as string) ?? undefined,
     description: row.description ?? '',
     status: row.status as Event['status'],
     priority: (row.priority as Event['priority']) ?? undefined,
@@ -215,7 +217,7 @@ export async function getEventWithMergedArtists(id: string): Promise<Event | nul
 }
 
 function eventToDbPayload(event: Partial<Event>): Record<string, unknown> {
-  return {
+  const payload: Record<string, unknown> = {
     name: event.name,
     date: event.date instanceof Date ? event.date.toISOString() : event.date,
     end_time: event.endTime ?? null,
@@ -232,6 +234,46 @@ function eventToDbPayload(event: Partial<Event>): Record<string, unknown> {
     shotgun_event_url: event.shotgunEventUrl ?? null,
     updated_at: new Date().toISOString(),
   };
+  // brief : n'inclure que si fourni (colonne optionnelle, absente si migration non appliquée)
+  if (event.brief !== undefined) payload.brief = event.brief ?? '';
+  return payload;
+}
+
+/** Payload partiel pour mises à jour (n'envoie que les champs fournis) */
+function buildPartialEventPayload(updates: Partial<Event>): Record<string, unknown> {
+  const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (updates.name !== undefined) payload.name = updates.name;
+  if (updates.date !== undefined) payload.date = updates.date instanceof Date ? updates.date.toISOString() : updates.date;
+  if (updates.endTime !== undefined) payload.end_time = updates.endTime ?? null;
+  if (updates.location !== undefined) payload.location = updates.location ?? '';
+  if (updates.brief !== undefined) payload.brief = updates.brief ?? '';
+  if (updates.description !== undefined) payload.description = updates.description ?? '';
+  if (updates.status !== undefined) payload.status = updates.status;
+  if (updates.priority !== undefined) payload.priority = updates.priority ?? null;
+  if (updates.tags !== undefined) payload.tags = updates.tags ?? [];
+  if (updates.linkedElements !== undefined) payload.linked_elements = updates.linkedElements ?? [];
+  if (updates.assignees !== undefined) payload.assignees = updates.assignees ?? [];
+  if (updates.media !== undefined) payload.media = updates.media ?? {};
+  if (updates.comWorkflow !== undefined) payload.com_workflow = updates.comWorkflow ?? {};
+  if (updates.shotgunEventId !== undefined) payload.shotgun_event_id = updates.shotgunEventId ?? null;
+  if (updates.shotgunEventUrl !== undefined) payload.shotgun_event_url = updates.shotgunEventUrl ?? null;
+  return payload;
+}
+
+export async function updateEvent(id: string, updates: Partial<Event>): Promise<Event> {
+  const payload = buildPartialEventPayload(updates);
+  if (Object.keys(payload).length <= 1) {
+    const current = await getEventWithMergedArtists(id);
+    if (!current) throw new Error('Event not found');
+    return current;
+  }
+
+  const { error } = await supabase.from('events').update(payload).eq('id', id);
+  if (error) throw error;
+
+  const saved = await getEventWithMergedArtists(id);
+  if (!saved) throw new Error('Event not found after update');
+  return saved;
 }
 
 export async function saveEvent(
@@ -347,6 +389,7 @@ export async function duplicateEvent(id: string): Promise<Event> {
     name: `${source.name} (copie)`,
     date: source.date,
     location: source.location,
+    brief: source.brief ?? '',
     description: source.description,
     status: 'idea' as const,
     artists: source.artists,
@@ -445,6 +488,21 @@ export async function removeArtistFromEvent(eventId: string, artistId: string): 
     .eq('event_id', eventId)
     .eq('artist_id', artistId);
   if (error) throw error;
+}
+
+export async function addLinkedElementToEvent(
+  eventId: string,
+  element: LinkedElement
+): Promise<Event> {
+  const event = await getEventWithMergedArtists(eventId);
+  if (!event) throw new Error('Événement non trouvé');
+  const existing = event.linkedElements ?? [];
+  if (existing.some((e) => e.id === element.id)) return event;
+  const updated = {
+    ...event,
+    linkedElements: [...existing, element],
+  };
+  return saveEvent(updated);
 }
 
 export async function updateEventArtistAssignment(

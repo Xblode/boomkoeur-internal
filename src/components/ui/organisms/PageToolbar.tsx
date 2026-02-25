@@ -46,12 +46,12 @@ const TOOLBAR_BASE =
 export function PageToolbar({ filters, actions, children, className }: PageToolbarProps) {
   if (filters != null || actions != null) {
     return (
-      <div className={cn(TOOLBAR_BASE, className)}>
-        <div className="flex items-center gap-4 flex-1 min-w-0">
+      <div className={cn(TOOLBAR_BASE, 'flex flex-1 min-w-0 w-full justify-between', className)}>
+        <div className="flex items-center gap-4 min-w-0 overflow-hidden">
           {filters}
         </div>
         {actions && (
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 justify-end">
             {actions}
           </div>
         )}

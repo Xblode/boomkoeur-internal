@@ -14,6 +14,7 @@ import type {
   BudgetCategory,
   BudgetProject,
   BudgetProjectLine,
+  EventBudget,
   Invoice,
   InvoiceLine,
   TreasuryForecast,
@@ -490,6 +491,64 @@ function mapDbBudgetCategory(row: Record<string, unknown>): BudgetCategory {
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };
+}
+
+// --- Event Budgets ---
+
+function mapDbEventBudget(row: Record<string, unknown>): EventBudget {
+  return {
+    id: row.id as string,
+    event_id: row.event_id as string,
+    category: row.category as string,
+    type: row.type as 'income' | 'expense',
+    allocated_amount: Number(row.allocated_amount ?? 0),
+    allocated_amount_low: row.allocated_amount_low != null ? Number(row.allocated_amount_low) : undefined,
+    allocated_amount_high: row.allocated_amount_high != null ? Number(row.allocated_amount_high) : undefined,
+    actual_amount: row.actual_amount != null ? Number(row.actual_amount) : undefined,
+    notes: (row.notes as string) ?? undefined,
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
+  };
+}
+
+export async function getEventBudgets(eventId: string): Promise<EventBudget[]> {
+  const { data, error } = await supabase
+    .from('finance_event_budgets')
+    .select('*')
+    .eq('event_id', eventId)
+    .order('sort_order', { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map((r: Record<string, unknown>) => mapDbEventBudget(r));
+}
+
+export async function createEventBudgets(
+  lines: Array<{
+    event_id: string;
+    category: string;
+    type: 'income' | 'expense';
+    allocated_amount: number;
+    notes?: string;
+  }>
+): Promise<void> {
+  const orgId = getActiveOrgId();
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const { error } = await supabase.from('finance_event_budgets').insert({
+      event_id: line.event_id,
+      category: line.category,
+      type: line.type,
+      allocated_amount: line.allocated_amount,
+      notes: line.notes ?? null,
+      sort_order: i,
+      org_id: orgId,
+    });
+    if (error) throw error;
+  }
+}
+
+export async function deleteAllEventBudgets(eventId: string): Promise<void> {
+  const { error } = await supabase.from('finance_event_budgets').delete().eq('event_id', eventId);
+  if (error) throw error;
 }
 
 // --- Budget Projects ---

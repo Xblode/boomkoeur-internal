@@ -14,26 +14,48 @@ export interface DatePickerProps {
   onSelect?: (date?: Date) => void;
   className?: string;
   placeholder?: string;
+  /** Format d'affichage (ex: "dd/MM/yyyy" pour 24/02/2026). Par défaut: "PPP" (format long) */
+  displayFormat?: string;
+  /** Variante "text" : texte brut sans icône, bordure ni fond. Idéal pour les tableaux. */
+  variant?: 'default' | 'text';
 }
 
-export function DatePicker({ date, onSelect, className, placeholder = "Sélectionner une date" }: DatePickerProps) {
+export function DatePicker({ date, onSelect, className, placeholder = "Sélectionner une date", displayFormat = "PPP", variant = "default" }: DatePickerProps) {
+  const isTextVariant = variant === 'text';
+
+  const triggerContent = date ? format(date, displayFormat, { locale: fr }) : placeholder;
+
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button
-          className={cn(
-            "flex h-10 w-full items-center rounded-md border border-zinc-200 dark:border-zinc-800 bg-transparent px-3 py-2 text-sm transition-colors",
-            "text-left font-normal",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300",
-            "disabled:cursor-not-allowed disabled:opacity-50",
-            "hover:bg-zinc-50 dark:hover:bg-zinc-800/50",
-            !date && "text-zinc-500 dark:text-zinc-400",
-            className
-          )}
-        >
-          <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
-          {date ? format(date, "PPP", { locale: fr }) : <span>{placeholder}</span>}
-        </button>
+        {isTextVariant ? (
+          <button
+            type="button"
+            className={cn(
+              "w-full text-left text-sm font-mono cursor-pointer",
+              !date && "text-zinc-500 dark:text-zinc-400",
+              "hover:text-zinc-900 dark:hover:text-zinc-100",
+              className
+            )}
+          >
+            {triggerContent}
+          </button>
+        ) : (
+          <button
+            className={cn(
+              "flex h-10 w-full items-center rounded-md border border-zinc-200 dark:border-zinc-800 bg-transparent px-3 py-2 text-sm transition-colors",
+              "text-left font-normal",
+              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300",
+              "disabled:cursor-not-allowed disabled:opacity-50",
+              "hover:bg-zinc-50 dark:hover:bg-zinc-800/50",
+              !date && "text-zinc-500 dark:text-zinc-400",
+              className
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+            {triggerContent}
+          </button>
+        )}
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar

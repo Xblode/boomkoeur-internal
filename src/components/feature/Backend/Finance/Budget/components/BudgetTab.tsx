@@ -5,18 +5,56 @@ import { useRouter } from 'next/navigation'
 import { financeDataService } from '@/lib/services/FinanceDataService'
 import { Card, CardContent, CardHeader } from '@/components/ui/molecules'
 import { Button } from '@/components/ui/atoms'
-import { Plus, TrendingUp, DollarSign, Calendar as CalendarIcon, Package } from 'lucide-react'
+import { Plus, TrendingUp, DollarSign, Calendar as CalendarIcon, Package, Link2 } from 'lucide-react'
 import type { EventBudgetSummary, BudgetProjectSummary } from '@/types/finance'
+import { getEvents } from '@/lib/supabase/events'
+import { getEventBudgets } from '@/lib/supabase/finance'
 
-// TODO: Implementer ces fonctions ou les connecter aux hooks du projet
-const getAllEventsWithBudgets = async ({ year }: { year: number }) => []
-const getAllProjectsWithBudgets = async ({ year }: { year: number }) => []
+async function getAllEventsWithBudgets({ year }: { year: number }) {
+  const allEvents = await getEvents()
+  const eventsInYear = allEvents.filter((e) => {
+    const date = e.date instanceof Date ? e.date : new Date(e.date)
+    return date.getFullYear() === year
+  })
+  const results = await Promise.all(
+    eventsInYear.map(async (event) => {
+      const budgets = await getEventBudgets(event.id)
+      const incomeBudgets = budgets.filter((b) => b.type === 'income')
+      const expenseBudgets = budgets.filter((b) => b.type === 'expense')
+      const totalRevenueAllocated = incomeBudgets.reduce((s, b) => s + b.allocated_amount, 0)
+      const totalExpenseAllocated = expenseBudgets.reduce((s, b) => s + b.allocated_amount, 0)
+      const totalRevenueActual = incomeBudgets.reduce((s, b) => s + (b.actual_amount ?? 0), 0)
+      const totalExpenseActual = expenseBudgets.reduce((s, b) => s + (b.actual_amount ?? 0), 0)
+      return {
+        id: event.id,
+        title: event.name,
+        date: event.date,
+        status: event.status,
+        budget_summary: {
+          event_id: event.id,
+          event_title: event.name,
+          event_date: event.date,
+          event_status: event.status,
+          total_revenue_allocated: totalRevenueAllocated,
+          total_revenue_actual: totalRevenueActual,
+          total_expense_allocated: totalExpenseAllocated,
+          total_expense_actual: totalExpenseActual,
+          result_allocated: totalRevenueAllocated - totalExpenseAllocated,
+          result_actual: totalRevenueActual - totalExpenseActual,
+          budgets,
+        } as EventBudgetSummary,
+      }
+    })
+  )
+  return results
+}
 import { LoadingState, EmptyState, KPICard } from '@/components/feature/Backend/Finance/shared/components'
 import EventBudgetCard from './EventBudgetCard'
 import BudgetProjectCard from './BudgetProjectCard'
 import CreateEventBudgetModal from '../modals/CreateEventBudgetModal'
 import CreateBudgetProjectModal from '../modals/CreateBudgetProjectModal'
 import ManageBudgetTemplatesModal from '../modals/ManageBudgetTemplatesModal'
+import { EventPicker } from '../../Transactions/components/EventPicker'
 
 type FilterStatus = 'all' | 'planned' | 'ongoing' | 'completed'
 type ProjectFilterStatus = 'all' | 'draft' | 'active' | 'completed' | 'cancelled'
@@ -170,7 +208,22 @@ export default function BudgetTab({ selectedYear: externalSelectedYear, filterSt
 
       {/* Liste des evenements */}
       <div>
-        <h2 className="font-heading text-2xl font-bold uppercase mb-4">📅 Budgets evenements</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 w-full">
+          <h2 className="font-heading text-2xl font-bold uppercase">📅 Budgets evenements</h2>
+          {onCreateBudget && (
+            <div className="flex justify-end w-full sm:w-auto sm:shrink-0">
+              <EventPicker
+                onSelect={(eventId) => handleCreateBudget(eventId)}
+                onUnlink={() => {}}
+              >
+                <Button variant="primary" size="sm">
+                  <Link2 className="w-4 h-4 mr-2" />
+                  Lier un event
+                </Button>
+              </EventPicker>
+            </div>
+          )}
+        </div>
         {filteredEvents.length === 0 ? (
           <EmptyState
             icon={CalendarIcon}
@@ -178,14 +231,26 @@ export default function BudgetTab({ selectedYear: externalSelectedYear, filterSt
             description="Creez des evenements dans la page Evenements pour pouvoir gerer leurs budgets"
             className="min-h-[400px]"
             action={
-              <Button 
-                variant="primary" 
-                size="sm" 
-                onClick={() => router.push('/dashboard/events')}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Creer un evenement
-              </Button>
+              onCreateBudget ? (
+                <EventPicker
+                  onSelect={(eventId) => handleCreateBudget(eventId)}
+                  onUnlink={() => {}}
+                >
+                  <Button variant="primary" size="sm">
+                    <Link2 className="w-4 h-4 mr-2" />
+                    Lier un event
+                  </Button>
+                </EventPicker>
+              ) : (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={() => router.push('/dashboard/events')}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Creer un evenement
+                </Button>
+              )
             }
           />
         ) : (

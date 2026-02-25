@@ -3,32 +3,42 @@
 import { useState, useEffect, useMemo } from 'react'
 import { financeDataService } from '@/lib/services/FinanceDataService'
 import { Button } from '@/components/ui/atoms'
-import { Select } from '@/components/ui/atoms'
-import { Edit, Trash2, Repeat, Power, ChevronDown, ChevronUp, Receipt, Plus } from 'lucide-react'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/atoms'
+import { Edit, Trash2, Repeat, Power, ChevronDown, ChevronUp, Receipt, Plus, MoreVertical } from 'lucide-react'
 import type { Transaction, RecurringTransaction } from '@/types/finance'
 import EditTransactionModal from '../modals/EditTransactionModal'
 import ViewTransactionModal from '../modals/ViewTransactionModal'
+import { EventPicker } from './EventPicker'
+import { ContactPicker } from './ContactPicker'
 import { LinkEventModal } from '../modals/LinkEventModal'
-import { LinkContactModal } from '../modals/LinkContactModal'
-import { Link2, ExternalLink } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { 
-  useTransactionLinks, 
+import { useEvents } from '@/hooks/useEvents'
+import { useCommercialContacts } from '@/hooks/useCommercialContacts'
+import {
   getRecurringTransactions,
   toggleRecurringTransactionActive,
   deleteRecurringTransaction,
-  generateRecurringTransactions 
+  generateRecurringTransactions,
 } from '@/lib/stubs/supabase-stubs'
 import {
   LoadingState,
-  SectionHeader,
-  DataTable,
-  Column,
   TablePagination,
-  StatusBadge,
-  ActionButtons,
-  EmptyState
+  EmptyState,
 } from '@/components/feature/Backend/Finance/shared/components'
+import { Badge } from '@/components/ui/atoms'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/atoms'
+import { DatePicker, SelectPicker } from '@/components/ui/molecules'
+import { cn } from '@/lib/utils'
+import { useDetailPanel } from '@/components/providers/DetailPanelProvider'
+import type { TransactionCategory } from '@/types/finance'
+
+type SortColumn = 'date' | 'type' | 'label' | 'category' | 'amount'
 
 interface TransactionsTabProps {
   selectedYear?: number
@@ -45,8 +55,8 @@ interface TransactionsTabProps {
   refreshTrigger?: number
 }
 
-export default function TransactionsTab({ 
-  selectedYear: externalSelectedYear, 
+export default function TransactionsTab({
+  selectedYear: externalSelectedYear,
   searchQuery: externalSearchQuery = '',
   filterType: externalFilterType = 'all',
   filterCategory: externalFilterCategory = 'all',
@@ -57,12 +67,10 @@ export default function TransactionsTab({
   onTransactionChange,
   onCreateTransaction,
   onError,
-  refreshTrigger
+  refreshTrigger,
 }: TransactionsTabProps) {
-  // Par defaut, afficher toutes les annees (undefined)
   const selectedYear = externalSelectedYear !== undefined ? externalSelectedYear : undefined
-  
-  // Utiliser les filtres externes
+
   const searchQuery = externalSearchQuery
   const filterType = externalFilterType
   const filterCategory = externalFilterCategory
@@ -70,31 +78,37 @@ export default function TransactionsTab({
   const filterEventId = externalFilterEventId
   const filterProjectId = externalFilterProjectId
   const filterContactId = externalFilterContactId
-  
-  const [showEditTransactionModal, setShowEditTransactionModal] = useState(false)
+
   const [showViewTransactionModal, setShowViewTransactionModal] = useState(false)
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
   const [viewingTransaction, setViewingTransaction] = useState<Transaction | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [hoveredRow, setHoveredRow] = useState<string | null>(null)
   const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>([])
   const [showRecurringSection, setShowRecurringSection] = useState(false)
 
-  // Charger les liens (events, contacts) pour toutes les transactions
-  const transactionIds = useMemo(() => transactions.map((t) => t.id), [transactions])
-  const { data: linksData = { events: {}, projects: {}, contacts: {} } } = useTransactionLinks(transactionIds)
-  
-  const router = useRouter()
-  const [sortField, setSortField] = useState<string>('date')
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const { setDetailPanel } = useDetailPanel()
+
+  const [sortBy, setSortBy] = useState<SortColumn | null>(null)
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+
+  const { events: allEvents } = useEvents()
+  const { contacts: allContacts } = useCommercialContacts()
+  const linksData = useMemo(() => {
+    const eventsMap: Record<string, { id: string; title: string }> = {}
+    const contactsMap: Record<string, { id: string; name: string }> = {}
+    allEvents.forEach((e) => { eventsMap[e.id] = { id: e.id, title: e.name } })
+    allContacts.forEach((c) => { contactsMap[c.id] = { id: c.id, name: c.name } })
+    return { events: eventsMap, projects: {}, contacts: contactsMap }
+  }, [allEvents, allContacts])
+
   const [showLinkEventModal, setShowLinkEventModal] = useState(false)
-  const [showLinkContactModal, setShowLinkContactModal] = useState(false)
   const [linkingTransactionId, setLinkingTransactionId] = useState<string | null>(null)
   const [linkingField, setLinkingField] = useState<'event' | 'contact' | null>(null)
-  
-  // Pagination
+  const [categoriesIncome, setCategoriesIncome] = useState<TransactionCategory[]>([])
+  const [categoriesExpense, setCategoriesExpense] = useState<TransactionCategory[]>([])
+
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
@@ -104,13 +118,17 @@ export default function TransactionsTab({
     setCurrentPage(1)
   }, [selectedYear, refreshTrigger])
 
+  useEffect(() => {
+    financeDataService.getTransactionCategories('income').then(setCategoriesIncome).catch(() => setCategoriesIncome([]))
+    financeDataService.getTransactionCategories('expense').then(setCategoriesExpense).catch(() => setCategoriesExpense([]))
+  }, [])
+
   async function loadTransactions() {
     try {
       setLoading(true)
       setError(null)
       onError?.(null)
       const data = await financeDataService.getTransactions(selectedYear)
-      console.log(`📊 Transactions chargees: ${data?.length || 0} transactions${selectedYear ? ` pour l'annee ${selectedYear}` : ' (toutes annees)'}`)
       setTransactions(data || [])
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -151,7 +169,7 @@ export default function TransactionsTab({
 
   async function handleDeleteRecurring(id: string) {
     if (!confirm('Etes-vous sûr de vouloir supprimer cette transaction recurrente ?')) return
-    
+
     try {
       await deleteRecurringTransaction(id)
       await loadRecurringTransactions()
@@ -174,11 +192,9 @@ export default function TransactionsTab({
     }
   }
 
-
-  const filteredAndSortedTransactions = useMemo(() => {
+  const filteredTransactions = useMemo(() => {
     let filtered = [...transactions]
 
-    // Recherche
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(
@@ -190,58 +206,75 @@ export default function TransactionsTab({
       )
     }
 
-    // Filtres
-    if (filterType !== 'all') {
-      filtered = filtered.filter((t) => t.type === filterType)
-    }
-    if (filterCategory !== 'all') {
-      filtered = filtered.filter((t) => t.category === filterCategory)
-    }
-    if (filterStatus !== 'all') {
-      filtered = filtered.filter((t) => t.status === filterStatus)
-    }
-    if (filterEventId !== 'all') {
-      filtered = filtered.filter((t) => t.event_id === filterEventId)
-    }
-    if (filterContactId !== 'all') {
-      filtered = filtered.filter((t) => t.contact_id === filterContactId)
-    }
-
-    // Tri
-    filtered.sort((a, b) => {
-      let aVal: any = (a as any)[sortField]
-      let bVal: any = (b as any)[sortField]
-      
-      if (sortField === 'date') {
-        aVal = new Date(aVal).getTime()
-        bVal = new Date(bVal).getTime()
-      }
-      
-      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1
-      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1
-      return 0
-    })
+    if (filterType !== 'all') filtered = filtered.filter((t) => t.type === filterType)
+    if (filterCategory !== 'all') filtered = filtered.filter((t) => t.category === filterCategory)
+    if (filterStatus !== 'all') filtered = filtered.filter((t) => t.status === filterStatus)
+    if (filterEventId !== 'all') filtered = filtered.filter((t) => t.event_id === filterEventId)
+    if (filterContactId !== 'all') filtered = filtered.filter((t) => t.contact_id === filterContactId)
 
     return filtered
-  }, [transactions, searchQuery, filterType, filterCategory, filterStatus, filterEventId, filterContactId, sortField, sortDirection])
+  }, [transactions, searchQuery, filterType, filterCategory, filterStatus, filterEventId, filterContactId])
+
+  const handleSort = (column: SortColumn) => {
+    if (sortBy === column) {
+      setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortBy(column)
+      setSortDirection('asc')
+    }
+  }
+
+  const sortedTransactions = useMemo(() => {
+    if (!sortBy) return filteredTransactions
+    const dir = sortDirection === 'asc' ? 1 : -1
+    const getValue = (t: Transaction) => {
+      switch (sortBy) {
+        case 'date':
+          return new Date(t.date).getTime()
+        case 'type':
+          return t.type
+        case 'label':
+          return (t.label || '').toLowerCase()
+        case 'category':
+          return (t.category || '').toLowerCase()
+        case 'amount':
+          return t.amount ?? 0
+        default:
+          return ''
+      }
+    }
+    return [...filteredTransactions].sort((a, b) => {
+      const va = getValue(a)
+      const vb = getValue(b)
+      if (typeof va === 'number' && typeof vb === 'number') return dir * (va - vb)
+      return dir * String(va).localeCompare(String(vb))
+    })
+  }, [filteredTransactions, sortBy, sortDirection])
 
   const paginatedTransactions = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage
-    return filteredAndSortedTransactions.slice(startIndex, startIndex + itemsPerPage)
-  }, [filteredAndSortedTransactions, currentPage])
+    return sortedTransactions.slice(startIndex, startIndex + itemsPerPage)
+  }, [sortedTransactions, currentPage])
 
-  const totalPages = Math.ceil(filteredAndSortedTransactions.length / itemsPerPage)
+  const totalPages = Math.ceil(sortedTransactions.length / itemsPerPage)
 
-  
   const handleLinkEvent = async (transactionId: string, eventId: string) => {
     try {
       await financeDataService.updateTransaction(transactionId, { event_id: eventId })
       await loadTransactions()
-      setShowLinkEventModal(false)
-      setLinkingTransactionId(null)
-      setLinkingField(null)
+      onTransactionChange?.()
     } catch (error) {
       console.error('Erreur lors de la liaison:', error)
+    }
+  }
+
+  const handleUnlinkEvent = async (transactionId: string) => {
+    try {
+      await financeDataService.updateTransaction(transactionId, { event_id: undefined })
+      await loadTransactions()
+      onTransactionChange?.()
+    } catch (error) {
+      console.error('Erreur lors de la déliaison:', error)
     }
   }
 
@@ -249,17 +282,40 @@ export default function TransactionsTab({
     try {
       await financeDataService.updateTransaction(transactionId, { contact_id: contactId })
       await loadTransactions()
-      setShowLinkContactModal(false)
-      setLinkingTransactionId(null)
-      setLinkingField(null)
+      onTransactionChange?.()
     } catch (error) {
       console.error('Erreur lors de la liaison:', error)
     }
   }
 
+  const handleUnlinkContact = async (transactionId: string) => {
+    try {
+      await financeDataService.updateTransaction(transactionId, { contact_id: undefined })
+      await loadTransactions()
+      onTransactionChange?.()
+    } catch (error) {
+      console.error('Erreur lors de la déliaison:', error)
+    }
+  }
+
   const handleEdit = (transaction: Transaction) => {
-    setEditingTransaction(transaction)
-    setShowEditTransactionModal(true)
+    setDetailPanel({
+      title: transaction.label || 'Détail transaction',
+      content: (
+        <EditTransactionModal
+          isOpen={true}
+          onClose={() => setDetailPanel(null)}
+          onSuccess={() => {
+            loadTransactions()
+            onTransactionChange?.()
+            setDetailPanel(null)
+          }}
+          transaction={transaction}
+          renderAsPanel
+        />
+      ),
+      onClose: () => setDetailPanel(null),
+    })
   }
 
   const handleDelete = async (transaction: Transaction) => {
@@ -275,43 +331,68 @@ export default function TransactionsTab({
     }
   }
 
-  const handleSort = (field: string) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortField(field)
-      setSortDirection('desc')
+  const updateDate = async (t: Transaction, date: Date | undefined) => {
+    if (!date) return
+    try {
+      await financeDataService.updateTransaction(t.id, { date: date.toISOString().split('T')[0] })
+      await loadTransactions()
+      onTransactionChange?.()
+    } catch (err) {
+      console.error('Erreur:', err)
     }
   }
 
-
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'validated': return 'success'
-      case 'reconciled': return 'default'
-      default: return 'warning'
+  const updateCategory = async (t: Transaction, category: string) => {
+    try {
+      await financeDataService.updateTransaction(t.id, { category: category || '' })
+      await loadTransactions()
+      onTransactionChange?.()
+    } catch (err) {
+      console.error('Erreur:', err)
     }
+  }
+
+  const updateStatus = async (t: Transaction, status: 'pending' | 'validated' | 'reconciled') => {
+    try {
+      await financeDataService.updateTransaction(t.id, { status })
+      await loadTransactions()
+      onTransactionChange?.()
+    } catch (err) {
+      console.error('Erreur:', err)
+    }
+  }
+
+  const updateType = async (t: Transaction, type: 'income' | 'expense') => {
+    try {
+      await financeDataService.updateTransaction(t.id, { type })
+      await loadTransactions()
+      onTransactionChange?.()
+    } catch (err) {
+      console.error('Erreur:', err)
+    }
+  }
+
+  const STATUS_BADGE_VARIANT: Record<string, 'warning' | 'success' | 'secondary'> = {
+    pending: 'warning',
+    validated: 'success',
+    reconciled: 'secondary',
   }
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'validated': return 'Valide'
-      case 'reconciled': return 'Rapproche'
-      default: return 'En attente'
+      case 'validated':
+        return 'Valide'
+      case 'reconciled':
+        return 'Rapproché'
+      default:
+        return 'En attente'
     }
   }
 
-  const getTypeLabel = (type: string) => {
-    return type === 'income' ? 'Entree' : 'Sortie'
-  }
-
-  const getTypeVariant = (type: string) => {
-    return type === 'income' ? 'success' : 'danger'
-  }
-
   const getCategoryStyle = (category?: string) => {
-    if (!category) return 'bg-zinc-100 text-zinc-500 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700'
-    
+    if (!category)
+      return 'bg-zinc-100 text-zinc-500 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700'
+
     const hash = category.split('').reduce((acc, char) => char.charCodeAt(0) + acc, 0)
     const styles = [
       'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800',
@@ -328,233 +409,15 @@ export default function TransactionsTab({
     return styles[hash % styles.length]
   }
 
-  const tableColumns: Column<Transaction>[] = [
-    {
-      key: 'date',
-      label: 'Date',
-      sortable: true,
-      width: 'w-auto',
-      render: (t) => (
-        <span className="font-mono text-xs text-zinc-500 whitespace-nowrap">
-          {new Date(t.date).toLocaleDateString('fr-FR')}
-        </span>
-      ),
-    },
-    {
-      key: 'type',
-      label: 'Type',
-      sortable: true,
-      width: 'w-auto',
-      render: (t) => (
-        <StatusBadge
-          label={getTypeLabel(t.type)}
-          variant={getTypeVariant(t.type)}
-          className="px-2 py-0.5 text-[10px] uppercase tracking-wide"
-          showIcon={false}
-        />
-      ),
-    },
-    {
-      key: 'label',
-      label: 'Libelle',
-      sortable: true,
-      width: 'w-full',
-      render: (t) => (
-        <div className="flex items-center justify-between gap-2 h-full group/row">
-          <div className="truncate min-w-0">
-            <div className="font-medium text-sm text-zinc-900 dark:text-zinc-100 truncate">{t.label}</div>
-            <div className="flex items-center gap-2 mt-0.5">
-              {t.piece_number && <span className="text-[10px] text-zinc-400 font-mono">#{t.piece_number}</span>}
-              {t.paid_by_member && t.member_name && (
-                <span className="text-[10px] text-purple-400 flex items-center gap-1">
-                  <span>👤</span> {t.member_name}
-                </span>
-              )}
-            </div>
-          </div>
-          {hoveredRow === t.id && (
-            <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleEdit(t)}
-                className="h-6 w-6 p-0 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600"
-                title="Modifier"
-              >
-                <Edit className="w-3.5 h-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDelete(t)}
-                className="h-6 w-6 p-0 hover:bg-red-50 dark:hover:bg-red-900/20 text-zinc-400 hover:text-red-500"
-                title="Supprimer"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'category',
-      label: 'Categorie',
-      sortable: true,
-      width: 'w-auto',
-      render: (t) => (
-        t.category ? (
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-md border text-[10px] font-medium whitespace-nowrap transition-colors ${getCategoryStyle(t.category)}`}>
-            {t.category}
-          </span>
-        ) : (
-          <span className="text-xs text-zinc-400 whitespace-nowrap">-</span>
-        )
-      ),
-    },
-    {
-      key: 'bank_account_id',
-      label: 'Compte',
-      width: 'w-auto',
-      render: (t) => {
-        if (t.paid_by_member && t.member_name) {
-          return (
-            <div className="flex flex-col">
-              <span className="text-[10px] text-purple-400 whitespace-nowrap">💰 {t.member_name}</span>
-              {t.reimbursement_status === 'pending' && (
-                <span className="text-[10px] text-yellow-500 whitespace-nowrap">⏳ A rembourser</span>
-              )}
-              {t.reimbursement_status === 'reimbursed' && (
-                <span className="text-[10px] text-green-500 whitespace-nowrap">✅ Rembourse</span>
-              )}
-            </div>
-          )
-        }
-        // TODO: Afficher le nom du compte bancaire
-        return (
-          <span className="text-xs text-zinc-400 whitespace-nowrap">-</span>
-        )
-      },
-    },
-    {
-      key: 'event',
-      label: 'Evenement',
-      width: 'w-auto',
-      render: (t) => {
-        if (!t.event_id) {
-          return (
-            <div className="flex items-center gap-1 group/cell">
-              <span className="text-xs text-zinc-400">-</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-5 w-5 p-0 opacity-0 group-hover/cell:opacity-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setLinkingTransactionId(t.id)
-                  setLinkingField('event')
-                  setShowLinkEventModal(true)
-                }}
-                title="Lier a un evenement"
-              >
-                <Link2 className="w-3 h-3" />
-              </Button>
-            </div>
-          )
-        }
-        const event = linksData.events[t.event_id]
-        if (!event) return <span className="text-xs text-zinc-400">-</span>
-        return (
-          <span 
-            className="text-xs text-zinc-600 dark:text-zinc-300 hover:text-blue-500 dark:hover:text-blue-400 hover:underline cursor-pointer truncate max-w-[150px] block"
-            onClick={(e) => {
-              e.stopPropagation()
-              router.push(`/evenements?id=${event.id}`)
-            }}
-            title={event.title}
-          >
-            {event.title}
-          </span>
-        )
-      },
-    },
-    {
-      key: 'contact',
-      label: 'Contact',
-      width: 'w-auto',
-      render: (t) => {
-        if (!t.contact_id) {
-          return (
-            <div className="flex items-center gap-1 group/cell">
-              <span className="text-xs text-zinc-400">-</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-5 w-5 p-0 opacity-0 group-hover/cell:opacity-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setLinkingTransactionId(t.id)
-                  setLinkingField('contact')
-                  setShowLinkContactModal(true)
-                }}
-                title="Lier a un contact"
-              >
-                <Link2 className="w-3 h-3" />
-              </Button>
-            </div>
-          )
-        }
-        const contact = linksData.contacts[t.contact_id]
-        if (!contact) return <span className="text-xs text-zinc-400">-</span>
-        return (
-          <span 
-            className="text-xs text-zinc-600 dark:text-zinc-300 hover:text-blue-500 dark:hover:text-blue-400 hover:underline cursor-pointer truncate max-w-[150px] block"
-            onClick={(e) => {
-              e.stopPropagation()
-              router.push(`/commerciale?contact=${contact.id}`)
-            }}
-            title={contact.name}
-          >
-            {contact.name}
-          </span>
-        )
-      },
-    },
-    {
-      key: 'amount',
-      label: 'Montant',
-      sortable: true,
-      width: 'w-auto',
-      align: 'right',
-      render: (t) => (
-        <span className={`font-mono font-bold text-sm whitespace-nowrap ${t.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-zinc-900 dark:text-zinc-100'}`}>
-          {t.type === 'income' ? '+' : '-'}{(t.amount || 0).toLocaleString('fr-FR')} €
-        </span>
-      ),
-    },
-    {
-      key: 'status',
-      label: 'Statut',
-      width: 'w-auto',
-      align: 'right',
-      render: (t) => (
-        <StatusBadge
-          label={getStatusLabel(t.status)}
-          variant={getStatusVariant(t.status)}
-          className="px-2 py-0.5 text-[10px]"
-          showIcon={true}
-        />
-      ),
-    },
-  ]
-
   if (loading) {
     return <LoadingState message="Chargement des transactions..." className="h-96" />
   }
 
+  const allSelected =
+    paginatedTransactions.length > 0 && selectedIds.size === paginatedTransactions.length
+
   return (
     <div className="space-y-6">
-      {/* Section Transactions recurrentes */}
       {recurringTransactions.length > 0 && (
         <div className="border-2 border-blue-500/30 rounded-lg p-4 bg-blue-500/5">
           <div className="flex items-center justify-between mb-3">
@@ -566,17 +429,9 @@ export default function TransactionsTab({
             >
               <Repeat className="w-4 h-4" />
               Transactions recurrentes ({recurringTransactions.length})
-              {showRecurringSection ? (
-                <ChevronUp className="w-4 h-4" />
-              ) : (
-                <ChevronDown className="w-4 h-4" />
-              )}
+              {showRecurringSection ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleGenerateRecurring}
-            >
+            <Button variant="secondary" size="sm" onClick={handleGenerateRecurring}>
               Generer maintenant
             </Button>
           </div>
@@ -591,13 +446,14 @@ export default function TransactionsTab({
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-sm">{rt.label}</span>
-                      <StatusBadge
-                        label={rt.is_active ? 'Active' : 'Inactive'}
-                        variant={rt.is_active ? 'success' : 'neutral'}
-                      />
+                      <Badge variant={rt.is_active ? 'success' : 'secondary'}>
+                        {rt.is_active ? 'Active' : 'Inactive'}
+                      </Badge>
                     </div>
                     <div className="text-xs text-zinc-500 mt-1">
-                      {rt.amount.toFixed(2)} EUR • {rt.category} • {rt.frequency === 'monthly' ? 'Mensuel' : rt.frequency === 'quarterly' ? 'Trimestriel' : 'Annuel'} • Jour {rt.day_of_month}
+                      {rt.amount.toFixed(2)} EUR • {rt.category} •{' '}
+                      {rt.frequency === 'monthly' ? 'Mensuel' : rt.frequency === 'quarterly' ? 'Trimestriel' : 'Annuel'}{' '}
+                      • Jour {rt.day_of_month}
                       {rt.next_occurrence_date && (
                         <> • Prochaine: {new Date(rt.next_occurrence_date).toLocaleDateString('fr-FR')}</>
                       )}
@@ -630,61 +486,281 @@ export default function TransactionsTab({
         </div>
       )}
 
-
-      {/* Table */}
-      <DataTable
-        data={paginatedTransactions}
-        columns={tableColumns}
-        sortField={sortField}
-        sortDirection={sortDirection}
-        onSort={handleSort}
-        onRowHover={setHoveredRow}
-        onRowClick={(transaction) => {
-          setViewingTransaction(transaction)
-          setShowViewTransactionModal(true)
-        }}
-        emptyMessage="Aucune transaction a afficher"
-        emptyState={
-          <EmptyState
-            icon={Receipt}
-            title="Aucune transaction"
-            description="Commencez par ajouter votre premiere transaction ou importez un fichier CSV."
-            action={
-              onCreateTransaction && (
-                <Button variant="primary" size="sm" onClick={onCreateTransaction}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nouvelle transaction
-                </Button>
-              )
+      {paginatedTransactions.length === 0 ? (
+        <EmptyState
+          icon={Receipt}
+          title="Aucune transaction"
+          description="Commencez par ajouter votre premiere transaction ou importez un fichier CSV."
+          action={
+            onCreateTransaction && (
+              <Button variant="primary" size="sm" onClick={onCreateTransaction}>
+                <Plus className="w-4 h-4 mr-2" />
+                Nouvelle transaction
+              </Button>
+            )
+          }
+        />
+      ) : (
+        <div className="rounded-xl overflow-visible">
+          <Table
+            variant="default"
+            resizable={false}
+            statusColumn={false}
+            fillColumn={false}
+            selectionColumn
+            addable={!!onCreateTransaction}
+            onAddRow={onCreateTransaction ? (_values) => onCreateTransaction() : undefined}
+            selectAllChecked={allSelected}
+            onSelectAllChange={(checked) =>
+              setSelectedIds(checked ? new Set(paginatedTransactions.map((t) => t.id)) : new Set())
             }
-          />
-        }
-      />
+          >
+            <TableHeader>
+              <TableRow hoverCellOnly>
+                <TableHead minWidth={200} defaultWidth={290} sortable onSortClick={() => handleSort('label')}>
+                  Libellé
+                </TableHead>
+                <TableHead minWidth={90} defaultWidth={105} sortable onSortClick={() => handleSort('date')}>
+                  Date
+                </TableHead>
+                <TableHead minWidth={100} defaultWidth={110} sortable onSortClick={() => handleSort('type')}>
+                  Type
+                </TableHead>
+                <TableHead minWidth={120} defaultWidth={140} sortable onSortClick={() => handleSort('category')}>
+                  Catégorie
+                </TableHead>
+                <TableHead minWidth={130} defaultWidth={160}>
+                  Événement
+                </TableHead>
+                <TableHead minWidth={100} defaultWidth={120}>
+                  Contact
+                </TableHead>
+                <TableHead minWidth={90} defaultWidth={110} align="center" sortable onSortClick={() => handleSort('amount')}>
+                  Montant
+                </TableHead>
+                <TableHead minWidth={85} defaultWidth={135} align="center">
+                  Statut
+                </TableHead>
+                <TableHead align="center" centerContent minWidth={48} defaultWidth={48} maxWidth={48}>
+                  +
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedTransactions.map((t) => (
+                  <TableRow
+                    key={t.id}
+                    selected={selectedIds.has(t.id)}
+                    onSelectChange={(checked) =>
+                      setSelectedIds((prev) => {
+                        const next = new Set(prev)
+                        if (checked) next.add(t.id)
+                        else next.delete(t.id)
+                        return next
+                      })
+                    }
+                  >
+                    <TableCell
+                      noHoverBorder
+                      className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                      onClick={() => handleEdit(t)}
+                    >
+                      <div className="flex items-center justify-between gap-2 h-full group/row">
+                        <div className="truncate min-w-0 flex-1">
+                          <div className="font-medium text-sm text-zinc-900 dark:text-zinc-100 truncate">{t.label}</div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {t.piece_number && (
+                              <span className="text-[10px] text-zinc-400 font-mono">#{t.piece_number}</span>
+                            )}
+                            {t.paid_by_member && t.member_name && (
+                              <span className="text-[10px] text-purple-400 flex items-center gap-1">
+                                <span>👤</span> {t.member_name}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div
+                          className="shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleEdit(t)
+                            }}
+                            className="h-6 w-6 p-0 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600"
+                            title="Modifier"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="p-0">
+                      <div className="w-full h-full min-h-8 flex items-center">
+                        <DatePicker
+                          date={t.date ? new Date(t.date) : undefined}
+                          onSelect={(d) => updateDate(t, d)}
+                          placeholder="Date"
+                          displayFormat="dd/MM/yyyy"
+                          variant="text"
+                          className="h-8 min-h-8 w-full text-xs"
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell className="p-0">
+                      <SelectPicker
+                        variant="table"
+                        size="xs"
+                        value={t.type}
+                        onChange={(v) => updateType(t, v as 'income' | 'expense')}
+                        options={[
+                          { value: 'income', label: 'Entrée' },
+                          { value: 'expense', label: 'Sortie' },
+                        ]}
+                        placeholder="Type"
+                        className="w-full h-8 min-h-8"
+                      />
+                    </TableCell>
+                    <TableCell className="p-0">
+                      <SelectPicker
+                        variant="table"
+                        size="xs"
+                        value={t.category || ''}
+                        onChange={(v) => updateCategory(t, v)}
+                        options={[
+                          { value: '', label: 'Catégorie' },
+                          ...(t.type === 'income' ? categoriesIncome : categoriesExpense).map((c) => ({
+                            value: c.name,
+                            label: c.name,
+                          })),
+                        ]}
+                        placeholder="Catégorie"
+                        searchable
+                        searchPlaceholder="Rechercher une catégorie..."
+                        className="w-full h-8 min-h-8"
+                      />
+                    </TableCell>
+                    <TableCell className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                      <EventPicker
+                        value={t.event_id}
+                        onSelect={(eventId) => handleLinkEvent(t.id, eventId)}
+                        onUnlink={() => handleUnlinkEvent(t.id)}
+                      >
+                        {!t.event_id ? (
+                          <span className="text-sm text-zinc-400 hover:text-blue-500 dark:hover:text-blue-400">
+                            + Événement
+                          </span>
+                        ) : (
+                          (() => {
+                            const event = linksData.events[t.event_id]
+                            if (!event) return <span className="text-sm text-zinc-400">-</span>
+                            return (
+                              <span
+                                className="text-sm text-zinc-900 dark:text-zinc-100 truncate block"
+                                title={event.title}
+                              >
+                                {event.title}
+                              </span>
+                            )
+                          })()
+                        )}
+                      </EventPicker>
+                    </TableCell>
+                    <TableCell className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                      <ContactPicker
+                        value={t.contact_id}
+                        onSelect={(contactId) => handleLinkContact(t.id, contactId)}
+                        onUnlink={() => handleUnlinkContact(t.id)}
+                      >
+                        {!t.contact_id ? (
+                          <span className="text-sm text-zinc-400 hover:text-blue-500 dark:hover:text-blue-400">
+                            + Contact
+                          </span>
+                        ) : (
+                          (() => {
+                            const contact = linksData.contacts[t.contact_id]
+                            if (!contact) return <span className="text-sm text-zinc-400">-</span>
+                            return (
+                              <span
+                                className="text-sm text-zinc-900 dark:text-zinc-100 truncate block"
+                                title={contact.name}
+                              >
+                                {contact.name}
+                              </span>
+                            )
+                          })()
+                        )}
+                      </ContactPicker>
+                    </TableCell>
+                    <TableCell align="right">
+                      <span
+                        className={cn(
+                          'font-mono font-bold text-sm whitespace-nowrap',
+                          t.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-zinc-900 dark:text-zinc-100'
+                        )}
+                      >
+                        {t.type === 'income' ? '+' : '-'}
+                        {(t.amount || 0).toLocaleString('fr-FR')} €
+                      </span>
+                    </TableCell>
+                    <TableCell align="center" className="p-0">
+                      <SelectPicker
+                        variant="table"
+                        size="xs"
+                        value={t.status}
+                        onChange={(v) => updateStatus(t, v as 'pending' | 'validated' | 'reconciled')}
+                        options={[
+                          { value: 'pending', label: 'En attente' },
+                          { value: 'validated', label: 'Valide' },
+                          { value: 'reconciled', label: 'Rapproché' },
+                        ]}
+                        placeholder="Statut"
+                        className="w-full h-8 min-h-8"
+                      />
+                    </TableCell>
+                    <TableCell noHoverBorder className="p-0 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            className="w-full h-full min-h-8 flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400"
+                            title="Actions"
+                          >
+                            <MoreVertical className="w-3.5 h-3.5" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-1" align="end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(t)}
+                            className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 mr-2" />
+                            Supprimer
+                          </Button>
+                        </PopoverContent>
+                      </Popover>
+                    </TableCell>
+                  </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <TablePagination
           currentPage={currentPage}
           totalPages={totalPages}
-          totalItems={filteredAndSortedTransactions.length}
+          totalItems={sortedTransactions.length}
           itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
         />
       )}
-
-      {/* Modals */}
-      <EditTransactionModal
-        isOpen={showEditTransactionModal}
-        onClose={() => {
-          setShowEditTransactionModal(false)
-          setEditingTransaction(null)
-        }}
-        onSuccess={() => {
-          loadTransactions()
-          onTransactionChange?.()
-        }}
-        transaction={editingTransaction}
-      />
 
       <ViewTransactionModal
         isOpen={showViewTransactionModal}
@@ -694,12 +770,12 @@ export default function TransactionsTab({
         }}
         transaction={viewingTransaction}
         onEdit={(transaction) => {
-          setEditingTransaction(transaction)
-          setShowEditTransactionModal(true)
+          setShowViewTransactionModal(false)
+          setViewingTransaction(null)
+          handleEdit(transaction)
         }}
       />
 
-      {/* Modals pour lier des entites */}
       {linkingTransactionId && linkingField === 'event' && (
         <LinkEventModal
           isOpen={showLinkEventModal}
@@ -715,20 +791,6 @@ export default function TransactionsTab({
         />
       )}
 
-      {linkingTransactionId && linkingField === 'contact' && (
-        <LinkContactModal
-          isOpen={showLinkContactModal}
-          onClose={() => {
-            setShowLinkContactModal(false)
-            setLinkingTransactionId(null)
-            setLinkingField(null)
-          }}
-          transactionId={linkingTransactionId}
-          onLink={async (contactId: string) => {
-            await handleLinkContact(linkingTransactionId, contactId)
-          }}
-        />
-      )}
     </div>
   )
 }
