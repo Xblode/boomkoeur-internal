@@ -6,6 +6,7 @@ import { Twitter, Linkedin, Github } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/hooks';
 import { footerLinksGuest, footerLinksAuth, footerSocialLinksData } from '@/config/navigation';
+import { siteConfig } from '@/config/site';
 
 const SOCIAL_ICONS = { twitter: Twitter, linkedin: Linkedin, github: Github } as const;
 
@@ -35,10 +36,10 @@ export const Footer: React.FC<FooterProps> = ({
           <div className="col-span-1 md:col-span-2 space-y-4">
             <Link href="/" className="flex items-center gap-2 font-bold text-lg tracking-tight">
               <div className="h-6 w-6 rounded bg-zinc-900 dark:bg-white" />
-              <span>Template</span>
+              <span>{siteConfig.name}</span>
             </Link>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-xs leading-relaxed">
-              Une base solide pour vos projets Next.js. Design moderne, performance optimale et expérience développeur soignée.
+              Plateforme tout-en-un pour gérer vos événements, billetterie, finances, contacts et campagnes.
             </p>
           </div>
 
@@ -85,7 +86,7 @@ export const Footer: React.FC<FooterProps> = ({
 
         <div className="mt-12 pt-8 border-t border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            © {currentYear} Template Inc. Tous droits réservés.
+            © {currentYear} {siteConfig.name}. Tous droits réservés.
           </p>
           <div className="flex gap-6">
             <Link href="/privacy" className="text-xs text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">

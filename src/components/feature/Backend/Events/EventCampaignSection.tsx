@@ -971,7 +971,6 @@ export function EventCampaignSection() {
   const detectMediaType = (url: string): 'image' | 'video' => {
     const u = url.trim();
     if (VIDEO_EXTENSIONS.test(u)) return 'video';
-    if (getGoogleDriveEmbed(u)) return 'video';
     if (getDropboxDirect(u) && /\.(mp4|webm|mov)(\?|$)/i.test(u)) return 'video';
     return 'image';
   };
@@ -982,7 +981,12 @@ export function EventCampaignSection() {
     const dropboxDirect = getDropboxDirect(u);
     const isVideoType = v.mediaType === 'video' || (!v.mediaType && detectMediaType(u) === 'video');
 
-    if (driveEmbed) {
+    // Images Google Drive : utiliser img avec export=view (pas d'iframe = pas de demande de cookies)
+    if (driveEmbed && !isVideoType) {
+      return <img src={getGoogleDriveViewUrl(u)} alt="Visuel" className="w-full h-full object-cover" />;
+    }
+    // Vidéos Google Drive : iframe (peut demander les cookies)
+    if (driveEmbed && isVideoType) {
       return <iframe src={driveEmbed} className="w-full h-full border-0" allow="autoplay" allowFullScreen title="Visuel Google Drive" />;
     }
     if (isVideoType) {
@@ -998,7 +1002,7 @@ export function EventCampaignSection() {
   };
 
   const isVideoVisual = (v: PostVisual) =>
-    v.mediaType === 'video' || (!v.mediaType && detectMediaType(v.url) === 'video') || !!getGoogleDriveEmbed(v.url);
+    v.mediaType === 'video' || (!v.mediaType && detectMediaType(v.url) === 'video');
 
   const addVisual = (postId: string, url: string) => {
     if (!url.trim()) return;

@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import { useRouter, usePathname } from 'next/navigation';
 import type { Organisation, OrgRole } from '@/types/organisation';
 import { getUserOrganisations, getUserRoleInOrg } from '@/lib/supabase/organisations';
+import { supabase } from '@/lib/supabase/client';
 import { useUser } from '@/hooks';
 import { userService } from '@/lib/services/UserService';
 import { setActiveOrgId } from '@/lib/supabase/activeOrg';
@@ -32,6 +33,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   const [userOrgs, setUserOrgs] = useState<Organisation[]>([]);
   const [activeOrg, setActiveOrg] = useState<Organisation | null>(null);
   const [userRole, setUserRole] = useState<OrgRole | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadOrgs = useCallback(async () => {
@@ -39,11 +41,20 @@ export function OrgProvider({ children }: { children: ReactNode }) {
       setUserOrgs([]);
       setActiveOrg(null);
       setUserRole(null);
+      setIsSuperAdmin(false);
       setIsLoading(false);
       return;
     }
 
     try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_super_admin')
+        .eq('id', user.id)
+        .single();
+      const superAdmin = profile?.is_super_admin ?? false;
+      setIsSuperAdmin(superAdmin);
+
       const orgs = await getUserOrganisations();
       setUserOrgs(orgs);
 
@@ -96,7 +107,6 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     setUserRole(role);
   }, [userOrgs]);
 
-  const isSuperAdmin = user?.id ? false : false;
   const isFounder = userRole === 'fondateur';
   const isAdmin = userRole === 'admin' || userRole === 'fondateur' || isSuperAdmin;
 

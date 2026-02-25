@@ -14,6 +14,7 @@ import { useMobileNav } from '@/components/providers/MobileNavProvider';
 import { supabase } from '@/lib/supabase/client';
 import { ROUTES } from '@/lib/constants';
 import { useUser } from '@/hooks';
+import { siteConfig } from '@/config/site';
 
 export interface HeaderProps {
   navigation?: Array<{ label: string; href: string }>;
@@ -88,7 +89,13 @@ export const Header: React.FC<HeaderProps> = ({
             className="hidden lg:flex items-center justify-center"
             title="Retour à l'accueil"
           >
-            <Image src="/next.svg" alt="Logo" width={32} height={32} className="dark:invert" />
+            <Image
+              src="/svg/Fichier 2.svg"
+              alt="Logo"
+              width={15}
+              height={30}
+              className="brightness-0 invert"
+            />
           </Link>
         </div>
 
@@ -220,8 +227,13 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center justify-between h-14">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 font-bold text-lg tracking-tight">
-            <Image src="/next.svg" alt="Logo" width={24} height={24} className="dark:invert" />
-            <span>Template</span>
+            <Image
+              src="/svg/Fichier 4.svg"
+              alt="Logo"
+              width={120}
+              height={42}
+              className="brightness-0 invert"
+            />
           </Link>
 
           {/* Navigation */}

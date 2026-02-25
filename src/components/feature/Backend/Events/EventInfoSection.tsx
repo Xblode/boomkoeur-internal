@@ -24,6 +24,7 @@ import {
 import { format, setHours, setMinutes } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useEventDetail } from './EventDetailProvider';
+import { useOrg } from '@/hooks';
 
 const WORKFLOW_PHASE_LABELS: Record<string, string> = {
   preparation: 'Préparation',
@@ -48,6 +49,7 @@ const PRIORITY_CONFIG: Record<EventPriority, { label: string; className: string 
 
 export function EventInfoSection() {
   const { event, persistField } = useEventDetail();
+  const { activeOrg } = useOrg();
 
   // ── Local editing state ──
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -274,6 +276,7 @@ export function EventInfoSection() {
               setAssigneesValue(next);
               persistField({ assignees: next });
             }}
+            orgId={activeOrg?.id}
             open={assigneesPickerOpen}
             onOpenChange={setAssigneesPickerOpen}
             cellRef={assigneesCellRef}

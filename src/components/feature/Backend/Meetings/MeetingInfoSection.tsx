@@ -365,6 +365,7 @@ export function MeetingInfoSection() {
           <MemberPicker
             value={participantsValue}
             onChange={handleParticipantsChange}
+            orgId={activeOrg?.id}
             open={participantsPickerOpen}
             onOpenChange={setParticipantsPickerOpen}
             cellRef={participantsCellRef}

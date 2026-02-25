@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { User } from '@/types/user';
-import { mockUsers } from '@/lib/mocks/users';
+import { getOrgUsers } from '@/lib/supabase/users';
 import { cn } from '@/lib/utils';
-import { Check, Plus, Search } from 'lucide-react';
+import { Check, Plus, Search, Loader2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/atoms';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -63,12 +63,13 @@ function MemberAvatar({ name, src, size = 22 }: MemberAvatarProps) {
 // ── MemberPicker ──────────────────────────────────────────────────────────────
 
 const MAX_VISIBLE = 3;
-const ALL_MEMBERS: User[] = mockUsers.filter(u => u.status === 'active');
 
 export interface MemberPickerProps {
   /** List of selected member full names */
   value: string[];
   onChange: (next: string[]) => void;
+  /** Organisation ID — when provided, loads members from Supabase */
+  orgId?: string | null;
   /** Avatar size in px (stack). Default: 22 */
   avatarSize?: number;
   /** Controlled open state */
@@ -81,11 +82,31 @@ export interface MemberPickerProps {
   className?: string;
 }
 
-export function MemberPicker({ value, onChange, avatarSize = 22, open: openProp, onOpenChange, cellRef, className }: MemberPickerProps) {
+export function MemberPicker({ value, onChange, orgId, avatarSize = 22, open: openProp, onOpenChange, cellRef, className }: MemberPickerProps) {
   const [openInternal, setOpenInternal] = useState(false);
   const isControlled = openProp !== undefined;
   const open = isControlled ? openProp! : openInternal;
   const [search, setSearch] = useState('');
+  const [members, setMembers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!orgId) {
+      setMembers([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    getOrgUsers(orgId)
+      .then((users) => setMembers(users.filter((u) => u.status === 'active')))
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'Erreur chargement');
+        setMembers([]);
+      })
+      .finally(() => setLoading(false));
+  }, [orgId]);
 
   const setOpen = useCallback((next: boolean) => {
     if (!next) setSearch('');
@@ -103,12 +124,15 @@ export function MemberPicker({ value, onChange, avatarSize = 22, open: openProp,
   const visible = value.slice(0, MAX_VISIBLE);
   const overflow = value.length - MAX_VISIBLE;
 
-  const filtered = ALL_MEMBERS.filter(u =>
-    `${u.firstName} ${u.lastName}`.toLowerCase().includes(search.toLowerCase())
+  const getFullName = (u: User) =>
+    `${u.firstName} ${u.lastName}`.trim() || u.email || 'Utilisateur';
+
+  const filtered = members.filter((u) =>
+    getFullName(u).toLowerCase().includes(search.toLowerCase())
   );
 
   const resolveUser = (name: string) =>
-    ALL_MEMBERS.find(u => `${u.firstName} ${u.lastName}` === name);
+    members.find((u) => getFullName(u) === name);
 
   return (
     <div className={cn('relative', className)}>
@@ -169,11 +193,18 @@ export function MemberPicker({ value, onChange, avatarSize = 22, open: openProp,
 
           {/* List */}
           <div className="max-h-56 overflow-y-auto py-1">
-            {filtered.length === 0 ? (
+            {loading ? (
+              <div className="flex items-center justify-center gap-2 py-8 text-zinc-500">
+                <Loader2 size={18} className="animate-spin" />
+                <span className="text-sm">Chargement...</span>
+              </div>
+            ) : error ? (
+              <p className="text-xs text-red-500 text-center py-4">{error}</p>
+            ) : filtered.length === 0 ? (
               <p className="text-xs text-zinc-500 text-center py-4">Aucun membre trouvé</p>
             ) : (
-              filtered.map(user => {
-                const fullName = `${user.firstName} ${user.lastName}`;
+              filtered.map((user) => {
+                const fullName = getFullName(user);
                 const selected = value.includes(fullName);
                 return (
                   <button

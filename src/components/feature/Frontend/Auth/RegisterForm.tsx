@@ -53,7 +53,15 @@ export const RegisterForm: React.FC = () => {
       });
 
       if (authError) {
-        setError(getErrorMessage(authError) ?? 'Une erreur est survenue. Veuillez réessayer.');
+        const msg = getErrorMessage(authError);
+        const isRateLimit =
+          msg?.toLowerCase().includes('rate limit') ||
+          msg?.toLowerCase().includes('rate_limit');
+        setError(
+          isRateLimit
+            ? 'Limite d\'envoi d\'emails atteinte. Supabase autorise 2 emails/heure. Réessayez dans environ 1 heure, ou désactivez la confirmation email dans le dashboard Supabase (Auth > Providers > Email).'
+            : msg ?? 'Une erreur est survenue. Veuillez réessayer.'
+        );
         return;
       }
 

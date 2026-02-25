@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Event } from '@/types/event';
-import { Check, FileText, Megaphone, Calendar, ChevronRight, Shield, Rocket } from 'lucide-react';
+import { Check, FileText, Megaphone, Calendar, ChevronRight, Shield, Music2, Send } from 'lucide-react';
 import { useEventDetail } from './EventDetailProvider';
 
 interface Milestone {
@@ -30,11 +30,12 @@ export function EventProgressTimeline({ event: eventProp, className }: EventProg
   const isEventDayPassed = eventDate.getTime() <= today.getTime();
 
   const hasBrief = Boolean(event.brief?.trim());
+  const hasArtists = (event.artists?.length ?? 0) > 0;
   const posts = event.comWorkflow?.posts ?? [];
   const hasPosts = posts.length > 0;
   const securityContacted = event.comWorkflow?.manual?.securityContacted ?? false;
   const manual = event.comWorkflow?.manual ?? {};
-  const campagnePrete =
+  const lancementCom =
     !!manual.firstPostPublished && !!manual.linktreeUpdated && !!manual.facebookEventCreated;
 
   const milestones: Milestone[] = [
@@ -51,16 +52,22 @@ export function EventProgressTimeline({ event: eventProp, className }: EventProg
       isCompleted: hasBrief,
     },
     {
+      id: 'artistes',
+      label: 'Ajouter les artistes',
+      icon: <Music2 size={16} />,
+      isCompleted: hasArtists,
+    },
+    {
       id: 'posts',
       label: 'Liste des posts',
       icon: <Megaphone size={16} />,
       isCompleted: !!hasPosts,
     },
     {
-      id: 'campagnePrete',
-      label: 'Campagne Prête',
-      icon: <Rocket size={16} />,
-      isCompleted: campagnePrete,
+      id: 'lancementCom',
+      label: 'Lancement de la communication',
+      icon: <Send size={16} />,
+      isCompleted: lancementCom,
     },
     {
       id: 'security',

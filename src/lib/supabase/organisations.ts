@@ -85,6 +85,21 @@ export async function getUserOrganisations(): Promise<Organisation[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Non authentifié');
 
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_super_admin')
+    .eq('id', user.id)
+    .single();
+
+  if (profile?.is_super_admin) {
+    const { data, error } = await supabase
+      .from('organisations')
+      .select('*')
+      .order('name');
+    if (error) throw error;
+    return (data ?? []).map(mapDbOrg);
+  }
+
   const { data: members, error: membersErr } = await supabase
     .from('organisation_members')
     .select('org_id')

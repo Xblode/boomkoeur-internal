@@ -4,16 +4,16 @@ import { Metadata } from 'next';
  * Configuration générale du site
  */
 export const siteConfig = {
-  name: 'Template V1',
-  title: 'Template V1 - Next.js Starter',
-  description: 'Un template Next.js moderne avec architecture Frontend/Backend',
-  url: 'https://example.com',
-  ogImage: 'https://example.com/og.jpg',
+  name: 'Perret',
+  title: 'Perret - Gestion d\'événements et de projets',
+  description: 'Plateforme tout-en-un pour gérer vos événements, billetterie, finances, contacts et campagnes. Organisez, pilotez et communiquez en un seul endroit.',
+  url: 'https://perret.fr',
+  ogImage: 'https://perret.fr/og.jpg',
   links: {
     twitter: 'https://twitter.com',
     github: 'https://github.com',
   },
-  keywords: ['Next.js', 'React', 'TypeScript', 'Tailwind CSS'],
+  keywords: ['événements', 'billetterie', 'gestion', 'finance', 'campagnes', 'organisation'],
 };
 
 /**
