@@ -33,6 +33,7 @@ interface DbContact {
   notes: string | null;
   tags: unknown;
   last_contact_at: string | null;
+  is_favorite?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -68,6 +69,7 @@ function mapDbContactToContact(row: DbContact): CommercialContact {
     notes: row.notes ?? undefined,
     tags: Array.isArray(row.tags) ? row.tags as string[] : [],
     last_contact_at: row.last_contact_at ?? undefined,
+    is_favorite: row.is_favorite ?? false,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -84,7 +86,8 @@ function mapDbNoteToNote(row: DbNote): ContactNote {
   };
 }
 
-function contactToDbPayload(input: Partial<CommercialContactInput> | Partial<CommercialContact>): Record<string, unknown> {
+/** Payload complet pour create (tous les champs requis) */
+function contactToDbPayloadFull(input: Partial<CommercialContactInput> | Partial<CommercialContact>): Record<string, unknown> {
   return {
     type: input.type ?? 'contact',
     status: input.status ?? 'lead',
@@ -103,8 +106,22 @@ function contactToDbPayload(input: Partial<CommercialContactInput> | Partial<Com
     notes: input.notes ?? null,
     tags: input.tags ?? [],
     last_contact_at: input.last_contact_at ?? null,
+    is_favorite: input.is_favorite ?? false,
     updated_at: new Date().toISOString(),
   };
+}
+
+/** Payload partiel pour update (uniquement les champs fournis) */
+function contactToDbPayloadPartial(updates: Partial<CommercialContactInput>): Record<string, unknown> {
+  const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  const keys = ['type', 'status', 'name', 'company', 'email', 'phone', 'mobile', 'website', 'address', 'contact_person', 'position', 'linked_product_ids', 'linked_order_ids', 'linked_invoice_ids', 'notes', 'tags', 'last_contact_at', 'is_favorite'] as const;
+  for (const key of keys) {
+    if (key in updates) {
+      const v = updates[key];
+      payload[key] = v ?? (key === 'address' ? {} : ['linked_product_ids', 'linked_order_ids', 'linked_invoice_ids', 'tags'].includes(key) ? [] : null);
+    }
+  }
+  return payload;
 }
 
 // --- API Contacts ---
@@ -135,7 +152,7 @@ export async function createCommercialContact(input: CommercialContactInput): Pr
   const { data: { user } } = await supabase.auth.getUser();
   const createdBy = user?.id ?? null;
 
-  const payload = contactToDbPayload(input);
+  const payload = contactToDbPayloadFull(input);
   const { data: inserted, error } = await supabase
     .from('commercial_contacts')
     .insert({
@@ -154,7 +171,7 @@ export async function updateCommercialContact(
   id: string,
   updates: Partial<CommercialContactInput>
 ): Promise<CommercialContact | null> {
-  const payload = contactToDbPayload(updates);
+  const payload = contactToDbPayloadPartial(updates);
   const { data, error } = await supabase
     .from('commercial_contacts')
     .update(payload)

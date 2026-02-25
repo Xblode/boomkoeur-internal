@@ -18,7 +18,7 @@ export default function CommercialPage() {
 
   const { activeSection } = useCommercialLayout();
   const { setAlert } = useAlert();
-  const { contacts, isLoading, error, refetch } = useCommercialContacts();
+  const { contacts, isLoading, error, refetch, updateContactInPlace } = useCommercialContacts();
   const [selectedContact, setSelectedContact] = useState<CommercialContact | null>(null);
   const [isContactDetailsOpen, setIsContactDetailsOpen] = useState(false);
 
@@ -64,7 +64,8 @@ export default function CommercialPage() {
           <CommercialList
             contacts={contacts}
             isLoading={isLoading}
-            onRefetch={refetch}
+            onRefetch={(silent) => refetch(!silent)}
+            onContactUpdate={updateContactInPlace}
           />
         )}
       </div>

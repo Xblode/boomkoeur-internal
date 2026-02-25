@@ -54,6 +54,7 @@ export type CommercialContact = {
   tags: string[]; // Tags pour catégorisation
   
   // Métadonnées
+  is_favorite?: boolean; // Favori (affiché en premier dans la liste)
   created_at: Date | string;
   updated_at: Date | string;
   last_contact_at?: Date | string; // Dernier échange

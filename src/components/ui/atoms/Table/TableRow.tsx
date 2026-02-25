@@ -68,6 +68,7 @@ const TableRow = React.forwardRef<HTMLTableRowElement, TableRowProps>(
       subTaskRows,
       hasSubTasks = false,
       onAddSubTask,
+      favoriteConfig,
       rowId,
       children,
       ...props
@@ -156,6 +157,7 @@ const TableRow = React.forwardRef<HTMLTableRowElement, TableRowProps>(
             onExpandToggle: handleExpandToggle,
             rowActions: mergedRowActions,
             hasSubTasks: canExpandFromSubTasks ? hasSubTasks : true,
+            ...(favoriteConfig && { favoriteConfig }),
             ...(ctx?.statusColumn && {
               statusColumn: true,
               status: status ?? 'default',
@@ -196,6 +198,7 @@ const TableRow = React.forwardRef<HTMLTableRowElement, TableRowProps>(
       const firstCellWithActions = cellToInject
         ? React.cloneElement(cellToInject.element as React.ReactElement<TableCellProps>, {
             rowActions: mergedRowActions,
+            ...(favoriteConfig && { favoriteConfig }),
             ...(ctx?.statusColumn && {
               statusColumn: true,
               status: status ?? 'default',
@@ -230,6 +233,7 @@ const TableRow = React.forwardRef<HTMLTableRowElement, TableRowProps>(
           status: status ?? 'default',
           statusContent,
           onStatusChange,
+          ...(favoriteConfig && { favoriteConfig }),
           ...(mergedRowActions && mergedRowActions.length > 0 && { rowActions: mergedRowActions }),
           ...(showTagsEditor && tagsConfig && {
             tagsConfig,

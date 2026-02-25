@@ -106,6 +106,8 @@ export interface TableRowProps extends React.HTMLAttributes<HTMLTableRowElement>
   hasSubTasks?: boolean;
   /** Callback quand on clique sur "+" pour ajouter une sous-tâche (injecte l'action si statusContent) */
   onAddSubTask?: () => void;
+  /** Bouton favori entre le chevron et le contenu de la 1ère cellule */
+  favoriteConfig?: { isFavorite: boolean; onToggle: () => void };
   /** Identifiant unique pour le DnD des lignes (requis si reorderableRows) */
   rowId?: string;
 }
@@ -170,6 +172,10 @@ export interface TableCellProps
   indentLevel?: number;
   /** Quand expandable, si false le chevron est invisible (opacity-0) */
   hasSubTasks?: boolean;
+  /** Bouton favori entre le chevron et le contenu (injecté par TableRow via favoriteConfig) */
+  favoriteConfig?: { isFavorite: boolean; onToggle: () => void };
+  /** Ref optionnelle pour l'input éditable (focus programmatique) */
+  inputRef?: React.RefObject<HTMLInputElement | null>;
   /** Identifiant de colonne pour alignement avec TableHead (requis si reorderableColumns) */
   columnId?: string;
 }

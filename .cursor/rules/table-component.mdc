@@ -76,6 +76,7 @@ import {
 ### TableRow
 - `expandContent` : contenu affiché sous la ligne quand déplié
 - `rowActions` : boutons d'action au hover (icon, label, onClick)
+- `favoriteConfig` : bouton favori entre le chevron et le nom (`{ isFavorite, onToggle }`)
 - `statusContent` : composant pour le sélecteur d'état (ex: EtatPicker)
 - `subTaskRows` : lignes sous-tâches à afficher quand déplié
 - `onAddSubTask` : callback pour ajouter une sous-tâche

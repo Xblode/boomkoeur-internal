@@ -248,10 +248,14 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
       rowOrder: rowOrder.length > 0 ? rowOrder : undefined,
     };
 
+    const order = columnOrder.length > 0 ? columnOrder : Object.keys(columnMinWidths);
+    const minTableWidth = order.length > 0
+      ? order.reduce((acc, id) => acc + (columnMinWidths[id] ?? 120), 0) + (selectionColumn ? SELECTION_COLUMN_WIDTH : 0)
+      : undefined;
+
     const tableContent = (
       <TableContext.Provider value={value}>
-        <div className="w-full min-w-0 max-w-full overflow-hidden">
-          <div ref={containerRef} className="w-full min-w-0">
+        <div ref={containerRef} className="w-full min-w-0">
             <table
             ref={ref}
             className={cn(
@@ -260,7 +264,11 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
               variant === 'bordered' && 'border border-border-custom rounded-lg',
               className
             )}
-            style={{ tableLayout: 'fixed', width: '100%' }}
+            style={{
+              tableLayout: 'fixed',
+              width: '100%',
+              ...(minTableWidth != null && { minWidth: `${minTableWidth}px` }),
+            }}
             {...props}
           >
             {columnCount > 0 && (
@@ -275,7 +283,6 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
             )}
             {children}
           </table>
-          </div>
         </div>
       </TableContext.Provider>
     );

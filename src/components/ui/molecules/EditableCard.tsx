@@ -1,7 +1,7 @@
 'use client';
 
 import React, { type ReactNode } from 'react';
-import { Edit, X, Trash2 } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button, IconButton } from '@/components/ui/atoms';
 import { Card } from './Card';
@@ -10,7 +10,7 @@ export interface EditableCardProps {
   isEditing: boolean;
   onEdit: () => void;
   onCloseEdit: () => void;
-  onDelete?: () => void;
+  onDelete?: (e?: React.MouseEvent) => void;
   headerContent: ReactNode;
   editContent: ReactNode;
   headerPadding?: 'sm' | 'md';
@@ -42,52 +42,57 @@ export function EditableCard({
 
   return (
     <Card variant={cardVariant} className={cn('group/card overflow-hidden', className)}>
-      <div className={paddingClass}>
-        <div
-          className={cn(
-            'flex items-start w-full',
-            showDefaultActions ? 'justify-between gap-3' : 'gap-2'
-          )}
-        >
+      <div
+        className={cn(paddingClass, 'relative')}
+        onClick={showDefaultActions && !isEditing ? onEdit : undefined}
+        onKeyDown={showDefaultActions && !isEditing ? (e) => e.key === 'Enter' && onEdit() : undefined}
+        role={showDefaultActions && !isEditing ? 'button' : undefined}
+        tabIndex={showDefaultActions && !isEditing ? 0 : undefined}
+      >
+        <div className={cn('flex items-start w-full', showDefaultActions ? 'gap-3' : 'gap-2')}>
           <div
             className={cn(
-              'flex min-w-0',
-              showDefaultActions
-                ? 'flex-1 items-start gap-3 [&>*:first-child]:!h-10 [&>*:first-child]:!w-10 [&>*:first-child]:!shrink-0'
-                : 'flex-1'
+              'flex min-w-0 flex-1 overflow-hidden',
+              showDefaultActions && !isEditing && 'cursor-pointer',
+              showDefaultActions && '[&>*:first-child]:!h-10 [&>*:first-child]:!w-10 [&>*:first-child]:!shrink-0',
+              !showDefaultActions && 'flex-1'
             )}
           >
             {headerContent}
           </div>
-          {isEditing ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onCloseEdit}
-              className="shrink-0 h-8 w-8 p-0"
-              aria-label="Fermer"
-            >
-              <X size={14} />
-            </Button>
-          ) : showDefaultActions ? (
-            <div className="flex items-center gap-2 shrink-0 opacity-0 group-hover/card:opacity-100 transition-opacity">
-              <Button variant="outline" size="sm" onClick={onEdit} className="shrink-0">
-                <Edit size={14} className="mr-1.5" /> Éditer
-              </Button>
-              {onDelete && (
-                <IconButton
-                  type="button"
-                  icon={<Trash2 size={14} />}
-                  ariaLabel="Supprimer"
-                  variant="ghost"
-                  size="sm"
-                  onClick={onDelete}
-                  className="shrink-0 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-zinc-400 hover:text-red-600"
-                />
-              )}
-            </div>
-          ) : null}
         </div>
+        {showDefaultActions && (
+          <div className="absolute top-0 right-0 bottom-0 flex items-center justify-end gap-2 pr-6 pl-12 pointer-events-none [&>*]:pointer-events-auto">
+            {isEditing ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onCloseEdit}
+                className="shrink-0 h-8 w-8 p-0"
+                aria-label="Fermer"
+              >
+                <X size={14} />
+              </Button>
+            ) : (
+              onDelete && (
+                <div className="flex items-center opacity-0 group-hover/card:opacity-100 transition-opacity">
+                  <IconButton
+                    type="button"
+                    icon={<Trash2 size={14} />}
+                    ariaLabel="Supprimer"
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(e);
+                    }}
+                    className="shrink-0 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-zinc-400 hover:text-red-600"
+                  />
+                </div>
+              )
+            )}
+          </div>
+        )}
       </div>
 
       {isEditing && (

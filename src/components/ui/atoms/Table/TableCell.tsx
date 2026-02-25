@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { InlineEdit } from '../InlineEdit';
 import { Select } from '../Select';
@@ -49,6 +49,8 @@ const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
       showTagsEditor = false,
       indentLevel = 0,
       hasSubTasks = true,
+      favoriteConfig,
+      inputRef: inputRefProp,
       children,
       style: styleProp,
       ...props
@@ -57,7 +59,8 @@ const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
   ) => {
     const hasEditTrigger = editable && rowActions?.some((a) => a.activatesInlineEdit);
     const [isEditModeActive, setIsEditModeActive] = useState(false);
-    const inputRef = useRef<HTMLInputElement>(null);
+    const internalInputRef = useRef<HTMLInputElement>(null);
+    const inputRef = inputRefProp ?? internalInputRef;
 
     useEffect(() => {
       if (isEditModeActive && hasEditTrigger) {
@@ -139,7 +142,7 @@ const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
 
     const actionsNode =
       rowActions && rowActions.length > 0 ? (
-        <div className="flex shrink-0 items-center gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity ml-2">
+        <div className="absolute top-0 right-0 flex h-full items-center gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity pr-1">
           {rowActions.map((action, i) => (
             <button
               key={i}
@@ -192,6 +195,28 @@ const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
       />
     ) : null;
 
+    const favoriteButton = favoriteConfig ? (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          favoriteConfig.onToggle();
+        }}
+        className={cn(
+          'shrink-0 p-0.5 mr-1 rounded transition-colors',
+          favoriteConfig.isFavorite
+            ? 'text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300'
+            : 'text-zinc-400 hover:text-amber-500 dark:text-zinc-500 dark:hover:text-amber-400'
+        )}
+        aria-label={favoriteConfig.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+      >
+        <Star
+          size={14}
+          className={cn('shrink-0', favoriteConfig.isFavorite && 'fill-current')}
+        />
+      </button>
+    ) : null;
+
     const chevronButton = expandable && onExpandToggle ? (
       <button
         type="button"
@@ -217,9 +242,10 @@ const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
     const innerContent = (
       <div className={cellWrapperClass}>
         {expandable && onExpandToggle ? (
-          <div className="flex min-h-8 min-w-0 items-center gap-2">
+          <div className="relative flex min-h-8 min-w-0 items-center gap-2 pr-10">
             <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
               {chevronButton}
+              {favoriteButton}
               {statusIndicator}
               <div className="flex min-w-0 shrink-0 items-center gap-0">
                 <div className="shrink-0">{cellContent}</div>
@@ -229,8 +255,9 @@ const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
             {actionsNode}
           </div>
         ) : statusColumn ? (
-          <div className="flex min-h-8 min-w-0 items-center gap-2">
+          <div className="relative flex min-h-8 min-w-0 items-center gap-2 pr-10">
             <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+              {favoriteButton}
               {statusIndicator}
               <div className="flex min-w-0 shrink-0 items-center gap-0">
                 <div className="shrink-0">{cellContent}</div>
@@ -240,8 +267,9 @@ const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
             {actionsNode}
           </div>
         ) : rowActions && rowActions.length > 0 ? (
-          <div className="flex min-h-8 min-w-0 items-center gap-2">
+          <div className="relative flex min-h-8 min-w-0 items-center gap-2 pr-10">
             <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+              {favoriteButton}
               {statusIndicator}
               <div className="flex min-w-0 shrink-0 items-center gap-0">
                 <div className="shrink-0">{cellContent}</div>
@@ -252,11 +280,17 @@ const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
           </div>
         ) : statusColumn ? (
           <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+            {favoriteButton}
             {statusIndicator}
             <div className="flex min-w-0 shrink-0 items-center gap-1">
               <div className="shrink-0">{cellContent}</div>
               {tagsNode}
             </div>
+          </div>
+        ) : favoriteConfig ? (
+          <div className="flex min-h-8 min-w-0 items-center gap-1 overflow-hidden">
+            {favoriteButton}
+            {cellContent}
           </div>
         ) : (
           cellContent

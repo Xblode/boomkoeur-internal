@@ -10,8 +10,8 @@ export function useCommercialContacts() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const refetch = useCallback(async () => {
-    setIsLoading(true);
+  const refetch = useCallback(async (showLoading = true) => {
+    if (showLoading) setIsLoading(true);
     setError(null);
     try {
       const data = await getCommercialContacts();
@@ -19,13 +19,20 @@ export function useCommercialContacts() {
     } catch (e) {
       setError(e instanceof Error ? e : new Error(getErrorMessage(e)));
     } finally {
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
     }
+  }, []);
+
+  /** Met à jour un contact localement sans refetch (affichage immédiat) */
+  const updateContactInPlace = useCallback((updated: CommercialContact) => {
+    setContacts((prev) =>
+      prev.map((c) => (c.id === updated.id ? { ...c, ...updated } : c))
+    );
   }, []);
 
   useEffect(() => {
     refetch();
   }, [refetch]);
 
-  return { contacts, isLoading, error, refetch };
+  return { contacts, isLoading, error, refetch, updateContactInPlace };
 }
