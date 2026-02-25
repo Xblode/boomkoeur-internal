@@ -26,6 +26,8 @@ interface TagMultiSelectProps {
   disabled?: boolean
   /** Créer un nouveau tag (mode IDs) — retourne le tag créé avec son id */
   onCreateTag?: (name: string) => Promise<TagMultiSelectTag | void>
+  /** Variant table : masque l'icône Tag à gauche des chips */
+  variant?: 'default' | 'table'
 }
 
 /**
@@ -47,6 +49,7 @@ export function TagMultiSelect({
   className,
   disabled = false,
   onCreateTag,
+  variant = 'default',
 }: TagMultiSelectProps) {
   const isSimpleMode = value !== undefined
   const tags = isSimpleMode ? value : selectedTagIds.map((id) => availableTags.find((t) => t.id === id)?.name ?? id)
@@ -147,7 +150,7 @@ export function TagMultiSelect({
 
   return (
     <div className={cn('flex flex-wrap items-center gap-2', className)}>
-      <Tag size={14} className="text-zinc-400 shrink-0" />
+      {variant !== 'table' && <Tag size={14} className="text-zinc-400 shrink-0" />}
       {tags.map((tag, index) => (
         <span key={index} className="inline-flex items-center">
           {editingIndex === index ? (
@@ -179,8 +182,8 @@ export function TagMultiSelect({
           onChange={(e) => setEditingValue(e.target.value)}
           onBlur={handleCommitEdit}
           onKeyDown={(e) => handleKeyDown(e, tags.length)}
-          placeholder="Nom du tag"
-          className="h-6 min-w-[80px] max-w-[180px] rounded-full border border-zinc-200 dark:border-zinc-700 bg-transparent px-2.5 py-0.5 text-xs font-medium outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-500"
+              placeholder="Nom du tag"
+              className="h-6 min-w-[80px] max-w-[180px] rounded-full border border-zinc-200 dark:border-zinc-700 bg-transparent px-2.5 py-0.5 text-xs font-medium outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-500"
           autoFocus
         />
       )}

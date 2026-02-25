@@ -26,7 +26,7 @@ const variantStyles = {
   title: 'text-3xl font-bold leading-tight placeholder:text-zinc-300 dark:placeholder:text-zinc-600',
   default: 'text-sm leading-normal placeholder:text-zinc-400',
   sm: 'text-xs leading-normal placeholder:text-zinc-400',
-  table: 'text-xs leading-normal placeholder:text-zinc-400',
+  table: 'text-sm font-semibold leading-normal placeholder:text-zinc-400',
 };
 
 /**
@@ -67,7 +67,7 @@ export const InlineEdit = React.forwardRef<HTMLInputElement, InlineEditProps>(
         className={cn(
           'group transition-colors',
           readOnly ? 'cursor-default' : 'cursor-text',
-          isTable ? 'flex w-full min-w-0 min-h-8 items-center rounded px-2 py-1' : 'rounded-lg p-1 -m-1',
+          isTable ? 'inline-flex min-w-0 min-h-8 items-center rounded px-1 py-0.5' : 'rounded-lg p-1 -m-1',
           !isTable && 'inline-flex items-center gap-2',
           isTable
             ? 'border-0'
@@ -77,22 +77,7 @@ export const InlineEdit = React.forwardRef<HTMLInputElement, InlineEditProps>(
           className
         )}
       >
-        <div
-          className={cn(
-            'inline-grid',
-            variant === 'title' && 'leading-tight',
-            isTable && 'min-w-0 w-full flex-1'
-          )}
-        >
-          <span
-            className={cn(
-              'invisible col-start-1 row-start-1 whitespace-pre',
-              variant === 'title' && 'leading-tight',
-              variantStyles[variant]
-            )}
-          >
-            {value || placeholder}
-          </span>
+        {isTable ? (
           <input
             ref={ref}
             value={value}
@@ -107,12 +92,44 @@ export const InlineEdit = React.forwardRef<HTMLInputElement, InlineEditProps>(
             }}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
+            style={{ fieldSizing: 'content' } as React.CSSProperties}
             className={cn(
-              'col-start-1 row-start-1 bg-transparent border-0 outline-none p-0 text-foreground',
+              'min-w-[2ch] max-w-full bg-transparent border-0 outline-none p-0 text-foreground',
               variantStyles[variant]
             )}
           />
-        </div>
+        ) : (
+          <div className={cn('inline-grid', variant === 'title' && 'leading-tight')}>
+            <span
+              className={cn(
+                'invisible col-start-1 row-start-1 whitespace-pre',
+                variant === 'title' && 'leading-tight',
+                variantStyles[variant]
+              )}
+            >
+              {value || placeholder}
+            </span>
+            <input
+              ref={ref}
+              value={value}
+              onChange={onChange}
+              onFocus={() => {
+                setFocused(true);
+                onFocus?.();
+              }}
+              onBlur={() => {
+                setFocused(false);
+                onBlur?.();
+              }}
+              onKeyDown={onKeyDown}
+              placeholder={placeholder}
+              className={cn(
+                'col-start-1 row-start-1 w-full min-w-0 bg-transparent border-0 outline-none p-0 text-foreground',
+                variantStyles[variant]
+              )}
+            />
+          </div>
+        )}
         {showEditIcon && !readOnly && (
           <Pencil
             size={variant === 'title' ? 16 : 14}

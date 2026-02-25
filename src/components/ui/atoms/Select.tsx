@@ -31,8 +31,8 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     const selectStyles = isXs
       ? cn(
           selectBase,
-          "flex h-6 items-center text-xs pr-7 placeholder:text-zinc-500",
-          variant === 'table' ? 'px-2 py-1 min-h-8' : 'px-2 py-0.5',
+          "flex h-6 items-center pr-7 placeholder:text-zinc-500",
+          variant === 'table' ? 'px-2 py-1 min-h-8 text-sm font-semibold' : 'text-xs px-2 py-0.5',
           borderStyles
         )
       : isSm

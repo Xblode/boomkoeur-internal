@@ -94,7 +94,7 @@ import {
 import { footerLinks, footerSocialLinks, backendNavigation, frontendNavigation } from '@/config/navigation';
 import { EventCard } from '@/components/feature/Backend/Events/EventCard';
 import type { Event } from '@/types/event';
-import { Settings, FileDown, FileUp, Plus, Pencil, Trash2, Star, Calendar, MapPin, Users, Wallet, TrendingUp, Layers2, FlaskConical, X } from 'lucide-react';
+import { Settings, FileDown, FileUp, Plus, Pencil, Trash2, Tags, MoreVertical, Star, Calendar, MapPin, Users, Wallet, TrendingUp, Layers2, FlaskConical, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 // ── Molecules Content (Phase 4) ─────────────────────────────────────────────
@@ -961,6 +961,22 @@ export default function TestPage() {
     { nom: 'Dupont', email: 'dupont@example.com', statut: 'Actif' },
     { nom: 'Martin', email: 'martin@example.com', statut: 'En attente' },
   ]);
+  const [atomsSelectedRows, setAtomsSelectedRows] = useState<Set<number>>(new Set());
+  const [atomsAllOptionsRows, setAtomsAllOptionsRows] = useState<
+    { id: number; nom: string; email: string; statut: string }[]
+  >([
+    { id: 0, nom: 'Dupont', email: 'dupont@example.com', statut: 'Actif' },
+    { id: 1, nom: 'Martin', email: 'martin@example.com', statut: 'En attente' },
+    { id: 2, nom: 'Bernard', email: 'bernard@example.com', statut: 'Inactif' },
+  ]);
+  const [atomsAllOptionsSelected, setAtomsAllOptionsSelected] = useState<Set<number>>(new Set());
+  const [atomsAllOptionsEditable, setAtomsAllOptionsEditable] = useState({
+    nom: 'Dupont',
+    email: 'dupont@example.com',
+    statut: 'Actif',
+  });
+  const [atomsAllOptionsTagsOpen, setAtomsAllOptionsTagsOpen] = useState<Set<number>>(new Set());
+  const [atomsAllOptionsRowTags, setAtomsAllOptionsRowTags] = useState<Record<number, string[]>>({});
 
   const activeFiltersCount =
     (filterType !== 'all' ? 1 : 0) + (filterStatus !== 'all' ? 1 : 0) + (searchQuery ? 1 : 0);
@@ -1644,6 +1660,41 @@ export default function TestPage() {
               </Table>
             </div>
             <div>
+              <Text variant="small" className="block mb-2">Sélecteur d&apos;état (cercle dashed dans la 1ère colonne)</Text>
+              <Table variant="bordered" statusColumn expandable>
+                <TableHeader>
+                  <TableRow hoverCellOnly>
+                    <TableHead sortable minWidth={80} defaultWidth={140}>Nom</TableHead>
+                    <TableHead sortable minWidth={100} defaultWidth={220}>Email</TableHead>
+                    <TableHead sortable minWidth={60} defaultWidth={100}>Statut</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow
+                    expandContent={<div className="text-xs text-zinc-600 dark:text-zinc-400">Détails Dupont</div>}
+                    onStatusChange={() => toast.info('Changer état')}
+                  >
+                    <TableCell>Dupont</TableCell>
+                    <TableCell>dupont@example.com</TableCell>
+                    <TableCell align="right">Actif</TableCell>
+                  </TableRow>
+                  <TableRow
+                    expandContent={<div className="text-xs text-zinc-600 dark:text-zinc-400">Détails Martin</div>}
+                    onStatusChange={() => toast.info('Changer état')}
+                  >
+                    <TableCell>Martin</TableCell>
+                    <TableCell>martin@example.com</TableCell>
+                    <TableCell align="right">En attente</TableCell>
+                  </TableRow>
+                  <TableRow onStatusChange={() => toast.info('Changer état')}>
+                    <TableCell>Bernard</TableCell>
+                    <TableCell>bernard@example.com</TableCell>
+                    <TableCell align="right">Inactif</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+            <div>
               <Text variant="small" className="block mb-2">Cellules éditables (hover = bordure, clic = InlineEdit)</Text>
               <Table variant="bordered">
                 <TableHeader>
@@ -1710,6 +1761,296 @@ export default function TestPage() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+            <div>
+              <Text variant="small" className="block mb-2">Colonne sélection (grip + checkbox, visible au hover)</Text>
+              <Table
+                variant="bordered"
+                selectionColumn
+                selectAllChecked={atomsSelectedRows.size === 3}
+                onSelectAllChange={(checked) =>
+                  setAtomsSelectedRows(checked ? new Set([0, 1, 2]) : new Set())
+                }
+              >
+                <TableHeader>
+                  <TableRow hoverCellOnly>
+                    <TableHead sortable minWidth={80} defaultWidth={140}>Nom</TableHead>
+                    <TableHead sortable minWidth={100} defaultWidth={220}>Email</TableHead>
+                    <TableHead sortable minWidth={60} defaultWidth={100}>Statut</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow
+                    selected={atomsSelectedRows.has(0)}
+                    onSelectChange={(checked) => setAtomsSelectedRows((prev) => {
+                      const next = new Set(prev);
+                      if (checked) next.add(0); else next.delete(0);
+                      return next;
+                    })}
+                  >
+                    <TableCell>Dupont</TableCell>
+                    <TableCell>dupont@example.com</TableCell>
+                    <TableCell align="right">Actif</TableCell>
+                  </TableRow>
+                  <TableRow
+                    selected={atomsSelectedRows.has(1)}
+                    onSelectChange={(checked) => setAtomsSelectedRows((prev) => {
+                      const next = new Set(prev);
+                      if (checked) next.add(1); else next.delete(1);
+                      return next;
+                    })}
+                  >
+                    <TableCell>Martin</TableCell>
+                    <TableCell>martin@example.com</TableCell>
+                    <TableCell align="right">En attente</TableCell>
+                  </TableRow>
+                  <TableRow
+                    selected={atomsSelectedRows.has(2)}
+                    onSelectChange={(checked) => setAtomsSelectedRows((prev) => {
+                      const next = new Set(prev);
+                      if (checked) next.add(2); else next.delete(2);
+                      return next;
+                    })}
+                  >
+                    <TableCell>Bernard</TableCell>
+                    <TableCell>bernard@example.com</TableCell>
+                    <TableCell align="right">Inactif</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+              {atomsSelectedRows.size > 0 && (
+                <Text variant="muted" className="text-xs mt-2">
+                  {atomsSelectedRows.size} ligne(s) sélectionnée(s)
+                </Text>
+              )}
+            </div>
+            <div>
+              <Text variant="small" className="block mb-2">
+                Toutes les options combinées (sélection, status, expandable, addable, rowActions, editable, select)
+              </Text>
+              <Table
+                selectionColumn
+                statusColumn
+                expandable
+                addable
+                selectAllChecked={
+                  atomsAllOptionsRows.length > 0 &&
+                  atomsAllOptionsSelected.size === atomsAllOptionsRows.length
+                }
+                onSelectAllChange={(checked) =>
+                  setAtomsAllOptionsSelected(
+                    checked ? new Set(atomsAllOptionsRows.map((r) => r.id)) : new Set()
+                  )
+                }
+                onAddRow={(values) => {
+                  const nextId =
+                    atomsAllOptionsRows.length > 0
+                      ? Math.max(...atomsAllOptionsRows.map((r) => r.id)) + 1
+                      : 0;
+                  setAtomsAllOptionsRows((prev) => [
+                    ...prev,
+                    {
+                      id: nextId,
+                      nom: values[0] ?? '',
+                      email: values[1] ?? '',
+                      statut: values[2] ?? '',
+                    },
+                  ]);
+                  toast.success('Ligne ajoutée');
+                }}
+              >
+                <TableHeader>
+                  <TableRow hoverCellOnly>
+                    <TableHead sortable minWidth={80} defaultWidth={140}>
+                      Nom
+                    </TableHead>
+                    <TableHead sortable minWidth={100} defaultWidth={220}>
+                      Email
+                    </TableHead>
+                    <TableHead sortable minWidth={60} defaultWidth={100}>
+                      Statut
+                    </TableHead>
+                    <TableHead align="center" minWidth={48} defaultWidth={48} maxWidth={48}>
+                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-zinc-300 dark:border-zinc-600">
+                        <Plus size={14} />
+                      </span>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {atomsAllOptionsRows.map((r, i) => {
+                    const isFirst = i === 0;
+                    const isSecondEditable = i === 1;
+                    const isEditable = isFirst || isSecondEditable;
+                    return (
+                      <TableRow
+                        key={r.id}
+                        selected={atomsAllOptionsSelected.has(r.id)}
+                        onSelectChange={(checked) =>
+                          setAtomsAllOptionsSelected((prev) => {
+                            const next = new Set(prev);
+                            if (checked) next.add(r.id);
+                            else next.delete(r.id);
+                            return next;
+                          })
+                        }
+                        clickable
+                        expandContent={
+                          i >= 1 && i < 3 ? (
+                            <div className="text-xs text-zinc-600 dark:text-zinc-400 space-y-1">
+                              <p>
+                                <strong>Détails ligne {i + 1} :</strong> Contenu dépliable.
+                              </p>
+                            </div>
+                          ) : undefined
+                        }
+                        onStatusChange={() => toast.info(`Changer état ${r.nom}`)}
+                        showTagsEditor={atomsAllOptionsTagsOpen.has(r.id)}
+                        tagsConfig={{
+                          value: atomsAllOptionsRowTags[r.id] ?? [],
+                          onChange: (v) =>
+                            setAtomsAllOptionsRowTags((prev) => ({ ...prev, [r.id]: v })),
+                        }}
+                        rowActions={[
+                          ...((atomsAllOptionsRowTags[r.id] ?? []).length === 0
+                            ? [
+                                {
+                                  icon: <Tags size={14} />,
+                                  onClick: () =>
+                                    setAtomsAllOptionsTagsOpen((prev) => {
+                                      const next = new Set(prev);
+                                      if (next.has(r.id)) next.delete(r.id);
+                                      else next.add(r.id);
+                                      return next;
+                                    }),
+                                  label: 'Tags',
+                                },
+                              ]
+                            : []),
+                          {
+                            icon: <Pencil size={14} />,
+                            onClick: () => toast.info(`Éditer ${r.nom}`),
+                            label: 'Éditer',
+                            activatesInlineEdit: true,
+                          },
+                          {
+                            icon: <Trash2 size={14} />,
+                            onClick: () => {
+                              setAtomsAllOptionsRows((prev) => prev.filter((x) => x.id !== r.id));
+                              setAtomsAllOptionsSelected((prev) => {
+                                const next = new Set(prev);
+                                next.delete(r.id);
+                                return next;
+                              });
+                              setAtomsAllOptionsTagsOpen((prev) => {
+                                const next = new Set(prev);
+                                next.delete(r.id);
+                                return next;
+                              });
+                              setAtomsAllOptionsRowTags((prev) => {
+                                const { [r.id]: _, ...rest } = prev;
+                                return rest;
+                              });
+                              toast.error('Ligne supprimée');
+                            },
+                            label: 'Supprimer',
+                          },
+                        ]}
+                      >
+                        {isEditable ? (
+                          <>
+                            <TableCell
+                              noHoverBorder
+                              editable
+                              value={isFirst ? atomsAllOptionsEditable.nom : r.nom}
+                              onChange={(e) => {
+                                if (isFirst) {
+                                  setAtomsAllOptionsEditable((prev) => ({
+                                    ...prev,
+                                    nom: e.target.value,
+                                  }));
+                                } else {
+                                  setAtomsAllOptionsRows((prev) =>
+                                    prev.map((row, idx) =>
+                                      idx === i ? { ...row, nom: e.target.value } : row
+                                    )
+                                  );
+                                }
+                              }}
+                              onBlur={() => toast.success('Nom sauvegardé')}
+                            />
+                            <TableCell
+                              editable
+                              value={isFirst ? atomsAllOptionsEditable.email : r.email}
+                              onChange={(e) => {
+                                if (isFirst) {
+                                  setAtomsAllOptionsEditable((prev) => ({
+                                    ...prev,
+                                    email: e.target.value,
+                                  }));
+                                } else {
+                                  setAtomsAllOptionsRows((prev) =>
+                                    prev.map((row, idx) =>
+                                      idx === i ? { ...row, email: e.target.value } : row
+                                    )
+                                  );
+                                }
+                              }}
+                              onBlur={() => toast.success('Email sauvegardé')}
+                            />
+                            <TableCell
+                              select
+                              selectOptions={[
+                                { value: 'Actif', label: 'Actif' },
+                                { value: 'En attente', label: 'En attente' },
+                                { value: 'Inactif', label: 'Inactif' },
+                              ]}
+                              selectValue={isFirst ? atomsAllOptionsEditable.statut : r.statut}
+                              onSelectChange={(e) => {
+                                const val = e.target.value;
+                                if (isFirst) {
+                                  setAtomsAllOptionsEditable((prev) => ({
+                                    ...prev,
+                                    statut: val,
+                                  }));
+                                } else {
+                                  setAtomsAllOptionsRows((prev) =>
+                                    prev.map((row, idx) =>
+                                      idx === i ? { ...row, statut: val } : row
+                                    )
+                                  );
+                                }
+                                toast.success('Statut mis à jour');
+                              }}
+                            />
+                            <TableCell noHoverBorder align="center" className="w-12 max-w-12">
+                              <span className="inline-flex opacity-0 transition-opacity group-hover/row:opacity-100">
+                                <MoreVertical size={16} className="text-zinc-500" />
+                              </span>
+                            </TableCell>
+                          </>
+                        ) : (
+                          <>
+                            <TableCell noHoverBorder>{r.nom}</TableCell>
+                            <TableCell>{r.email}</TableCell>
+                            <TableCell align="right">{r.statut}</TableCell>
+                            <TableCell noHoverBorder align="center" className="w-12 max-w-12">
+                              <span className="inline-flex opacity-0 transition-opacity group-hover/row:opacity-100">
+                                <MoreVertical size={16} className="text-zinc-500" />
+                              </span>
+                            </TableCell>
+                          </>
+                        )}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+              {atomsAllOptionsSelected.size > 0 && (
+                <Text variant="muted" className="text-xs mt-2">
+                  {atomsAllOptionsSelected.size} ligne(s) sélectionnée(s)
+                </Text>
+              )}
             </div>
           </div>
         </CardContent></Card>
