@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Plus, ArrowRight, Instagram, Facebook, MessageCircle, Inbox, CalendarDays } from 'lucide-react';
+import { Plus, ArrowRight, Instagram, Facebook, MessageCircle, Inbox, CalendarDays, Clock } from 'lucide-react';
 
 // Services & Constants
 import { getMeetings } from '@/lib/supabase/meetings';
@@ -267,12 +267,47 @@ export const DashboardStats: React.FC = () => {
 
       {/* Desktop: 2 colonnes (30% gauche, 70% droite). Mobile: empilé, Prochain Event en premier */}
       <section className="flex flex-col gap-6 lg:grid lg:grid-cols-[3fr_7fr] lg:gap-6">
-        {/* Colonne gauche (30%) — Prochaine réunion + Planning social */}
+        {/* Colonne gauche (30%) — Prochaine réunion + Ordre du jour + Planning social */}
         <div className="flex flex-col gap-3 order-2 lg:order-1">
           <div className="space-y-3">
             <h2 className="text-base font-semibold text-foreground">Prochaine Réunion</h2>
             {data.meetings.next ? (
-              <MeetingCard meeting={data.meetings.next} variant="compact" />
+              <>
+                <MeetingCard meeting={data.meetings.next} variant="compact" />
+                {/* Ordre du jour — card sans bg ni border, slider horizontal */}
+                {data.meetings.next.agenda && data.meetings.next.agenda.length > 0 && (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-medium text-foreground">
+                      Ordre du jour
+                    </h3>
+                    <Card variant="none" className="overflow-visible w-full">
+                      <div className="overflow-x-auto scroll-smooth snap-x snap-mandatory w-full">
+                        <div className="flex gap-2">
+                          {[...data.meetings.next.agenda]
+                            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+                            .map((item) => (
+                              <Link
+                                key={item.id}
+                                href={`/dashboard/meetings/${data.meetings.next!.id}`}
+                                className="flex flex-col gap-1 p-3 rounded-lg shrink-0 w-full min-w-full snap-start text-left hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition-colors"
+                              >
+                                <span className="text-sm font-medium text-foreground line-clamp-2">
+                                  {item.title}
+                                </span>
+                                {item.duration > 0 && (
+                                  <span className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                    <Clock size={10} />
+                                    {item.duration} min
+                                  </span>
+                                )}
+                              </Link>
+                            ))}
+                        </div>
+                      </div>
+                    </Card>
+                  </div>
+                )}
+              </>
             ) : (
               <Link
                 href="/dashboard/meetings"

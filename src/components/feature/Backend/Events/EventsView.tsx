@@ -6,6 +6,7 @@ import { Button, IconButton } from '@/components/ui/atoms';
 import { Modal, ModalFooter, PageContentLayout } from '@/components/ui/organisms';
 import { SectionHeader } from '@/components/ui/molecules';
 import { useAlert } from '@/components/providers/AlertProvider';
+import { useOrg } from '@/components/providers/OrgProvider';
 import { usePageLayout } from '@/components/providers/PageLayoutProvider';
 import { Event, EventFilters as EventFiltersType, SortField, SortOrder } from '@/types/event';
 import { ShotgunEvent } from '@/types/shotgun';
@@ -26,6 +27,7 @@ import { createPortal } from 'react-dom';
 
 export const EventsView: React.FC = () => {
   const router = useRouter();
+  const { activeOrg } = useOrg();
   const { events, isLoading, error, refetch } = useEvents();
   const [existingArtists, setExistingArtists] = useState<Event['artists']>([]);
   const [filters, setFilters] = useState<EventFiltersType>({
@@ -276,14 +278,31 @@ export const EventsView: React.FC = () => {
 
   const handleSubmitForm = async (data: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
+      const statusChangedToCompleted = data.status === 'completed' && editingEvent?.status !== 'completed';
+      let saved: Event;
+
       if (editingEvent) {
-        await saveEvent({ ...editingEvent, ...data });
+        saved = await saveEvent({ ...editingEvent, ...data });
       } else {
-        await saveEvent(data);
+        saved = await saveEvent(data);
       }
       await refetch();
       setIsFormOpen(false);
       setEditingEvent(undefined);
+
+      // Créer automatiquement une transaction billetterie quand l'event passe à "terminé"
+      if (statusChangedToCompleted && saved.shotgunEventId && saved.id) {
+        try {
+          const headers: Record<string, string> = {};
+          if (activeOrg?.id) headers['X-Org-Id'] = activeOrg.id;
+          await fetch(`/api/events/${saved.id}/create-billetterie-transaction`, {
+            method: 'POST',
+            headers,
+          });
+        } catch {
+          // Silencieux : la transaction peut être créée manuellement
+        }
+      }
     } catch (err) {
       console.error('Erreur sauvegarde:', err);
     }

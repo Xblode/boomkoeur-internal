@@ -240,6 +240,7 @@ export async function getCommercialStats(): Promise<CommercialStats> {
       supplier: contacts.filter((c) => c.type === 'supplier').length,
       contact: contacts.filter((c) => c.type === 'contact').length,
       partner: contacts.filter((c) => c.type === 'partner').length,
+      lieu: contacts.filter((c) => c.type === 'lieu').length,
     },
     contacts_by_status: {
       active: contacts.filter((c) => c.status === 'active').length,

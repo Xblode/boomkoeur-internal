@@ -1,7 +1,7 @@
 // Types pour le module Commercial/CRM
 
 // Type de contact
-export type ContactType = 'supplier' | 'contact' | 'partner';
+export type ContactType = 'supplier' | 'contact' | 'partner' | 'lieu';
 
 // Statut du contact
 export type ContactStatus = 'active' | 'inactive' | 'lead';

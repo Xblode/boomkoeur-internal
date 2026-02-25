@@ -44,6 +44,7 @@ const TYPE_OPTIONS = [
   { value: 'supplier' as ContactType, label: 'Fournisseur' },
   { value: 'contact' as ContactType, label: 'Contact' },
   { value: 'partner' as ContactType, label: 'Partenaire' },
+  { value: 'lieu' as ContactType, label: 'Lieu' },
 ];
 
 const STATUS_OPTIONS = [
@@ -240,10 +241,11 @@ function EditableAddress({
   );
 }
 
-const TYPE_BADGE_VARIANT: Record<ContactType, 'info' | 'secondary' | 'success'> = {
+const TYPE_BADGE_VARIANT: Record<ContactType, 'info' | 'secondary' | 'success' | 'warning'> = {
   supplier: 'info',
   contact: 'secondary',
   partner: 'success',
+  lieu: 'warning',
 };
 
 const STATUS_BADGE_VARIANT: Record<ContactStatus, 'warning' | 'success' | 'secondary'> = {

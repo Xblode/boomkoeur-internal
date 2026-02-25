@@ -11,7 +11,7 @@ export interface ColumnOption {
 }
 
 /** Style de badge pour les colonnes select/badge */
-export type BadgeVariant = 'supplier' | 'contact' | 'partner' | 'lead' | 'active' | 'inactive' | 'default';
+export type BadgeVariant = 'supplier' | 'contact' | 'partner' | 'lieu' | 'lead' | 'active' | 'inactive' | 'default';
 
 /** Base commune à toutes les colonnes */
 export interface BaseColumnDef<T> {
