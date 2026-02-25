@@ -93,6 +93,7 @@ export {
   TableRow,
   TableHead,
   TableCell,
+  TableAddSubTaskRow,
 } from './Table';
 export type {
   TableProps,
@@ -103,4 +104,8 @@ export type {
   TableHeadProps,
   TableCellProps,
   TableCellSelectOption,
+  TableAddSubTaskRowProps,
 } from './Table';
+
+export { StatusIcon } from './StatusIcon';
+export type { StatusIconProps, StatusIconShape, StatusIconVariant } from './StatusIcon';

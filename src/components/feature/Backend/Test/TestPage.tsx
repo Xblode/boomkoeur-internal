@@ -33,6 +33,10 @@ import {
   TableRow,
   TableHead,
   TableCell,
+  TableAddSubTaskRow,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
 } from '@/components/ui/atoms';
 import {
   BackLink,
@@ -71,6 +75,8 @@ import {
   StatusBadge,
   EditableCard,
   SettingsCardRow,
+  EtatPicker,
+  CodeSnippet,
 } from '@/components/ui/molecules';
 import { TEST_SECTIONS } from './TestLayoutConfig';
 import { useToolbar } from '@/components/providers/ToolbarProvider';
@@ -93,9 +99,11 @@ import {
 } from '@/components/ui';
 import { footerLinks, footerSocialLinks, backendNavigation, frontendNavigation } from '@/config/navigation';
 import { EventCard } from '@/components/feature/Backend/Events/EventCard';
+import { DrivePickerModal } from '@/components/feature/Backend/Events/DrivePickerModal';
 import type { Event } from '@/types/event';
 import { Settings, FileDown, FileUp, Plus, Pencil, Trash2, Tags, MoreVertical, Star, Calendar, MapPin, Users, Wallet, TrendingUp, Layers2, FlaskConical, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 // ── Molecules Content (Phase 4) ─────────────────────────────────────────────
 
@@ -116,6 +124,9 @@ function MoleculesContent() {
   const [moleculesSearch, setMoleculesSearch] = useState('');
   const [moleculesEditableCardOpen, setMoleculesEditableCardOpen] = useState(false);
   const [moleculesEditableCardTitle, setMoleculesEditableCardTitle] = useState('');
+  const [moleculesDrivePickerOpen, setMoleculesDrivePickerOpen] = useState(false);
+  const [moleculesEtatStatus, setMoleculesEtatStatus] = useState('prochainement');
+  const [moleculesEtatTaskType, setMoleculesEtatTaskType] = useState<'tache' | 'jalon'>('tache');
 
   const mockEvents: Event[] = [
     {
@@ -495,6 +506,36 @@ function MoleculesContent() {
               selectedMonth={moleculesMonth}
               onMonthChange={setMoleculesMonth}
             />
+          </div>
+          <div>
+            <Text variant="small" className="block mb-2">DrivePicker</Text>
+            <Button variant="outline" size="sm" onClick={() => setMoleculesDrivePickerOpen(true)}>
+              Ouvrir le DrivePicker
+            </Button>
+            <DrivePickerModal
+              isOpen={moleculesDrivePickerOpen}
+              onClose={() => setMoleculesDrivePickerOpen(false)}
+              onSelect={(url, name) => {
+                toast.success(`Fichier sélectionné : ${name || url}`);
+                setMoleculesDrivePickerOpen(false);
+              }}
+              orgId="demo-org-id"
+              mode="document"
+            />
+          </div>
+          <div>
+            <Text variant="small" className="block mb-2">EtatPicker</Text>
+            <div className="flex items-center gap-4">
+              <EtatPicker
+                statusId={moleculesEtatStatus}
+                taskType={moleculesEtatTaskType}
+                onStatusChange={setMoleculesEtatStatus}
+                onTaskTypeChange={setMoleculesEtatTaskType}
+              />
+              <Text variant="muted" className="text-xs">
+                Statut: <strong>{moleculesEtatStatus}</strong> | Type: <strong>{moleculesEtatTaskType}</strong>
+              </Text>
+            </div>
           </div>
         </div>
       </CardContent></Card>
@@ -927,6 +968,566 @@ function OrganismsContent() {
   );
 }
 
+// ── Wrapper pour tooltip + focus au hover dans la doc Table ───────────────────
+
+function DocEl({ name, children, className = '' }: { name: string; children: React.ReactNode; className?: string }) {
+  return (
+    <span
+      title={name}
+      className={cn('inline-block rounded px-0.5 -mx-0.5 min-w-0 hover:ring-2 hover:ring-blue-500 hover:ring-offset-1 transition-shadow', className)}
+    >
+      {children}
+    </span>
+  );
+}
+
+// ── Table Docs Content ────────────────────────────────────────────────────────
+
+function TableDocsContent({ sectionHeaderNode }: { sectionHeaderNode: React.ReactNode }) {
+  const [docsExpanded, setDocsExpanded] = useState(true);
+  const [docsSelected, setDocsSelected] = useState<Set<number>>(new Set());
+  const [docsTableVariant, setDocsTableVariant] = useState<'default' | 'bordered' | 'striped'>('bordered');
+  const [docsResizable, setDocsResizable] = useState(true);
+  const [docsFillColumn, setDocsFillColumn] = useState(true);
+  const [docsSelectionColumn, setDocsSelectionColumn] = useState(true);
+  const [docsStatusColumn, setDocsStatusColumn] = useState(true);
+  const [docsExpandable, setDocsExpandable] = useState(true);
+  const [docsAddable, setDocsAddable] = useState(true);
+  const [docsHoverCellOnly, setDocsHoverCellOnly] = useState(true);
+  const [codeSnippetOpen, setCodeSnippetOpen] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState('');
+
+  const generateTableCode = () => {
+    const props: string[] = [`variant="${docsTableVariant}"`];
+    if (docsSelectionColumn) props.push('selectionColumn');
+    if (docsStatusColumn) props.push('statusColumn');
+    if (docsExpandable) props.push('expandable');
+    if (docsAddable) props.push('addable');
+    if (!docsResizable) props.push('resizable={false}');
+    if (!docsFillColumn) props.push('fillColumn={false}');
+    if (docsSelectionColumn) {
+      props.push('selectAllChecked={...}');
+      props.push('onSelectAllChange={(checked) => {...}}');
+    }
+    if (docsAddable) props.push('onAddRow={(vals) => {...}}');
+
+    const propsStr = props.map((p) => `  ${p}`).join('\n');
+    const headerRow = docsHoverCellOnly ? '<TableRow hoverCellOnly>' : '<TableRow>';
+
+    const code = `<Table\n${propsStr}\n>\n  <TableHeader>\n    ${headerRow}\n      <TableHead sortable minWidth={80} defaultWidth={140}>Nom</TableHead>\n      <TableHead sortable minWidth={100} defaultWidth={180}>Email</TableHead>\n      <TableHead sortable minWidth={60} defaultWidth={100}>Statut</TableHead>\n      <TableHead align="center" minWidth={48} defaultWidth={48} maxWidth={48}>+</TableHead>\n    </TableRow>\n  </TableHeader>\n  <TableBody>\n    <TableRow\n      selected={...}\n      onSelectChange={(c) => {...}}\n      expanded={...}\n      onExpandToggle={() => {...}}\n      statusContent={<EtatPicker ... />}\n      rowActions={[{ icon: <Pencil />, label: 'Éditer', onClick: () => {}, activatesInlineEdit: true }]}\n      subTaskRows={...}\n      hasSubTasks\n      onAddSubTask={() => {}}\n    >\n      <TableCell noHoverBorder>Dupont</TableCell>\n      <TableCell>dupont@example.com</TableCell>\n      <TableCell align="right">Actif</TableCell>\n      <TableCell noHoverBorder align="center" className="w-12">...</TableCell>\n    </TableRow>\n    {/* Martin, Bernard... */}\n  </TableBody>\n</Table>`;
+    setGeneratedCode(code);
+    setCodeSnippetOpen(true);
+  };
+
+  const TABLE_OPTIONS = [
+    { prop: 'variant', type: "'default' | 'bordered' | 'striped'", desc: 'Style visuel du tableau' },
+    { prop: 'resizable', type: 'boolean', desc: 'Colonnes redimensionnables (défaut: true)' },
+    { prop: 'fillColumn', type: 'boolean', desc: 'Colonne flexible qui comble l\'espace (défaut: true)' },
+    { prop: 'expandable', type: 'boolean', desc: 'Lignes dépliables avec expandContent' },
+    { prop: 'addable', type: 'boolean', desc: 'Ligne "+ Ajouter une ligne" en bas' },
+    { prop: 'onAddRow', type: '(values: string[]) => void', desc: 'Callback à la validation' },
+    { prop: 'selectionColumn', type: 'boolean', desc: 'Colonne grip + checkbox (sélection)' },
+    { prop: 'selectAllChecked', type: 'boolean', desc: 'État "tout sélectionner"' },
+    { prop: 'onSelectAllChange', type: '(checked: boolean) => void', desc: 'Callback tout sélectionner' },
+    { prop: 'statusColumn', type: 'boolean', desc: 'Sélecteur d\'état (cercle) à gauche' },
+  ];
+
+  const TABLE_ROW_OPTIONS = [
+    { prop: 'clickable', type: 'boolean', desc: 'Ligne cliquable' },
+    { prop: 'hoverCellOnly', type: 'boolean', desc: 'Hover uniquement sur les cellules' },
+    { prop: 'expandContent', type: 'ReactNode', desc: 'Contenu déplié' },
+    { prop: 'expanded', type: 'boolean', desc: 'État déplié (contrôlé)' },
+    { prop: 'onExpandToggle', type: '() => void', desc: 'Callback déplier/replier' },
+    { prop: 'selected', type: 'boolean', desc: 'Ligne sélectionnée' },
+    { prop: 'onSelectChange', type: '(checked: boolean) => void', desc: 'Callback checkbox' },
+    { prop: 'statusContent', type: 'ReactNode', desc: 'Contenu du sélecteur d\'état (ex: EtatPicker)' },
+    { prop: 'rowActions', type: 'TableRowAction[]', desc: 'Boutons d\'action au hover' },
+    { prop: 'subTaskRows', type: 'ReactNode', desc: 'Lignes sous-tâches' },
+    { prop: 'hasSubTasks', type: 'boolean', desc: 'Affiche le chevron' },
+    { prop: 'onAddSubTask', type: '() => void', desc: 'Callback ajouter sous-tâche' },
+  ];
+
+  const TABLE_CELL_OPTIONS = [
+    { prop: 'align', type: "'left' | 'center' | 'right'", desc: 'Alignement' },
+    { prop: 'editable', type: 'boolean', desc: 'Cellule éditable' },
+    { prop: 'value', type: 'string', desc: 'Valeur (éditable)' },
+    { prop: 'onChange', type: '(e: ChangeEvent) => void', desc: 'Callback édition' },
+    { prop: 'select', type: 'boolean', desc: 'Cellule avec Select' },
+    { prop: 'selectOptions', type: 'TableCellSelectOption[]', desc: 'Options du Select' },
+    { prop: 'noHoverBorder', type: 'boolean', desc: 'Pas de bordure au hover' },
+    { prop: 'indentLevel', type: 'number', desc: 'Indentation (0, 1, 2...)' },
+  ];
+
+  const TABLE_HEAD_OPTIONS = [
+    { prop: 'align', type: "'left' | 'center' | 'right'", desc: 'Alignement' },
+    { prop: 'sortable', type: 'boolean', desc: 'Colonne triable' },
+    { prop: 'minWidth', type: 'number', desc: 'Largeur minimale (px)' },
+    { prop: 'defaultWidth', type: 'number', desc: 'Largeur par défaut (px)' },
+    { prop: 'maxWidth', type: 'number', desc: 'Largeur maximale (px)' },
+  ];
+
+  return (
+    <>
+      {sectionHeaderNode}
+      <div className="space-y-10">
+        <Card variant="outline">
+          <CardHeader>
+            <CardTitle>Options du composant Table</CardTitle>
+            <CardDescription>
+              Liste complète des props pour Table, TableRow, TableCell et TableHead.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div>
+              <Heading level={5} className="mb-3">Table</Heading>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-border-custom">
+                      <th className="text-left py-2 px-3 font-semibold">Prop</th>
+                      <th className="text-left py-2 px-3 font-semibold">Type</th>
+                      <th className="text-left py-2 px-3 font-semibold">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {TABLE_OPTIONS.map((o) => (
+                      <tr key={o.prop} className="border-b border-border-custom/50">
+                        <td className="py-2 px-3 font-mono text-xs">{o.prop}</td>
+                        <td className="py-2 px-3 font-mono text-xs text-zinc-500">{o.type}</td>
+                        <td className="py-2 px-3 text-zinc-600 dark:text-zinc-400">{o.desc}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div>
+              <Heading level={5} className="mb-3">TableRow</Heading>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-border-custom">
+                      <th className="text-left py-2 px-3 font-semibold">Prop</th>
+                      <th className="text-left py-2 px-3 font-semibold">Type</th>
+                      <th className="text-left py-2 px-3 font-semibold">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {TABLE_ROW_OPTIONS.map((o) => (
+                      <tr key={o.prop} className="border-b border-border-custom/50">
+                        <td className="py-2 px-3 font-mono text-xs">{o.prop}</td>
+                        <td className="py-2 px-3 font-mono text-xs text-zinc-500">{o.type}</td>
+                        <td className="py-2 px-3 text-zinc-600 dark:text-zinc-400">{o.desc}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div>
+              <Heading level={5} className="mb-3">TableCell</Heading>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-border-custom">
+                      <th className="text-left py-2 px-3 font-semibold">Prop</th>
+                      <th className="text-left py-2 px-3 font-semibold">Type</th>
+                      <th className="text-left py-2 px-3 font-semibold">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {TABLE_CELL_OPTIONS.map((o) => (
+                      <tr key={o.prop} className="border-b border-border-custom/50">
+                        <td className="py-2 px-3 font-mono text-xs">{o.prop}</td>
+                        <td className="py-2 px-3 font-mono text-xs text-zinc-500">{o.type}</td>
+                        <td className="py-2 px-3 text-zinc-600 dark:text-zinc-400">{o.desc}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div>
+              <Heading level={5} className="mb-3">TableHead</Heading>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-border-custom">
+                      <th className="text-left py-2 px-3 font-semibold">Prop</th>
+                      <th className="text-left py-2 px-3 font-semibold">Type</th>
+                      <th className="text-left py-2 px-3 font-semibold">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {TABLE_HEAD_OPTIONS.map((o) => (
+                      <tr key={o.prop} className="border-b border-border-custom/50">
+                        <td className="py-2 px-3 font-mono text-xs">{o.prop}</td>
+                        <td className="py-2 px-3 font-mono text-xs text-zinc-500">{o.type}</td>
+                        <td className="py-2 px-3 text-zinc-600 dark:text-zinc-400">{o.desc}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div>
+              <Heading level={5} className="mb-3">Colonnes spéciales</Heading>
+              <Text variant="muted" className="mb-4 text-sm">
+                Le tableau « Toutes les options combinées » utilise deux types de colonnes particulières, injectées ou ajoutées manuellement.
+              </Text>
+              <div className="space-y-4">
+                <div className="rounded-lg border border-border-custom p-4 bg-zinc-50/50 dark:bg-zinc-900/20">
+                  <Heading level={6} className="mb-2">1. Colonne de sélection (1ère colonne)</Heading>
+                  <ul className="list-disc list-inside text-sm text-zinc-600 dark:text-zinc-400 space-y-1">
+                    <li><strong>Activation :</strong> <code className="font-mono text-xs bg-zinc-200 dark:bg-zinc-700 px-1 rounded">selectionColumn=true</code> sur Table</li>
+                    <li><strong>Contenu :</strong> Grip (GripVertical) pour déplacer la ligne + Checkbox pour sélectionner</li>
+                    <li><strong>Comportement :</strong> Injectée automatiquement par TableHeader à gauche de toutes les colonnes</li>
+                    <li><strong>Visibilité :</strong> Grip et checkbox visibles au hover sur la ligne (opacity-0 → opacity-100)</li>
+                    <li><strong>Header :</strong> Checkbox « tout sélectionner » contrôlée par <code className="font-mono text-xs bg-zinc-200 dark:bg-zinc-700 px-1 rounded">selectAllChecked</code> et <code className="font-mono text-xs bg-zinc-200 dark:bg-zinc-700 px-1 rounded">onSelectAllChange</code></li>
+                  </ul>
+                </div>
+                <div className="rounded-lg border border-border-custom p-4 bg-zinc-50/50 dark:bg-zinc-900/20">
+                  <Heading level={6} className="mb-2">2. Colonne actions (dernière colonne)</Heading>
+                  <ul className="list-disc list-inside text-sm text-zinc-600 dark:text-zinc-400 space-y-1">
+                    <li><strong>Activation :</strong> Colonne ajoutée manuellement (TableHead + TableCell pour chaque ligne)</li>
+                    <li><strong>Header :</strong> Icône Plus (⊕) — souvent utilisée pour l&apos;ajout de sous-tâches ou comme indicateur visuel</li>
+                    <li><strong>Body :</strong> Icône 3 points (MoreVertical) dans un Popover — au clic, affiche les actions (ex. Supprimer)</li>
+                    <li><strong>Convention :</strong> <code className="font-mono text-xs bg-zinc-200 dark:bg-zinc-700 px-1 rounded">noHoverBorder</code> et <code className="font-mono text-xs bg-zinc-200 dark:bg-zinc-700 px-1 rounded">align="center"</code> sur les cellules, largeur fixe (ex. w-12 max-w-12)</li>
+                    <li><strong>Note :</strong> La colonne fill (flexible) est ajoutée automatiquement à droite par <code className="font-mono text-xs bg-zinc-200 dark:bg-zinc-700 px-1 rounded">fillColumn</code></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card variant="outline">
+          <CardHeader>
+            <CardTitle>Tableau interactif — toutes les options</CardTitle>
+            <CardDescription>
+              Configurez les options ci-dessous pour voir le tableau se mettre à jour. Cliquez sur « Générer le code » pour obtenir le JSX correspondant.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="w-full">
+              <div className="rounded-lg border border-border-custom overflow-hidden">
+                <Table
+                  variant={docsTableVariant}
+                  resizable={docsResizable}
+                  fillColumn={docsFillColumn}
+                  selectionColumn={docsSelectionColumn}
+                  statusColumn={docsStatusColumn}
+                  expandable={docsExpandable}
+                  addable={docsAddable}
+                  selectAllChecked={docsSelectionColumn && docsSelected.size === 3}
+                  onSelectAllChange={
+                    docsSelectionColumn
+                      ? (checked) => setDocsSelected(checked ? new Set([0, 1, 2]) : new Set())
+                      : undefined
+                  }
+                  onAddRow={docsAddable ? (vals) => toast.success(`Ajouté: ${vals[0]}`) : undefined}
+                >
+                  <TableHeader>
+                    <TableRow {...(docsHoverCellOnly ? { hoverCellOnly: true } : {})}>
+                      <TableHead key="nom" sortable minWidth={80} defaultWidth={140}>
+                        Nom
+                      </TableHead>
+                      <TableHead key="email" sortable minWidth={100} defaultWidth={180}>
+                        Email
+                      </TableHead>
+                      <TableHead key="statut" sortable minWidth={60} defaultWidth={100}>
+                        Statut
+                      </TableHead>
+                      <TableHead key="actions" align="center" minWidth={48} defaultWidth={48} maxWidth={48}>
+                        +
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow
+                      selected={docsSelectionColumn && docsSelected.has(0)}
+                      onSelectChange={
+                        docsSelectionColumn
+                          ? (c) =>
+                              setDocsSelected((p) => {
+                                const n = new Set(p);
+                                if (c) n.add(0);
+                                else n.delete(0);
+                                return n;
+                              })
+                          : undefined
+                      }
+                      clickable
+                      expanded={docsExpandable ? docsExpanded : undefined}
+                      onExpandToggle={docsExpandable ? () => setDocsExpanded(!docsExpanded) : undefined}
+                      statusContent={
+                        docsStatusColumn ? (
+                          <EtatPicker
+                            statusId="prochainement"
+                            taskType="tache"
+                            onStatusChange={() => {}}
+                            onTaskTypeChange={() => {}}
+                          />
+                        ) : undefined
+                      }
+                      rowActions={
+                        docsExpandable && docsStatusColumn
+                          ? [
+                              {
+                                icon: <Pencil size={14} />,
+                                label: 'Éditer',
+                                onClick: () => {},
+                                activatesInlineEdit: true,
+                              },
+                            ]
+                          : undefined
+                      }
+                      subTaskRows={
+                        docsExpandable && docsStatusColumn ? (
+                          <TableRow>
+                            <TableCell indentLevel={1} noHoverBorder>
+                              Sous-tâche 1
+                            </TableCell>
+                            <TableCell>Sous-email</TableCell>
+                            <TableCell align="right">En cours</TableCell>
+                            <TableCell noHoverBorder align="center" className="w-12" />
+                          </TableRow>
+                        ) : undefined
+                      }
+                      hasSubTasks={docsExpandable && docsStatusColumn}
+                      onAddSubTask={
+                        docsExpandable && docsStatusColumn ? () => toast.info('Ajouter sous-tâche') : undefined
+                      }
+                      expandContent={
+                        docsExpandable && !docsStatusColumn ? (
+                          <div className="text-xs text-zinc-600 dark:text-zinc-400 space-y-1">
+                            <p>
+                              <strong>Détails :</strong> Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                            </p>
+                            <p>
+                              Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex
+                              ea commodo consequat.
+                            </p>
+                          </div>
+                        ) : undefined
+                      }
+                    >
+                      <TableCell noHoverBorder>Dupont</TableCell>
+                      <TableCell>dupont@example.com</TableCell>
+                      <TableCell align="right">Actif</TableCell>
+                      <TableCell noHoverBorder align="center" className="w-12">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              className="p-1 rounded text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors opacity-0 group-hover/row:opacity-100"
+                              aria-label="Actions"
+                            >
+                              <MoreVertical size={14} />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align="end" className="w-40 p-1">
+                            <button
+                              type="button"
+                              className="flex w-full items-center gap-2 px-2 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded"
+                              onClick={() => toast.error('Supprimer')}
+                            >
+                              <Trash2 size={14} />
+                              Supprimer
+                            </button>
+                          </PopoverContent>
+                        </Popover>
+                      </TableCell>
+                    </TableRow>
+                    <TableRow
+                      selected={docsSelectionColumn && docsSelected.has(1)}
+                      onSelectChange={
+                        docsSelectionColumn
+                          ? (c) =>
+                              setDocsSelected((p) => {
+                                const n = new Set(p);
+                                if (c) n.add(1);
+                                else n.delete(1);
+                                return n;
+                              })
+                          : undefined
+                      }
+                      expandContent={
+                        docsExpandable && !docsStatusColumn ? (
+                          <div className="text-xs text-zinc-600 dark:text-zinc-400">
+                            <p>Contenu déplié pour Martin.</p>
+                          </div>
+                        ) : undefined
+                      }
+                    >
+                      <TableCell noHoverBorder>Martin</TableCell>
+                      <TableCell>martin@example.com</TableCell>
+                      <TableCell align="right">En attente</TableCell>
+                      <TableCell noHoverBorder align="center" className="w-12">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              className="p-1 rounded text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors opacity-0 group-hover/row:opacity-100"
+                              aria-label="Actions"
+                            >
+                              <MoreVertical size={14} />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align="end" className="w-40 p-1">
+                            <button
+                              type="button"
+                              className="flex w-full items-center gap-2 px-2 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded"
+                              onClick={() => toast.error('Supprimer')}
+                            >
+                              <Trash2 size={14} />
+                              Supprimer
+                            </button>
+                          </PopoverContent>
+                        </Popover>
+                      </TableCell>
+                    </TableRow>
+                    <TableRow
+                      selected={docsSelectionColumn && docsSelected.has(2)}
+                      onSelectChange={
+                        docsSelectionColumn
+                          ? (c) =>
+                              setDocsSelected((p) => {
+                                const n = new Set(p);
+                                if (c) n.add(2);
+                                else n.delete(2);
+                                return n;
+                              })
+                          : undefined
+                      }
+                      expandContent={
+                        docsExpandable && !docsStatusColumn ? (
+                          <div className="text-xs text-zinc-600 dark:text-zinc-400">
+                            <p>Contenu déplié pour Bernard.</p>
+                          </div>
+                        ) : undefined
+                      }
+                    >
+                      <TableCell noHoverBorder>Bernard</TableCell>
+                      <TableCell>bernard@example.com</TableCell>
+                      <TableCell align="right">Inactif</TableCell>
+                      <TableCell noHoverBorder align="center" className="w-12">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              className="p-1 rounded text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors opacity-0 group-hover/row:opacity-100"
+                              aria-label="Actions"
+                            >
+                              <MoreVertical size={14} />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align="end" className="w-40 p-1">
+                            <button
+                              type="button"
+                              className="flex w-full items-center gap-2 px-2 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded"
+                              onClick={() => toast.error('Supprimer')}
+                            >
+                              <Trash2 size={14} />
+                              Supprimer
+                            </button>
+                          </PopoverContent>
+                        </Popover>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+              <div className="space-y-2">
+                <Label>variant</Label>
+                <Select
+                  value={docsTableVariant}
+                  onChange={(e) =>
+                    setDocsTableVariant(e.target.value as 'default' | 'bordered' | 'striped')
+                  }
+                  options={[
+                    { value: 'default', label: 'default' },
+                    { value: 'bordered', label: 'bordered' },
+                    { value: 'striped', label: 'striped' },
+                  ]}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="docs-resizable"
+                  checked={docsResizable}
+                  onCheckedChange={setDocsResizable}
+                />
+                <Label htmlFor="docs-resizable">resizable</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="docs-fillColumn"
+                  checked={docsFillColumn}
+                  onCheckedChange={setDocsFillColumn}
+                />
+                <Label htmlFor="docs-fillColumn">fillColumn</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="docs-selectionColumn"
+                  checked={docsSelectionColumn}
+                  onCheckedChange={setDocsSelectionColumn}
+                />
+                <Label htmlFor="docs-selectionColumn">selectionColumn</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="docs-statusColumn"
+                  checked={docsStatusColumn}
+                  onCheckedChange={setDocsStatusColumn}
+                />
+                <Label htmlFor="docs-statusColumn">statusColumn</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="docs-expandable"
+                  checked={docsExpandable}
+                  onCheckedChange={setDocsExpandable}
+                />
+                <Label htmlFor="docs-expandable">expandable</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="docs-addable"
+                  checked={docsAddable}
+                  onCheckedChange={setDocsAddable}
+                />
+                <Label htmlFor="docs-addable">addable</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="docs-hoverCellOnly"
+                  checked={docsHoverCellOnly}
+                  onCheckedChange={setDocsHoverCellOnly}
+                />
+                <Label htmlFor="docs-hoverCellOnly">hoverCellOnly (header)</Label>
+              </div>
+            </div>
+
+            <Button variant="outline" className="mt-4" onClick={generateTableCode}>
+              Générer le code
+            </Button>
+
+            {codeSnippetOpen && (
+              <CodeSnippet code={generatedCode} className="mt-4" />
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </>
+  );
+}
+
 export default function TestPage() {
   const { activeSection, setPageAlert } = useTestLayout();
   const { setToolbar } = useToolbar();
@@ -977,6 +1578,75 @@ export default function TestPage() {
   });
   const [atomsAllOptionsTagsOpen, setAtomsAllOptionsTagsOpen] = useState<Set<number>>(new Set());
   const [atomsAllOptionsRowTags, setAtomsAllOptionsRowTags] = useState<Record<number, string[]>>({});
+  const [atomsStatusPickerState, setAtomsStatusPickerState] = useState<Record<string, { status: string; taskType: 'tache' | 'jalon' }>>({
+    dupont: { status: 'prochainement', taskType: 'tache' },
+    martin: { status: 'en_cours', taskType: 'tache' },
+    bernard: { status: 'termine', taskType: 'tache' },
+  });
+  const [atomsAllOptionsStatusState, setAtomsAllOptionsStatusState] = useState<Record<number, { status: string; taskType: 'tache' | 'jalon' }>>({
+    0: { status: 'prochainement', taskType: 'tache' },
+    1: { status: 'en_cours', taskType: 'tache' },
+    2: { status: 'termine', taskType: 'tache' },
+  });
+  type SubTaskItem = {
+    id: string;
+    nom: string;
+    email: string;
+    statut: string;
+    subTasks?: SubTaskItem[];
+  };
+  const [atomsStatusPickerExpandedIds, setAtomsStatusPickerExpandedIds] = useState<Set<string>>(new Set());
+  const [atomsStatusPickerAddingTo, setAtomsStatusPickerAddingTo] = useState<{
+    parentKey: string;
+    parentSubTaskId: string | null;
+  } | null>(null);
+  const [atomsStatusPickerSubTaskStatusState, setAtomsStatusPickerSubTaskStatusState] = useState<
+    Record<string, { status: string; taskType: 'tache' | 'jalon' }>
+  >({});
+  const [atomsStatusPickerSubTasks, setAtomsStatusPickerSubTasks] = useState<
+    Record<string, SubTaskItem[]>
+  >({
+    dupont: [
+      {
+        id: 'st1',
+        nom: 'Sous-tâche Dupont',
+        email: 'st@example.com',
+        statut: 'En cours',
+        subTasks: [{ id: 'st1-1', nom: 'Sous-sous-tâche', email: 'ss@example.com', statut: 'À faire' }],
+      },
+    ],
+    martin: [],
+    bernard: [],
+  });
+  type AllOptionsSubTaskItem = {
+    id: number;
+    nom: string;
+    email: string;
+    statut: string;
+    subTasks?: AllOptionsSubTaskItem[];
+  };
+  const [atomsAllOptionsSubTasks, setAtomsAllOptionsSubTasks] = useState<
+    Record<number, AllOptionsSubTaskItem[]>
+  >({
+    1: [
+      {
+        id: -1,
+        nom: 'Sous-tâche Martin',
+        email: 'st@example.com',
+        statut: 'En cours',
+        subTasks: [{ id: -2, nom: 'Sous-sous-tâche', email: 'ss@example.com', statut: 'À faire' }],
+      },
+    ],
+  });
+  const [atomsAllOptionsAddingTo, setAtomsAllOptionsAddingTo] = useState<{
+    parentId: number;
+    parentSubTaskId: number | null;
+  } | null>(null);
+  const [atomsAllOptionsExpandedIds, setAtomsAllOptionsExpandedIds] = useState<Set<string>>(new Set());
+  const [atomsAllOptionsSubTasksSelected, setAtomsAllOptionsSubTasksSelected] = useState<Set<string>>(new Set());
+  const [atomsAllOptionsSubTaskStatusState, setAtomsAllOptionsSubTaskStatusState] = useState<
+    Record<string, { status: string; taskType: 'tache' | 'jalon' }>
+  >({});
 
   const activeFiltersCount =
     (filterType !== 'all' ? 1 : 0) + (filterStatus !== 'all' ? 1 : 0) + (searchQuery ? 1 : 0);
@@ -1183,6 +1853,10 @@ export default function TestPage() {
         </div>
       </>
     );
+  }
+
+  if (activeSection === 'docs-table') {
+    return <TableDocsContent sectionHeaderNode={sectionHeaderNode} />;
   }
 
   if (activeSection === 'atoms') {
@@ -1671,23 +2345,431 @@ export default function TestPage() {
                 </TableHeader>
                 <TableBody>
                   <TableRow
-                    expandContent={<div className="text-xs text-zinc-600 dark:text-zinc-400">Détails Dupont</div>}
-                    onStatusChange={() => toast.info('Changer état')}
+                    statusContent={
+                      <EtatPicker
+                        statusId={atomsStatusPickerState.dupont?.status ?? 'prochainement'}
+                        taskType={atomsStatusPickerState.dupont?.taskType ?? 'tache'}
+                        onStatusChange={(v) => setAtomsStatusPickerState((s) => ({ ...s, dupont: { ...(s.dupont ?? { status: 'prochainement', taskType: 'tache' }), status: v } }))}
+                        onTaskTypeChange={(v) => setAtomsStatusPickerState((s) => ({ ...s, dupont: { ...(s.dupont ?? { status: 'prochainement', taskType: 'tache' }), taskType: v } }))}
+                      />
+                    }
+                    expanded={atomsStatusPickerExpandedIds.has('dupont')}
+                    onExpandToggle={() =>
+                      setAtomsStatusPickerExpandedIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has('dupont')) next.delete('dupont');
+                        else next.add('dupont');
+                        return next;
+                      })
+                    }
+                    subTaskRows={(() => {
+                      const addSubTask = (
+                        parentKey: string,
+                        parentSubTaskId: string | null,
+                        vals: string[]
+                      ) => {
+                        const newItem: SubTaskItem = {
+                          id: `${parentKey}-${Date.now()}`,
+                          nom: vals[0] ?? '',
+                          email: vals[1] ?? '',
+                          statut: vals[2] ?? '',
+                        };
+                        const addToSubTask = (tasks: SubTaskItem[]): SubTaskItem[] =>
+                          tasks.map((t) =>
+                            t.id === parentSubTaskId
+                              ? { ...t, subTasks: [...(t.subTasks ?? []), newItem] }
+                              : { ...t, subTasks: t.subTasks ? addToSubTask(t.subTasks) : undefined }
+                          );
+                        setAtomsStatusPickerSubTasks((prev) => ({
+                          ...prev,
+                          [parentKey]: parentSubTaskId
+                            ? addToSubTask(prev[parentKey] ?? [])
+                            : [...(prev[parentKey] ?? []), newItem],
+                        }));
+                        toast.success('Sous-tâche ajoutée');
+                      };
+                      const renderSubTasks = (
+                        tasks: SubTaskItem[],
+                        depth: number,
+                        pKey: string,
+                        pSubId: string | null,
+                        pathPrefix: string
+                      ) => (
+                        <>
+                          {tasks.map((st) => {
+                            const stPath = `${pathPrefix}-${st.id}`;
+                            const isAddingHere =
+                              atomsStatusPickerAddingTo?.parentKey === pKey &&
+                              atomsStatusPickerAddingTo?.parentSubTaskId === st.id;
+                            return (
+                              <TableRow
+                                key={st.id}
+                                statusContent={
+                                  <EtatPicker
+                                    statusId={atomsStatusPickerSubTaskStatusState[stPath]?.status ?? 'prochainement'}
+                                    taskType={atomsStatusPickerSubTaskStatusState[stPath]?.taskType ?? 'tache'}
+                                    onStatusChange={(v) =>
+                                      setAtomsStatusPickerSubTaskStatusState((s) => ({
+                                        ...s,
+                                        [stPath]: { ...(s[stPath] ?? { status: 'prochainement', taskType: 'tache' }), status: v },
+                                      }))
+                                    }
+                                    onTaskTypeChange={(v) =>
+                                      setAtomsStatusPickerSubTaskStatusState((s) => ({
+                                        ...s,
+                                        [stPath]: { ...(s[stPath] ?? { status: 'prochainement', taskType: 'tache' }), taskType: v },
+                                      }))
+                                    }
+                                  />
+                                }
+                                expanded={atomsStatusPickerExpandedIds.has(stPath)}
+                                onExpandToggle={() =>
+                                  setAtomsStatusPickerExpandedIds((prev) => {
+                                    const next = new Set(prev);
+                                    if (next.has(stPath)) next.delete(stPath);
+                                    else next.add(stPath);
+                                    return next;
+                                  })
+                                }
+                                subTaskRows={
+                                  <>
+                                    {st.subTasks?.length
+                                      ? renderSubTasks(st.subTasks, depth + 1, pKey, st.id, stPath)
+                                      : null}
+                                    {isAddingHere && (
+                                      <TableAddSubTaskRow
+                                        onValidate={(vals) => addSubTask(pKey, st.id, vals)}
+                                        onCancel={() => setAtomsStatusPickerAddingTo(null)}
+                                        indentLevel={depth + 1}
+                                      />
+                                    )}
+                                  </>
+                                }
+                                hasSubTasks={(st.subTasks?.length ?? 0) > 0}
+                                onAddSubTask={() => {
+                                  setAtomsStatusPickerAddingTo({ parentKey: pKey, parentSubTaskId: st.id });
+                                  setAtomsStatusPickerExpandedIds((prev) => new Set(prev).add(stPath));
+                                }}
+                              >
+                                <TableCell indentLevel={depth} noHoverBorder>
+                                  {st.nom}
+                                </TableCell>
+                                <TableCell>{st.email}</TableCell>
+                                <TableCell align="right">{st.statut}</TableCell>
+                              </TableRow>
+                            );
+                          })}
+                          {atomsStatusPickerAddingTo?.parentKey === pKey &&
+                            atomsStatusPickerAddingTo?.parentSubTaskId === pSubId && (
+                              <TableAddSubTaskRow
+                                onValidate={(vals) => addSubTask(pKey, pSubId, vals)}
+                                onCancel={() => setAtomsStatusPickerAddingTo(null)}
+                                indentLevel={depth}
+                              />
+                            )}
+                        </>
+                      );
+                      return renderSubTasks(
+                        atomsStatusPickerSubTasks.dupont ?? [],
+                        1,
+                        'dupont',
+                        null,
+                        'dupont'
+                      );
+                    })()}
+                    hasSubTasks={(atomsStatusPickerSubTasks.dupont ?? []).length > 0}
+                    onAddSubTask={() => {
+                      setAtomsStatusPickerAddingTo({ parentKey: 'dupont', parentSubTaskId: null });
+                      setAtomsStatusPickerExpandedIds((prev) => new Set(prev).add('dupont'));
+                    }}
                   >
-                    <TableCell>Dupont</TableCell>
+                    <TableCell noHoverBorder>Dupont</TableCell>
                     <TableCell>dupont@example.com</TableCell>
                     <TableCell align="right">Actif</TableCell>
                   </TableRow>
                   <TableRow
-                    expandContent={<div className="text-xs text-zinc-600 dark:text-zinc-400">Détails Martin</div>}
-                    onStatusChange={() => toast.info('Changer état')}
+                    statusContent={
+                      <EtatPicker
+                        statusId={atomsStatusPickerState.martin?.status ?? 'prochainement'}
+                        taskType={atomsStatusPickerState.martin?.taskType ?? 'tache'}
+                        onStatusChange={(v) => setAtomsStatusPickerState((s) => ({ ...s, martin: { ...(s.martin ?? { status: 'prochainement', taskType: 'tache' }), status: v } }))}
+                        onTaskTypeChange={(v) => setAtomsStatusPickerState((s) => ({ ...s, martin: { ...(s.martin ?? { status: 'prochainement', taskType: 'tache' }), taskType: v } }))}
+                      />
+                    }
+                    expanded={atomsStatusPickerExpandedIds.has('martin')}
+                    onExpandToggle={() =>
+                      setAtomsStatusPickerExpandedIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has('martin')) next.delete('martin');
+                        else next.add('martin');
+                        return next;
+                      })
+                    }
+                    subTaskRows={(() => {
+                      const addSubTask = (
+                        parentKey: string,
+                        parentSubTaskId: string | null,
+                        vals: string[]
+                      ) => {
+                        const newItem: SubTaskItem = {
+                          id: `${parentKey}-${Date.now()}`,
+                          nom: vals[0] ?? '',
+                          email: vals[1] ?? '',
+                          statut: vals[2] ?? '',
+                        };
+                        const addToSubTask = (tasks: SubTaskItem[]): SubTaskItem[] =>
+                          tasks.map((t) =>
+                            t.id === parentSubTaskId
+                              ? { ...t, subTasks: [...(t.subTasks ?? []), newItem] }
+                              : { ...t, subTasks: t.subTasks ? addToSubTask(t.subTasks) : undefined }
+                          );
+                        setAtomsStatusPickerSubTasks((prev) => ({
+                          ...prev,
+                          [parentKey]: parentSubTaskId
+                            ? addToSubTask(prev[parentKey] ?? [])
+                            : [...(prev[parentKey] ?? []), newItem],
+                        }));
+                        toast.success('Sous-tâche ajoutée');
+                      };
+                      const renderSubTasks = (
+                        tasks: SubTaskItem[],
+                        depth: number,
+                        pKey: string,
+                        pSubId: string | null,
+                        pathPrefix: string
+                      ) => (
+                        <>
+                          {tasks.map((st) => {
+                            const stPath = `${pathPrefix}-${st.id}`;
+                            const isAddingHere =
+                              atomsStatusPickerAddingTo?.parentKey === pKey &&
+                              atomsStatusPickerAddingTo?.parentSubTaskId === st.id;
+                            return (
+                              <TableRow
+                                key={st.id}
+                                statusContent={
+                                  <EtatPicker
+                                    statusId={atomsStatusPickerSubTaskStatusState[stPath]?.status ?? 'prochainement'}
+                                    taskType={atomsStatusPickerSubTaskStatusState[stPath]?.taskType ?? 'tache'}
+                                    onStatusChange={(v) =>
+                                      setAtomsStatusPickerSubTaskStatusState((s) => ({
+                                        ...s,
+                                        [stPath]: { ...(s[stPath] ?? { status: 'prochainement', taskType: 'tache' }), status: v },
+                                      }))
+                                    }
+                                    onTaskTypeChange={(v) =>
+                                      setAtomsStatusPickerSubTaskStatusState((s) => ({
+                                        ...s,
+                                        [stPath]: { ...(s[stPath] ?? { status: 'prochainement', taskType: 'tache' }), taskType: v },
+                                      }))
+                                    }
+                                  />
+                                }
+                                expanded={atomsStatusPickerExpandedIds.has(stPath)}
+                                onExpandToggle={() =>
+                                  setAtomsStatusPickerExpandedIds((prev) => {
+                                    const next = new Set(prev);
+                                    if (next.has(stPath)) next.delete(stPath);
+                                    else next.add(stPath);
+                                    return next;
+                                  })
+                                }
+                                subTaskRows={
+                                  <>
+                                    {st.subTasks?.length
+                                      ? renderSubTasks(st.subTasks, depth + 1, pKey, st.id, stPath)
+                                      : null}
+                                    {isAddingHere && (
+                                      <TableAddSubTaskRow
+                                        onValidate={(vals) => addSubTask(pKey, st.id, vals)}
+                                        onCancel={() => setAtomsStatusPickerAddingTo(null)}
+                                        indentLevel={depth + 1}
+                                      />
+                                    )}
+                                  </>
+                                }
+                                hasSubTasks={(st.subTasks?.length ?? 0) > 0}
+                                onAddSubTask={() => {
+                                  setAtomsStatusPickerAddingTo({ parentKey: pKey, parentSubTaskId: st.id });
+                                  setAtomsStatusPickerExpandedIds((prev) => new Set(prev).add(stPath));
+                                }}
+                              >
+                                <TableCell indentLevel={depth} noHoverBorder>
+                                  {st.nom}
+                                </TableCell>
+                                <TableCell>{st.email}</TableCell>
+                                <TableCell align="right">{st.statut}</TableCell>
+                              </TableRow>
+                            );
+                          })}
+                          {atomsStatusPickerAddingTo?.parentKey === pKey &&
+                            atomsStatusPickerAddingTo?.parentSubTaskId === pSubId && (
+                              <TableAddSubTaskRow
+                                onValidate={(vals) => addSubTask(pKey, pSubId, vals)}
+                                onCancel={() => setAtomsStatusPickerAddingTo(null)}
+                                indentLevel={depth}
+                              />
+                            )}
+                        </>
+                      );
+                      return renderSubTasks(
+                        atomsStatusPickerSubTasks.martin ?? [],
+                        1,
+                        'martin',
+                        null,
+                        'martin'
+                      );
+                    })()}
+                    hasSubTasks={(atomsStatusPickerSubTasks.martin ?? []).length > 0}
+                    onAddSubTask={() => {
+                      setAtomsStatusPickerAddingTo({ parentKey: 'martin', parentSubTaskId: null });
+                      setAtomsStatusPickerExpandedIds((prev) => new Set(prev).add('martin'));
+                    }}
                   >
-                    <TableCell>Martin</TableCell>
+                    <TableCell noHoverBorder>Martin</TableCell>
                     <TableCell>martin@example.com</TableCell>
                     <TableCell align="right">En attente</TableCell>
                   </TableRow>
-                  <TableRow onStatusChange={() => toast.info('Changer état')}>
-                    <TableCell>Bernard</TableCell>
+                  <TableRow
+                    statusContent={
+                      <EtatPicker
+                        statusId={atomsStatusPickerState.bernard?.status ?? 'prochainement'}
+                        taskType={atomsStatusPickerState.bernard?.taskType ?? 'tache'}
+                        onStatusChange={(v) => setAtomsStatusPickerState((s) => ({ ...s, bernard: { ...(s.bernard ?? { status: 'prochainement', taskType: 'tache' }), status: v } }))}
+                        onTaskTypeChange={(v) => setAtomsStatusPickerState((s) => ({ ...s, bernard: { ...(s.bernard ?? { status: 'prochainement', taskType: 'tache' }), taskType: v } }))}
+                      />
+                    }
+                    expanded={atomsStatusPickerExpandedIds.has('bernard')}
+                    onExpandToggle={() =>
+                      setAtomsStatusPickerExpandedIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has('bernard')) next.delete('bernard');
+                        else next.add('bernard');
+                        return next;
+                      })
+                    }
+                    subTaskRows={(() => {
+                      const addSubTask = (
+                        parentKey: string,
+                        parentSubTaskId: string | null,
+                        vals: string[]
+                      ) => {
+                        const newItem: SubTaskItem = {
+                          id: `${parentKey}-${Date.now()}`,
+                          nom: vals[0] ?? '',
+                          email: vals[1] ?? '',
+                          statut: vals[2] ?? '',
+                        };
+                        const addToSubTask = (tasks: SubTaskItem[]): SubTaskItem[] =>
+                          tasks.map((t) =>
+                            t.id === parentSubTaskId
+                              ? { ...t, subTasks: [...(t.subTasks ?? []), newItem] }
+                              : { ...t, subTasks: t.subTasks ? addToSubTask(t.subTasks) : undefined }
+                          );
+                        setAtomsStatusPickerSubTasks((prev) => ({
+                          ...prev,
+                          [parentKey]: parentSubTaskId
+                            ? addToSubTask(prev[parentKey] ?? [])
+                            : [...(prev[parentKey] ?? []), newItem],
+                        }));
+                        toast.success('Sous-tâche ajoutée');
+                      };
+                      const renderSubTasks = (
+                        tasks: SubTaskItem[],
+                        depth: number,
+                        pKey: string,
+                        pSubId: string | null,
+                        pathPrefix: string
+                      ) => (
+                        <>
+                          {tasks.map((st) => {
+                            const stPath = `${pathPrefix}-${st.id}`;
+                            const isAddingHere =
+                              atomsStatusPickerAddingTo?.parentKey === pKey &&
+                              atomsStatusPickerAddingTo?.parentSubTaskId === st.id;
+                            return (
+                              <TableRow
+                                key={st.id}
+                                statusContent={
+                                  <EtatPicker
+                                    statusId={atomsStatusPickerSubTaskStatusState[stPath]?.status ?? 'prochainement'}
+                                    taskType={atomsStatusPickerSubTaskStatusState[stPath]?.taskType ?? 'tache'}
+                                    onStatusChange={(v) =>
+                                      setAtomsStatusPickerSubTaskStatusState((s) => ({
+                                        ...s,
+                                        [stPath]: { ...(s[stPath] ?? { status: 'prochainement', taskType: 'tache' }), status: v },
+                                      }))
+                                    }
+                                    onTaskTypeChange={(v) =>
+                                      setAtomsStatusPickerSubTaskStatusState((s) => ({
+                                        ...s,
+                                        [stPath]: { ...(s[stPath] ?? { status: 'prochainement', taskType: 'tache' }), taskType: v },
+                                      }))
+                                    }
+                                  />
+                                }
+                                expanded={atomsStatusPickerExpandedIds.has(stPath)}
+                                onExpandToggle={() =>
+                                  setAtomsStatusPickerExpandedIds((prev) => {
+                                    const next = new Set(prev);
+                                    if (next.has(stPath)) next.delete(stPath);
+                                    else next.add(stPath);
+                                    return next;
+                                  })
+                                }
+                                subTaskRows={
+                                  <>
+                                    {st.subTasks?.length
+                                      ? renderSubTasks(st.subTasks, depth + 1, pKey, st.id, stPath)
+                                      : null}
+                                    {isAddingHere && (
+                                      <TableAddSubTaskRow
+                                        onValidate={(vals) => addSubTask(pKey, st.id, vals)}
+                                        onCancel={() => setAtomsStatusPickerAddingTo(null)}
+                                        indentLevel={depth + 1}
+                                      />
+                                    )}
+                                  </>
+                                }
+                                hasSubTasks={(st.subTasks?.length ?? 0) > 0}
+                                onAddSubTask={() => {
+                                  setAtomsStatusPickerAddingTo({ parentKey: pKey, parentSubTaskId: st.id });
+                                  setAtomsStatusPickerExpandedIds((prev) => new Set(prev).add(stPath));
+                                }}
+                              >
+                                <TableCell indentLevel={depth} noHoverBorder>
+                                  {st.nom}
+                                </TableCell>
+                                <TableCell>{st.email}</TableCell>
+                                <TableCell align="right">{st.statut}</TableCell>
+                              </TableRow>
+                            );
+                          })}
+                          {atomsStatusPickerAddingTo?.parentKey === pKey &&
+                            atomsStatusPickerAddingTo?.parentSubTaskId === pSubId && (
+                              <TableAddSubTaskRow
+                                onValidate={(vals) => addSubTask(pKey, pSubId, vals)}
+                                onCancel={() => setAtomsStatusPickerAddingTo(null)}
+                                indentLevel={depth}
+                              />
+                            )}
+                        </>
+                      );
+                      return renderSubTasks(
+                        atomsStatusPickerSubTasks.bernard ?? [],
+                        1,
+                        'bernard',
+                        null,
+                        'bernard'
+                      );
+                    })()}
+                    hasSubTasks={(atomsStatusPickerSubTasks.bernard ?? []).length > 0}
+                    onAddSubTask={() => {
+                      setAtomsStatusPickerAddingTo({ parentKey: 'bernard', parentSubTaskId: null });
+                      setAtomsStatusPickerExpandedIds((prev) => new Set(prev).add('bernard'));
+                    }}
+                  >
+                    <TableCell noHoverBorder>Bernard</TableCell>
                     <TableCell>bernard@example.com</TableCell>
                     <TableCell align="right">Inactif</TableCell>
                   </TableRow>
@@ -1833,15 +2915,54 @@ export default function TestPage() {
                 statusColumn
                 expandable
                 addable
-                selectAllChecked={
-                  atomsAllOptionsRows.length > 0 &&
-                  atomsAllOptionsSelected.size === atomsAllOptionsRows.length
-                }
-                onSelectAllChange={(checked) =>
-                  setAtomsAllOptionsSelected(
-                    checked ? new Set(atomsAllOptionsRows.map((r) => r.id)) : new Set()
-                  )
-                }
+                selectAllChecked={(() => {
+                  const allSubPaths = (() => {
+                    const paths: string[] = [];
+                    const collect = (arr: AllOptionsSubTaskItem[], prefix: string) => {
+                      arr.forEach((st) => {
+                        const p = `${prefix}-${st.id}`;
+                        paths.push(p);
+                        if (st.subTasks?.length) collect(st.subTasks, p);
+                      });
+                    };
+                    atomsAllOptionsRows.forEach((r) => {
+                      const tasks = atomsAllOptionsSubTasks[r.id] ?? [];
+                      collect(tasks, String(r.id));
+                    });
+                    return paths;
+                  })();
+                  const totalCount = atomsAllOptionsRows.length + allSubPaths.length;
+                  const selectedCount =
+                    atomsAllOptionsSelected.size + atomsAllOptionsSubTasksSelected.size;
+                  return totalCount > 0 && selectedCount === totalCount;
+                })()}
+                onSelectAllChange={(checked) => {
+                  if (checked) {
+                    setAtomsAllOptionsSelected(new Set(atomsAllOptionsRows.map((r) => r.id)));
+                    const subPaths: string[] = [];
+                    const collect = (arr: AllOptionsSubTaskItem[], prefix: string) => {
+                      arr.forEach((st) => {
+                        const p = `${prefix}-${st.id}`;
+                        subPaths.push(p);
+                        if (st.subTasks?.length) collect(st.subTasks, p);
+                      });
+                    };
+                    atomsAllOptionsRows.forEach((r) => {
+                      collect(atomsAllOptionsSubTasks[r.id] ?? [], String(r.id));
+                    });
+                    setAtomsAllOptionsSubTasksSelected(new Set(subPaths));
+                    setAtomsAllOptionsExpandedIds((prev) => {
+                      const next = new Set(prev);
+                      atomsAllOptionsRows.forEach((r) => next.add(String(r.id)));
+                      subPaths.forEach((p) => next.add(p));
+                      return next;
+                    });
+                  } else {
+                    setAtomsAllOptionsSelected(new Set());
+                    setAtomsAllOptionsSubTasksSelected(new Set());
+                    setAtomsAllOptionsExpandedIds(new Set());
+                  }
+                }}
                 onAddRow={(values) => {
                   const nextId =
                     atomsAllOptionsRows.length > 0
@@ -1856,12 +2977,16 @@ export default function TestPage() {
                       statut: values[2] ?? '',
                     },
                   ]);
+                  setAtomsAllOptionsStatusState((prev) => ({
+                    ...prev,
+                    [nextId]: { status: 'prochainement', taskType: 'tache' },
+                  }));
                   toast.success('Ligne ajoutée');
                 }}
               >
                 <TableHeader>
                   <TableRow hoverCellOnly>
-                    <TableHead sortable minWidth={80} defaultWidth={140}>
+                    <TableHead sortable minWidth={300} defaultWidth={300}>
                       Nom
                     </TableHead>
                     <TableHead sortable minWidth={100} defaultWidth={220}>
@@ -1895,16 +3020,223 @@ export default function TestPage() {
                           })
                         }
                         clickable
-                        expandContent={
-                          i >= 1 && i < 3 ? (
-                            <div className="text-xs text-zinc-600 dark:text-zinc-400 space-y-1">
-                              <p>
-                                <strong>Détails ligne {i + 1} :</strong> Contenu dépliable.
-                              </p>
-                            </div>
-                          ) : undefined
+                        expanded={atomsAllOptionsExpandedIds.has(String(r.id))}
+                        onExpandToggle={() =>
+                          setAtomsAllOptionsExpandedIds((prev) => {
+                            const next = new Set(prev);
+                            const key = String(r.id);
+                            if (next.has(key)) next.delete(key);
+                            else next.add(key);
+                            return next;
+                          })
                         }
-                        onStatusChange={() => toast.info(`Changer état ${r.nom}`)}
+                        subTaskRows={(() => {
+                          const addSubTask = (
+                            parentId: number,
+                            parentSubTaskId: number | null,
+                            vals: string[]
+                          ) => {
+                            const newItem: AllOptionsSubTaskItem = {
+                              id: Date.now(),
+                              nom: vals[0] ?? '',
+                              email: vals[1] ?? '',
+                              statut: vals[2] ?? '',
+                            };
+                            const addToSubTask = (tasks: AllOptionsSubTaskItem[]): AllOptionsSubTaskItem[] =>
+                              tasks.map((t) =>
+                                t.id === parentSubTaskId
+                                  ? { ...t, subTasks: [...(t.subTasks ?? []), newItem] }
+                                  : { ...t, subTasks: t.subTasks ? addToSubTask(t.subTasks) : undefined }
+                              );
+                            setAtomsAllOptionsSubTasks((prev) => ({
+                              ...prev,
+                              [parentId]: parentSubTaskId
+                                ? addToSubTask(prev[parentId] ?? [])
+                                : [...(prev[parentId] ?? []), newItem],
+                            }));
+                            toast.success('Sous-tâche ajoutée');
+                          };
+                          const removeSubTask = (
+                            parentId: number,
+                            parentSubTaskId: number | null,
+                            subTaskId: number,
+                            subTaskPath: string
+                          ) => {
+                            const removeFrom = (arr: AllOptionsSubTaskItem[]): AllOptionsSubTaskItem[] =>
+                              arr.filter((t) => t.id !== subTaskId);
+                            const removeNested = (arr: AllOptionsSubTaskItem[]): AllOptionsSubTaskItem[] =>
+                              arr.map((t) =>
+                                t.id === parentSubTaskId
+                                  ? { ...t, subTasks: (t.subTasks ?? []).filter((n) => n.id !== subTaskId) }
+                                  : { ...t, subTasks: t.subTasks ? removeNested(t.subTasks) : undefined }
+                              );
+                            setAtomsAllOptionsSubTasks((prev) => ({
+                              ...prev,
+                              [parentId]: parentSubTaskId
+                                ? removeNested(prev[parentId] ?? [])
+                                : removeFrom(prev[parentId] ?? []),
+                            }));
+                            setAtomsAllOptionsSubTasksSelected((prev) => {
+                              const next = new Set(prev);
+                              prev.forEach((id) => {
+                                if (id === subTaskPath || id.startsWith(`${subTaskPath}-`)) next.delete(id);
+                              });
+                              return next;
+                            });
+                            setAtomsAllOptionsSubTaskStatusState((prev) => {
+                              const { [subTaskPath]: _, ...rest } = prev;
+                              return Object.fromEntries(
+                                Object.entries(rest).filter(([k]) => !k.startsWith(`${subTaskPath}-`))
+                              );
+                            });
+                            setAtomsAllOptionsExpandedIds((prev) => {
+                              const next = new Set(prev);
+                              next.delete(subTaskPath);
+                              prev.forEach((id) => {
+                                if (id.startsWith(`${subTaskPath}-`)) next.delete(id);
+                              });
+                              return next;
+                            });
+                            toast.error('Sous-tâche supprimée');
+                          };
+                          const renderSubTasks = (
+                            tasks: AllOptionsSubTaskItem[],
+                            depth: number,
+                            pathPrefix: string,
+                            parentSubTaskId: number | null
+                          ) => (
+                            <>
+                              {tasks.map((st) => {
+                                const stPath = `${pathPrefix}-${st.id}`;
+                                const isAddingHere =
+                                  atomsAllOptionsAddingTo?.parentId === r.id &&
+                                  atomsAllOptionsAddingTo?.parentSubTaskId === st.id;
+                                return (
+                                  <TableRow
+                                    key={st.id}
+                                    selected={atomsAllOptionsSubTasksSelected.has(stPath)}
+                                    onSelectChange={(checked) =>
+                                      setAtomsAllOptionsSubTasksSelected((prev) => {
+                                        const next = new Set(prev);
+                                        if (checked) next.add(stPath);
+                                        else next.delete(stPath);
+                                        return next;
+                                      })
+                                    }
+                                    statusContent={
+                                      <EtatPicker
+                                        statusId={atomsAllOptionsSubTaskStatusState[stPath]?.status ?? 'prochainement'}
+                                        taskType={atomsAllOptionsSubTaskStatusState[stPath]?.taskType ?? 'tache'}
+                                        onStatusChange={(v) =>
+                                          setAtomsAllOptionsSubTaskStatusState((s) => ({
+                                            ...s,
+                                            [stPath]: { ...(s[stPath] ?? { status: 'prochainement', taskType: 'tache' }), status: v },
+                                          }))
+                                        }
+                                        onTaskTypeChange={(v) =>
+                                          setAtomsAllOptionsSubTaskStatusState((s) => ({
+                                            ...s,
+                                            [stPath]: { ...(s[stPath] ?? { status: 'prochainement', taskType: 'tache' }), taskType: v },
+                                          }))
+                                        }
+                                      />
+                                    }
+                                    expanded={atomsAllOptionsExpandedIds.has(stPath)}
+                                    onExpandToggle={() =>
+                                      setAtomsAllOptionsExpandedIds((prev) => {
+                                        const next = new Set(prev);
+                                        if (next.has(stPath)) next.delete(stPath);
+                                        else next.add(stPath);
+                                        return next;
+                                      })
+                                    }
+                                    subTaskRows={
+                                      <>
+                                        {st.subTasks?.length
+                                          ? renderSubTasks(st.subTasks, depth + 1, stPath, st.id)
+                                          : null}
+                                        {atomsAllOptionsAddingTo?.parentId === r.id &&
+                                          atomsAllOptionsAddingTo?.parentSubTaskId === st.id && (
+                                            <TableAddSubTaskRow
+                                              onValidate={(vals) => addSubTask(r.id, st.id, vals)}
+                                              onCancel={() => setAtomsAllOptionsAddingTo(null)}
+                                              indentLevel={depth + 1}
+                                            />
+                                          )}
+                                      </>
+                                    }
+                                    hasSubTasks={(st.subTasks?.length ?? 0) > 0}
+                                    onAddSubTask={() => {
+                                      setAtomsAllOptionsAddingTo({ parentId: r.id, parentSubTaskId: st.id });
+                                      setAtomsAllOptionsExpandedIds((prev) => new Set(prev).add(stPath));
+                                    }}
+                                  >
+                                    <TableCell indentLevel={depth} noHoverBorder>
+                                      {st.nom}
+                                    </TableCell>
+                                    <TableCell>{st.email}</TableCell>
+                                    <TableCell align="right">{st.statut}</TableCell>
+                                    <TableCell noHoverBorder align="center" className="w-12 max-w-12">
+                                      <Popover>
+                                        <PopoverTrigger asChild>
+                                          <button
+                                            type="button"
+                                            className="p-1 rounded text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors opacity-0 group-hover/row:opacity-100"
+                                            aria-label="Actions"
+                                          >
+                                            <MoreVertical size={14} />
+                                          </button>
+                                        </PopoverTrigger>
+                                        <PopoverContent align="end" className="w-40 p-1">
+                                          <button
+                                            type="button"
+                                            className="flex w-full items-center gap-2 px-2 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded"
+                                            onClick={() => removeSubTask(r.id, parentSubTaskId, st.id, stPath)}
+                                          >
+                                            <Trash2 size={14} />
+                                            Supprimer
+                                          </button>
+                                        </PopoverContent>
+                                      </Popover>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                              {atomsAllOptionsAddingTo?.parentId === r.id &&
+                                atomsAllOptionsAddingTo?.parentSubTaskId === null && (
+                                  <TableAddSubTaskRow
+                                    onValidate={(vals) => addSubTask(r.id, null, vals)}
+                                    onCancel={() => setAtomsAllOptionsAddingTo(null)}
+                                    indentLevel={1}
+                                  />
+                                )}
+                            </>
+                          );
+                            return renderSubTasks(atomsAllOptionsSubTasks[r.id] ?? [], 1, String(r.id), null);
+                        })()}
+                        hasSubTasks={(atomsAllOptionsSubTasks[r.id] ?? []).length > 0}
+                        onAddSubTask={() => {
+                          setAtomsAllOptionsAddingTo({ parentId: r.id, parentSubTaskId: null });
+                          setAtomsAllOptionsExpandedIds((prev) => new Set(prev).add(String(r.id)));
+                        }}
+                        statusContent={
+                          <EtatPicker
+                            statusId={atomsAllOptionsStatusState[r.id]?.status ?? 'prochainement'}
+                            taskType={atomsAllOptionsStatusState[r.id]?.taskType ?? 'tache'}
+                            onStatusChange={(v) =>
+                              setAtomsAllOptionsStatusState((s) => ({
+                                ...s,
+                                [r.id]: { ...(s[r.id] ?? { status: 'prochainement', taskType: 'tache' }), status: v },
+                              }))
+                            }
+                            onTaskTypeChange={(v) =>
+                              setAtomsAllOptionsStatusState((s) => ({
+                                ...s,
+                                [r.id]: { ...(s[r.id] ?? { status: 'prochainement', taskType: 'tache' }), taskType: v },
+                              }))
+                            }
+                          />
+                        }
                         showTagsEditor={atomsAllOptionsTagsOpen.has(r.id)}
                         tagsConfig={{
                           value: atomsAllOptionsRowTags[r.id] ?? [],
@@ -1932,28 +3264,6 @@ export default function TestPage() {
                             onClick: () => toast.info(`Éditer ${r.nom}`),
                             label: 'Éditer',
                             activatesInlineEdit: true,
-                          },
-                          {
-                            icon: <Trash2 size={14} />,
-                            onClick: () => {
-                              setAtomsAllOptionsRows((prev) => prev.filter((x) => x.id !== r.id));
-                              setAtomsAllOptionsSelected((prev) => {
-                                const next = new Set(prev);
-                                next.delete(r.id);
-                                return next;
-                              });
-                              setAtomsAllOptionsTagsOpen((prev) => {
-                                const next = new Set(prev);
-                                next.delete(r.id);
-                                return next;
-                              });
-                              setAtomsAllOptionsRowTags((prev) => {
-                                const { [r.id]: _, ...rest } = prev;
-                                return rest;
-                              });
-                              toast.error('Ligne supprimée');
-                            },
-                            label: 'Supprimer',
                           },
                         ]}
                       >
@@ -2024,9 +3334,63 @@ export default function TestPage() {
                               }}
                             />
                             <TableCell noHoverBorder align="center" className="w-12 max-w-12">
-                              <span className="inline-flex opacity-0 transition-opacity group-hover/row:opacity-100">
-                                <MoreVertical size={16} className="text-zinc-500" />
-                              </span>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    type="button"
+                                    className="p-1 rounded text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors opacity-0 group-hover/row:opacity-100"
+                                    aria-label="Actions"
+                                  >
+                                    <MoreVertical size={16} />
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent align="end" className="w-40 p-1">
+                                  <button
+                                    type="button"
+                                    className="flex w-full items-center gap-2 px-2 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded"
+                                    onClick={() => {
+                                      setAtomsAllOptionsRows((prev) => prev.filter((x) => x.id !== r.id));
+                                      setAtomsAllOptionsSelected((prev) => {
+                                        const next = new Set(prev);
+                                        next.delete(r.id);
+                                        return next;
+                                      });
+                                      setAtomsAllOptionsTagsOpen((prev) => {
+                                        const next = new Set(prev);
+                                        next.delete(r.id);
+                                        return next;
+                                      });
+                                      setAtomsAllOptionsRowTags((prev) => {
+                                        const { [r.id]: _, ...rest } = prev;
+                                        return rest;
+                                      });
+                                      setAtomsAllOptionsStatusState((prev) => {
+                                        const { [r.id]: _, ...rest } = prev;
+                                        return rest;
+                                      });
+                                      setAtomsAllOptionsSubTasks((prev) => {
+                                        const { [r.id]: _, ...rest } = prev;
+                                        return rest;
+                                      });
+                                      setAtomsAllOptionsAddingTo((prev) =>
+                                        prev?.parentId === r.id ? null : prev
+                                      );
+                                      setAtomsAllOptionsExpandedIds((prev) => {
+                                        const next = new Set(prev);
+                                        next.delete(String(r.id));
+                                        prev.forEach((id) => {
+                                          if (id.startsWith(`${r.id}-`)) next.delete(id);
+                                        });
+                                        return next;
+                                      });
+                                      toast.error('Ligne supprimée');
+                                    }}
+                                  >
+                                    <Trash2 size={14} />
+                                    Supprimer
+                                  </button>
+                                </PopoverContent>
+                              </Popover>
                             </TableCell>
                           </>
                         ) : (
@@ -2035,9 +3399,63 @@ export default function TestPage() {
                             <TableCell>{r.email}</TableCell>
                             <TableCell align="right">{r.statut}</TableCell>
                             <TableCell noHoverBorder align="center" className="w-12 max-w-12">
-                              <span className="inline-flex opacity-0 transition-opacity group-hover/row:opacity-100">
-                                <MoreVertical size={16} className="text-zinc-500" />
-                              </span>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    type="button"
+                                    className="p-1 rounded text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors opacity-0 group-hover/row:opacity-100"
+                                    aria-label="Actions"
+                                  >
+                                    <MoreVertical size={16} />
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent align="end" className="w-40 p-1">
+                                  <button
+                                    type="button"
+                                    className="flex w-full items-center gap-2 px-2 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded"
+                                    onClick={() => {
+                                      setAtomsAllOptionsRows((prev) => prev.filter((x) => x.id !== r.id));
+                                      setAtomsAllOptionsSelected((prev) => {
+                                        const next = new Set(prev);
+                                        next.delete(r.id);
+                                        return next;
+                                      });
+                                      setAtomsAllOptionsTagsOpen((prev) => {
+                                        const next = new Set(prev);
+                                        next.delete(r.id);
+                                        return next;
+                                      });
+                                      setAtomsAllOptionsRowTags((prev) => {
+                                        const { [r.id]: _, ...rest } = prev;
+                                        return rest;
+                                      });
+                                      setAtomsAllOptionsStatusState((prev) => {
+                                        const { [r.id]: _, ...rest } = prev;
+                                        return rest;
+                                      });
+                                      setAtomsAllOptionsSubTasks((prev) => {
+                                        const { [r.id]: _, ...rest } = prev;
+                                        return rest;
+                                      });
+                                      setAtomsAllOptionsAddingTo((prev) =>
+                                        prev?.parentId === r.id ? null : prev
+                                      );
+                                      setAtomsAllOptionsExpandedIds((prev) => {
+                                        const next = new Set(prev);
+                                        next.delete(String(r.id));
+                                        prev.forEach((id) => {
+                                          if (id.startsWith(`${r.id}-`)) next.delete(id);
+                                        });
+                                        return next;
+                                      });
+                                      toast.error('Ligne supprimée');
+                                    }}
+                                  >
+                                    <Trash2 size={14} />
+                                    Supprimer
+                                  </button>
+                                </PopoverContent>
+                              </Popover>
                             </TableCell>
                           </>
                         )}

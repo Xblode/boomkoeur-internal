@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { FlaskConical, AlertCircle, Layers, Layers2, Layers3, BookOpen } from 'lucide-react';
+import { FlaskConical, AlertCircle, Layers, Layers2, Layers3, BookOpen, Table2 } from 'lucide-react';
 import {
   EntitySelectorDropdown,
   SidebarCard,
@@ -12,7 +12,7 @@ import { useAlert } from '@/components/providers/AlertProvider';
 import { useChatPanel } from '@/components/providers/ChatPanelProvider';
 import { usePageLayout } from '@/components/providers/PageLayoutProvider';
 
-export type TestSectionId = 'demo' | 'alertes' | 'atoms' | 'molecules' | 'organisms' | 'reference';
+export type TestSectionId = 'demo' | 'alertes' | 'docs-table' | 'atoms' | 'molecules' | 'organisms' | 'reference';
 
 export interface TestSectionConfig {
   id: TestSectionId;
@@ -47,6 +47,13 @@ export const TEST_SECTIONS: TestSectionConfig[] = [
     subtitle: 'Tous les composants organisms du design system.',
   },
   { id: 'reference', label: 'Référence', icon: <BookOpen size={16} />, headerIcon: <BookOpen size={28} /> },
+  {
+    id: 'docs-table',
+    label: 'Table',
+    icon: <Table2 size={16} />,
+    headerIcon: <Table2 size={28} />,
+    subtitle: 'Documentation du composant Table : options, exemples et référence.',
+  },
 ];
 
 interface TestLayoutContextType {
@@ -77,6 +84,10 @@ const PAGE_SIDEBAR_SECTION_GROUPS = [
     sections: TEST_SECTIONS.filter((s) =>
       ['demo', 'alertes', 'reference'].includes(s.id)
     ).map(toSidebarSection),
+  },
+  {
+    title: 'Docs',
+    sections: TEST_SECTIONS.filter((s) => s.id === 'docs-table').map(toSidebarSection),
   },
   {
     title: 'Design System',

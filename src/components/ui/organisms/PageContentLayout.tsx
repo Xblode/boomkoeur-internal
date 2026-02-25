@@ -61,7 +61,7 @@ export function PageContentLayout({
         </div>
       )}
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-6 md:p-8 lg:p-12">
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-gutter-stable p-6 md:p-8 lg:p-12">
         <div className={cn('mx-auto', maxWidthClasses[maxWidth])}>
           {sectionHeader}
           {children}

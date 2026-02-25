@@ -79,6 +79,8 @@ export type { KPICardProps } from './KPICard';
 export { DataTable } from './DataTable';
 export type { DataTableProps, Column } from './DataTable';
 
+export { SchemaTable } from './SchemaTable';
+
 export { FilterBar } from './FilterBar';
 export type { FilterBarProps } from './FilterBar';
 
@@ -91,6 +93,9 @@ export type { TablePaginationProps } from './TablePagination';
 export { ActionButtons } from './ActionButtons';
 export type { ActionButtonsProps, ActionButton } from './ActionButtons';
 
+export { EtatPicker, STATUS_GROUPS, getStatusDef } from './EtatPicker';
+export type { EtatPickerProps, TaskType, StatusDef } from './EtatPicker';
+
 export { ConfirmActions } from './ConfirmActions';
 export type { ConfirmActionsProps } from './ConfirmActions';
 
@@ -102,3 +107,6 @@ export type { PeriodSelectorProps, PeriodType } from './PeriodSelector';
 
 export { EditableCard } from './EditableCard';
 export type { EditableCardProps } from './EditableCard';
+
+export { CodeSnippet } from './CodeSnippet';
+export type { CodeSnippetProps } from './CodeSnippet';

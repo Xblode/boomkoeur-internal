@@ -1,13 +1,19 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { ChevronDown, ChevronRight, GripVertical } from 'lucide-react';
+import { ChevronDown, ChevronRight, GripVertical, Plus } from 'lucide-react';
+import { DndContext, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, arrayMove, horizontalListSortingStrategy, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import { Checkbox } from './Checkbox';
 import { InlineEdit } from './InlineEdit';
 import { Select } from './Select';
 import { TagMultiSelect } from '@/components/ui/molecules/TagMultiSelect';
+
+const COL_PREFIX = 'col-';
+const ROW_PREFIX = 'row-';
 
 // ── Table Context ───────────────────────────────────────────────────────────
 
@@ -21,14 +27,19 @@ interface TableContextValue {
   statusColumn?: boolean;
   selectAllChecked?: boolean;
   onSelectAllChange?: (checked: boolean) => void;
-  columnWidths: Record<number, number>;
-  columnMinWidths: Record<number, number>;
-  columnMaxWidths: Record<number, number>;
-  setColumnWidth: (index: number, width: number) => void;
-  setColumnWidths: (updates: Record<number, number>) => void;
-  registerColumn: (minWidth: number, defaultWidth?: number, maxWidth?: number) => number;
+  columnWidths: Record<number, number> | Record<string, number>;
+  columnMinWidths: Record<number, number> | Record<string, number>;
+  columnMaxWidths: Record<number, number> | Record<string, number>;
+  setColumnWidth: (indexOrId: number | string, width: number) => void;
+  setColumnWidths: (updates: Record<number, number> | Record<string, number>) => void;
+  registerColumn: (minWidth: number, defaultWidth?: number, maxWidth?: number, columnId?: string) => number | string;
   columnCount: number;
   containerRef: React.RefObject<HTMLDivElement | null>;
+  /** When reorderableColumns: order of columnIds for display */
+  columnOrder?: string[];
+  reorderableColumns?: boolean;
+  reorderableRows?: boolean;
+  rowOrder?: string[];
 }
 
 const TableContext = createContext<TableContextValue | null>(null);
@@ -60,6 +71,18 @@ export interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
   onSelectAllChange?: (checked: boolean) => void;
   /** Sélecteur d'état (cercle dashed) à gauche du chevron dans la 1ère colonne */
   statusColumn?: boolean;
+  /** Colonnes réordonnables par glisser-déposer (nécessite columnId sur TableHead/TableCell) */
+  reorderableColumns?: boolean;
+  /** Lignes réordonnables par glisser-déposer (nécessite rowId sur TableRow) */
+  reorderableRows?: boolean;
+  /** Ordre contrôlé des colonnes (ids) */
+  columnOrder?: string[];
+  /** Callback après réordonnancement des colonnes */
+  onColumnOrderChange?: (ids: string[]) => void;
+  /** Ordre contrôlé des lignes (ids) */
+  rowOrder?: string[];
+  /** Callback après réordonnancement des lignes */
+  onRowOrderChange?: (ids: string[]) => void;
 }
 
 export interface TableHeaderProps extends React.HTMLAttributes<HTMLTableSectionElement> {}
@@ -71,12 +94,18 @@ export interface TableRowProps extends React.HTMLAttributes<HTMLTableRowElement>
   hoverCellOnly?: boolean;
   /** Contenu affiché sous la ligne quand déplié (nécessite Table expandable) */
   expandContent?: React.ReactNode;
+  /** État déplié en mode contrôlé */
+  expanded?: boolean;
+  /** Callback quand on clique pour déplier/replier (mode contrôlé) */
+  onExpandToggle?: () => void;
   /** Ligne sélectionnée (nécessite Table selectionColumn) */
   selected?: boolean;
   /** Callback quand la checkbox de sélection change */
   onSelectChange?: (checked: boolean) => void;
   /** État affiché par le sélecteur (nécessite Table statusColumn) */
   status?: 'default' | string;
+  /** Composant personnalisé pour remplacer le cercle par défaut */
+  statusContent?: React.ReactNode;
   /** Callback quand on clique sur le sélecteur d'état */
   onStatusChange?: () => void;
   /** Config tags pour afficher TagMultiSelect à droite du nom (1ère cellule) */
@@ -85,6 +114,14 @@ export interface TableRowProps extends React.HTMLAttributes<HTMLTableRowElement>
   showTagsEditor?: boolean;
   /** Boutons d'action affichés au survol dans la 1ère cellule */
   rowActions?: TableRowAction[];
+  /** Lignes sous-tâches à afficher quand déplié (statusContent = tâche) */
+  subTaskRows?: React.ReactNode;
+  /** Si true, le chevron est visible ; si false avec statusContent, chevron invisible */
+  hasSubTasks?: boolean;
+  /** Callback quand on clique sur "+" pour ajouter une sous-tâche (injecte l'action si statusContent) */
+  onAddSubTask?: () => void;
+  /** Identifiant unique pour le DnD des lignes (requis si reorderableRows) */
+  rowId?: string;
 }
 
 export interface TableHeadProps extends React.HTMLAttributes<HTMLTableCellElement> {
@@ -101,7 +138,11 @@ export interface TableHeadProps extends React.HTMLAttributes<HTMLTableCellElemen
   /** @internal injecté par TableRow — ne pas passer au DOM */
   status?: 'default' | string;
   /** @internal injecté par TableRow — ne pas passer au DOM */
+  statusContent?: React.ReactNode;
+  /** @internal injecté par TableRow — ne pas passer au DOM */
   onStatusChange?: () => void;
+  /** Identifiant unique pour le DnD des colonnes (requis si reorderableColumns) */
+  columnId?: string;
 }
 
 export interface TableCellSelectOption {
@@ -139,6 +180,7 @@ export interface TableCellProps
   /** Sélecteur d'état (cercle dashed) à gauche du contenu (injecté par TableRow quand statusColumn) */
   statusColumn?: boolean;
   status?: 'default' | string;
+  statusContent?: React.ReactNode;
   onStatusChange?: () => void;
   /** Tags affichés à droite du nom (injecté par TableRow quand showTagsEditor) */
   tagsConfig?: { value: string[]; onChange: (v: string[]) => void };
@@ -146,29 +188,102 @@ export interface TableCellProps
   showTagsEditor?: boolean;
   /** Désactive la bordure au survol de la cellule */
   noHoverBorder?: boolean;
+  /** Niveau d'indentation (0 = normal, 1 = 30px, 2 = 60px, etc.) */
+  indentLevel?: number;
+  /** Quand expandable, si false le chevron est invisible (opacity-0) */
+  hasSubTasks?: boolean;
+  /** Identifiant de colonne pour alignement avec TableHead (requis si reorderableColumns) */
+  columnId?: string;
 }
 
 // ── Table ────────────────────────────────────────────────────────────────────
 
 const Table = React.forwardRef<HTMLTableElement, TableProps>(
-  ({ className, variant = 'default', resizable = true, fillColumn = true, expandable = false, addable = false, onAddRow, selectionColumn = false, statusColumn = false, selectAllChecked, onSelectAllChange, children, ...props }, ref) => {
-    const [columnWidths, setColumnWidthsState] = useState<Record<number, number>>({});
-    const [columnMinWidths, setColumnMinWidths] = useState<Record<number, number>>({});
-    const [columnMaxWidths, setColumnMaxWidths] = useState<Record<number, number>>({});
-    const [columnCount, setColumnCount] = useState(0);
+  (
+    {
+      className,
+      variant = 'default',
+      resizable = true,
+      fillColumn = true,
+      expandable = false,
+      addable = false,
+      onAddRow,
+      selectionColumn = false,
+      statusColumn = false,
+      selectAllChecked,
+      onSelectAllChange,
+      reorderableColumns = false,
+      reorderableRows = false,
+      columnOrder: columnOrderProp,
+      onColumnOrderChange,
+      rowOrder: rowOrderProp,
+      onRowOrderChange,
+      children,
+      ...props
+    },
+    ref
+  ) => {
+    const [columnWidths, setColumnWidthsState] = useState<Record<string, number>>({});
+    const [columnMinWidths, setColumnMinWidths] = useState<Record<string, number>>({});
+    const [columnMaxWidths, setColumnMaxWidths] = useState<Record<string, number>>({});
+    const [columnOrderState, setColumnOrderState] = useState<string[]>([]);
+    const [rowOrderState, setRowOrderState] = useState<string[]>([]);
     const columnCountRef = useRef(0);
-    const columnDefaultWidthsRef = useRef<Record<number, number>>({});
+    const columnDefaultWidthsRef = useRef<Record<string, number>>({});
+    const columnMinWidthsRef = useRef<Record<string, number>>({});
     const containerRef = useRef<HTMLDivElement>(null);
     const hasUserResizedRef = useRef(false);
+
+    const columnOrder = columnOrderProp ?? columnOrderState;
+    const setColumnOrder = useCallback(
+      (updater: string[] | ((prev: string[]) => string[])) => {
+        const next = typeof updater === 'function' ? updater(columnOrder) : updater;
+        setColumnOrderState(next);
+        onColumnOrderChange?.(next);
+      },
+      [columnOrder, onColumnOrderChange]
+    );
+
+    const derivedRowOrder = useMemo(() => {
+      const body = React.Children.toArray(children).find(
+        (c) => React.isValidElement(c) && (c.type as { displayName?: string })?.displayName === 'TableBody'
+      );
+      const bodyProps = React.isValidElement(body) ? (body.props as { children?: React.ReactNode }) : null;
+      const bodyChildren = bodyProps?.children
+        ? React.Children.toArray(bodyProps.children)
+        : [];
+      return bodyChildren
+        .filter((c): c is React.ReactElement => React.isValidElement(c) && (c.props as { rowId?: string }).rowId != null)
+        .map((c) => (c.props as { rowId: string }).rowId);
+    }, [children]);
+
+    const rowOrder = rowOrderProp ?? (rowOrderState.length > 0 ? rowOrderState : derivedRowOrder);
+    const setRowOrder = useCallback(
+      (updater: string[] | ((prev: string[]) => string[])) => {
+        const next = typeof updater === 'function' ? updater(rowOrder) : updater;
+        setRowOrderState(next);
+        onRowOrderChange?.(next);
+      },
+      [rowOrder, onRowOrderChange]
+    );
+
+    useEffect(() => {
+      if (reorderableRows && rowOrderState.length === 0 && derivedRowOrder.length > 0 && !rowOrderProp) {
+        setRowOrderState(derivedRowOrder);
+      }
+    }, [reorderableRows, derivedRowOrder, rowOrderProp]);
 
     useEffect(() => {
       columnCountRef.current = 0;
       columnDefaultWidthsRef.current = {};
+      columnMinWidthsRef.current = {};
       return () => {
         columnCountRef.current = 0;
       };
     }, []);
 
+    const columnCount = columnOrder.length || Object.keys(columnMinWidths).length;
+    const lastContainerWidthRef = useRef<number>(0);
     useEffect(() => {
       const el = containerRef.current;
       if (!el || columnCount === 0 || hasUserResizedRef.current) return;
@@ -176,45 +291,98 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
       const updateWidthsFromContainer = () => {
         const w = el.offsetWidth;
         if (w <= 0) return;
+        if (w === lastContainerWidthRef.current) return;
+        lastContainerWidthRef.current = w;
 
-        const defaults = columnDefaultWidthsRef.current;
-        const total = Array.from({ length: columnCount }, (_, i) => defaults[i] ?? 120).reduce((a, b) => a + b, 0);
-        if (total <= 0) return;
+        const selectionWidth = selectionColumn ? 48 : 0;
+        const available = w - selectionWidth;
+        const mins = columnMinWidthsRef.current;
+        const order = columnOrder.length > 0 ? columnOrder : Object.keys(mins);
 
-        const updates: Record<number, number> = {};
-        for (let i = 0; i < columnCount; i++) {
-          const prop = (defaults[i] ?? 120) / total;
-          updates[i] = Math.round(prop * w);
-        }
+        const sumOtherMins = order
+          .slice(1)
+          .reduce((a, id) => a + (mins[id] ?? 120), 0);
+        const firstColMin = mins[order[0]] ?? 120;
+        const firstColWidth = Math.max(firstColMin, available - sumOtherMins);
+
+        const updates: Record<string, number> = {};
+        order.forEach((id, i) => {
+          updates[id] = i === 0 ? firstColWidth : mins[id] ?? 120;
+        });
         setColumnWidthsState((prev) => ({ ...prev, ...updates }));
       };
 
+      lastContainerWidthRef.current = el.offsetWidth;
       updateWidthsFromContainer();
       const ro = new ResizeObserver(updateWidthsFromContainer);
       ro.observe(el);
       return () => ro.disconnect();
-    }, [columnCount]);
+    }, [columnCount, selectionColumn, columnOrder]);
 
-    const setColumnWidth = useCallback((index: number, width: number) => {
+    const setColumnWidth = useCallback((indexOrId: number | string, width: number) => {
       hasUserResizedRef.current = true;
-      setColumnWidthsState((prev) => ({ ...prev, [index]: width }));
+      const key = typeof indexOrId === 'number' ? String(indexOrId) : indexOrId;
+      setColumnWidthsState((prev) => ({ ...prev, [key]: width }));
     }, []);
 
-    const setColumnWidths = useCallback((updates: Record<number, number>) => {
+    const setColumnWidths = useCallback((updates: Record<number, number> | Record<string, number>) => {
       hasUserResizedRef.current = true;
-      setColumnWidthsState((prev) => ({ ...prev, ...updates }));
+      const normalized = Object.fromEntries(
+        Object.entries(updates).map(([k, v]) => [String(k), v])
+      );
+      setColumnWidthsState((prev) => ({ ...prev, ...normalized }));
     }, []);
 
-    const registerColumn = useCallback((minWidth: number, defaultWidth?: number, maxWidth?: number) => {
-      const index = columnCountRef.current++;
-      const optimalWidth = maxWidth != null ? Math.min(maxWidth, defaultWidth ?? minWidth) : (defaultWidth ?? minWidth);
-      columnDefaultWidthsRef.current = { ...columnDefaultWidthsRef.current, [index]: optimalWidth };
-      setColumnMinWidths((prev) => ({ ...prev, [index]: minWidth }));
-      if (maxWidth != null) setColumnMaxWidths((prev) => ({ ...prev, [index]: maxWidth }));
-      setColumnWidthsState((prev) => ({ ...prev, [index]: prev[index] ?? optimalWidth }));
-      setColumnCount(columnCountRef.current);
-      return index;
-    }, []);
+    const registerColumn = useCallback(
+      (minWidth: number, defaultWidth?: number, maxWidth?: number, columnId?: string) => {
+        const id = columnId ?? `__${columnCountRef.current++}`;
+        const optimalWidth =
+          maxWidth != null ? Math.min(maxWidth, defaultWidth ?? minWidth) : (defaultWidth ?? minWidth);
+        columnDefaultWidthsRef.current = { ...columnDefaultWidthsRef.current, [id]: optimalWidth };
+        columnMinWidthsRef.current = { ...columnMinWidthsRef.current, [id]: minWidth };
+        setColumnMinWidths((prev) => ({ ...prev, [id]: minWidth }));
+        if (maxWidth != null) setColumnMaxWidths((prev) => ({ ...prev, [id]: maxWidth }));
+        setColumnWidthsState((prev) => ({ ...prev, [id]: prev[id] ?? optimalWidth }));
+        if (reorderableColumns && columnId && !columnOrderProp) {
+          setColumnOrderState((prev) => (prev.includes(columnId) ? prev : [...prev, columnId]));
+        }
+        return id;
+      },
+      [reorderableColumns, columnOrderProp]
+    );
+
+    const handleDragEnd = useCallback(
+      (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        const activeId = String(active.id);
+        const overId = String(over.id);
+
+        if (activeId.startsWith(COL_PREFIX) && overId.startsWith(COL_PREFIX)) {
+          const colActive = activeId.slice(COL_PREFIX.length);
+          const colOver = overId.slice(COL_PREFIX.length);
+          const order = columnOrder.length > 0 ? columnOrder : [...columnOrderState];
+          const oldIndex = order.indexOf(colActive);
+          const newIndex = order.indexOf(colOver);
+          if (oldIndex !== -1 && newIndex !== -1) {
+            const next = arrayMove(order, oldIndex, newIndex);
+            setColumnOrder(next);
+          }
+        } else if (activeId.startsWith(ROW_PREFIX) && overId.startsWith(ROW_PREFIX)) {
+          const rowActive = activeId.slice(ROW_PREFIX.length);
+          const rowOver = overId.slice(ROW_PREFIX.length);
+          const order = rowOrder.length > 0 ? rowOrder : [...rowOrderState];
+          const oldIndex = order.indexOf(rowActive);
+          const newIndex = order.indexOf(rowOver);
+          if (oldIndex !== -1 && newIndex !== -1) {
+            const next = arrayMove(order, oldIndex, newIndex);
+            setRowOrder(next);
+          }
+        }
+      },
+      [columnOrder, columnOrderState, rowOrder, rowOrderState, setColumnOrder, setRowOrder]
+    );
 
     const value: TableContextValue = {
       resizable,
@@ -234,9 +402,13 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
       registerColumn,
       columnCount,
       containerRef,
+      columnOrder: columnOrder.length > 0 ? columnOrder : undefined,
+      reorderableColumns,
+      reorderableRows,
+      rowOrder: rowOrder.length > 0 ? rowOrder : undefined,
     };
 
-    return (
+    const tableContent = (
       <TableContext.Provider value={value}>
         <div className="w-full min-w-0 max-w-full overflow-hidden">
           <div ref={containerRef} className="w-full min-w-0">
@@ -253,7 +425,7 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
           >
             {columnCount > 0 && (
               <TableColgroup
-                columnCount={columnCount}
+                columnOrder={columnOrder.length > 0 ? columnOrder : Object.keys(columnMinWidths)}
                 columnWidths={columnWidths}
                 columnMinWidths={columnMinWidths}
                 columnMaxWidths={columnMaxWidths}
@@ -267,6 +439,15 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
         </div>
       </TableContext.Provider>
     );
+
+    if (reorderableColumns || reorderableRows) {
+      return (
+        <DndContext onDragEnd={handleDragEnd}>
+          {tableContent}
+        </DndContext>
+      );
+    }
+    return tableContent;
   }
 );
 Table.displayName = 'Table';
@@ -276,29 +457,29 @@ Table.displayName = 'Table';
 const SELECTION_COLUMN_WIDTH = 48;
 
 function TableColgroup({
-  columnCount,
+  columnOrder,
   columnWidths,
   columnMinWidths,
   columnMaxWidths = {},
   fillColumn,
   selectionColumn,
 }: {
-  columnCount: number;
-  columnWidths: Record<number, number>;
-  columnMinWidths: Record<number, number>;
-  columnMaxWidths?: Record<number, number>;
+  columnOrder: string[];
+  columnWidths: Record<string, number>;
+  columnMinWidths: Record<string, number>;
+  columnMaxWidths?: Record<string, number>;
   fillColumn: boolean;
   selectionColumn?: boolean;
 }) {
-  if (columnCount === 0) return null;
+  if (columnOrder.length === 0) return null;
   return (
     <colgroup>
       {selectionColumn && <col key="selection" style={{ width: `${SELECTION_COLUMN_WIDTH}px` }} />}
-      {Array.from({ length: columnCount }, (_, i) => {
-        let width = columnWidths[i] ?? columnMinWidths[i] ?? 120;
-        const maxW = columnMaxWidths[i];
+      {columnOrder.map((id) => {
+        let width = columnWidths[id] ?? columnMinWidths[id] ?? 120;
+        const maxW = columnMaxWidths[id];
         if (maxW != null) width = Math.min(width, maxW);
-        return <col key={i} style={{ width: `${width}px` }} />;
+        return <col key={id} style={{ width: `${width}px` }} />;
       })}
       {fillColumn && <col key="fill" />}
     </colgroup>
@@ -328,40 +509,42 @@ function TableHeaderSelectionCell() {
 const TableHeader = React.forwardRef<HTMLTableSectionElement, TableHeaderProps>(
   ({ className, children, ...props }, ref) => {
     const ctx = useTableContext();
+    const columnOrder = ctx?.columnOrder ?? [];
+    const reorderableColumns = ctx?.reorderableColumns ?? false;
 
     let content = children;
-    if (ctx?.selectionColumn) {
+    if (ctx?.selectionColumn || ctx?.fillColumn || (reorderableColumns && columnOrder.length > 0)) {
       content = React.Children.map(content, (child) => {
-        if (React.isValidElement<{ children?: React.ReactNode }>(child) && child.props.children) {
-          return React.cloneElement(child, {
-            children: [
-              <th
-                key="selection"
-                className={cn(
-                  'w-[48px] min-w-[48px] border-0 p-0 align-middle',
-                  'px-0 py-2.5'
-                )}
-              >
-                <TableHeaderSelectionCell />
-              </th>,
-              ...React.Children.toArray(child.props.children),
-            ],
-          });
+        if (!React.isValidElement<{ children?: React.ReactNode }>(child) || !child.props.children) return child;
+        let heads = React.Children.toArray(child.props.children);
+        if (reorderableColumns && columnOrder.length > 0) {
+          heads = columnOrder
+            .map((id) => heads.find((h) => React.isValidElement(h) && (h.props as { columnId?: string }).columnId === id))
+            .filter((h): h is React.ReactElement => h != null);
         }
-        return child;
-      });
-    }
-    if (ctx?.fillColumn) {
-      content = React.Children.map(content, (child) => {
-        if (React.isValidElement<{ children?: React.ReactNode }>(child) && child.props.children) {
-          return React.cloneElement(child, {
-            children: [
-              ...React.Children.toArray(child.props.children),
-              <th key="fill" className="w-full min-w-0" />,
-            ],
-          });
-        }
-        return child;
+        const sortedHeads =
+          reorderableColumns && columnOrder.length > 0 ? (
+            <SortableContext items={columnOrder.map((id) => COL_PREFIX + id)} strategy={horizontalListSortingStrategy}>
+              {heads}
+            </SortableContext>
+          ) : (
+            heads
+          );
+        const newChildren = [
+          ...(ctx?.selectionColumn
+            ? [
+                <th
+                  key="selection"
+                  className={cn('w-[48px] min-w-[48px] border-0 p-0 align-middle', 'px-0 py-2.5')}
+                >
+                  <TableHeaderSelectionCell />
+                </th>,
+              ]
+            : []),
+          ...(Array.isArray(sortedHeads) ? sortedHeads : [sortedHeads]),
+          ...(ctx?.fillColumn ? [<th key="fill" className="w-full min-w-0" />] : []),
+        ];
+        return React.cloneElement(child, { children: newChildren });
       });
     }
 
@@ -383,9 +566,15 @@ TableHeader.displayName = 'TableHeader';
 function TableSelectionCell({
   selected,
   onSelectChange,
+  dragListeners,
+  dragAttributes,
+  setActivatorRef,
 }: {
   selected?: boolean;
   onSelectChange?: (checked: boolean) => void;
+  dragListeners?: Record<string, (e: React.SyntheticEvent) => void>;
+  dragAttributes?: Record<string, unknown>;
+  setActivatorRef?: (el: HTMLElement | null) => void;
 }) {
   return (
     <div
@@ -395,8 +584,11 @@ function TableSelectionCell({
       )}
     >
       <span
+        ref={setActivatorRef}
         className="cursor-grab text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 touch-none"
         aria-label="Déplacer la ligne"
+        {...(dragListeners ?? {})}
+        {...(dragAttributes ?? {})}
       >
         <GripVertical size={14} />
       </span>
@@ -416,20 +608,20 @@ function TableSelectionCell({
 const TableBody = React.forwardRef<HTMLTableSectionElement, TableBodyProps>(
   ({ className, children, ...props }, ref) => {
     const ctx = useTableContext();
+    const reorderableRows = ctx?.reorderableRows ?? false;
+    const rowOrder = ctx?.rowOrder ?? [];
 
     let content = children;
-    if (ctx?.fillColumn) {
-      content = React.Children.map(content, (child) => {
-        if (React.isValidElement<{ children?: React.ReactNode }>(child) && child.props.children) {
-          return React.cloneElement(child, {
-            children: [
-              ...React.Children.toArray(child.props.children),
-              <td key="fill" className="w-full min-w-0 p-0" />,
-            ],
-          });
-        }
-        return child;
-      });
+    if (reorderableRows && rowOrder.length > 0) {
+      const childArray = React.Children.toArray(children);
+      const sorted = rowOrder
+        .map((id) => childArray.find((c) => React.isValidElement(c) && (c.props as { rowId?: string }).rowId === id))
+        .filter((c): c is React.ReactElement => c != null);
+      content = (
+        <SortableContext items={rowOrder.map((id) => ROW_PREFIX + id)} strategy={verticalListSortingStrategy}>
+          {sorted}
+        </SortableContext>
+      );
     }
 
     return (
@@ -512,11 +704,117 @@ function TableAddRow() {
   );
 }
 
+// ── TableAddSubTaskRow ────────────────────────────────────────────────────────
+
+export interface TableAddSubTaskRowProps {
+  onValidate: (values: string[]) => void;
+  /** Appelé quand on blur la 1ère cellule sans avoir saisi (annule l'ajout) */
+  onCancel?: () => void;
+  placeholder?: string;
+  /** Niveau d'indentation (1 = 30px, 2 = 60px, etc.) pour les sous-tâches imbriquées */
+  indentLevel?: number;
+}
+
+function TableAddSubTaskRow({ onValidate, onCancel, placeholder = '+ Ajouter une sous-tâche', indentLevel = 1 }: TableAddSubTaskRowProps) {
+  const ctx = useTableContext();
+  const columnCount = ctx?.columnCount ?? 0;
+  const fillColumn = ctx?.fillColumn ?? false;
+  const selectionColumn = ctx?.selectionColumn ?? false;
+  const rowRef = useRef<HTMLTableRowElement>(null);
+
+  const [addRowValues, setAddRowValues] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (columnCount > 0) {
+      setAddRowValues((prev) =>
+        prev.length === columnCount ? prev : Array.from({ length: columnCount }, (_, i) => prev[i] ?? '')
+      );
+    }
+  }, [columnCount]);
+
+  useEffect(() => {
+    const input = rowRef.current?.querySelector('input');
+    if (input) {
+      const t = setTimeout(() => input.focus(), 0);
+      return () => clearTimeout(t);
+    }
+  }, [columnCount]);
+
+  const handleValidate = useCallback(() => {
+    if ((addRowValues[0] ?? '').trim() === '') return;
+    const values = Array.from({ length: columnCount }, (_, i) => addRowValues[i] ?? '');
+    onValidate(values);
+    setAddRowValues(Array.from({ length: columnCount }, () => ''));
+    const input = rowRef.current?.querySelector('input');
+    if (input) setTimeout(() => input.focus(), 0);
+  }, [onValidate, addRowValues, columnCount]);
+
+  const handleFirstCellBlur = useCallback(() => {
+    if ((addRowValues[0] ?? '').trim() === '') {
+      onCancel?.();
+    } else {
+      handleValidate();
+    }
+  }, [handleValidate, addRowValues, onCancel]);
+
+  const handleFirstCellKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.currentTarget.blur();
+      }
+    },
+    []
+  );
+
+  const updateValue = useCallback((index: number, value: string) => {
+    setAddRowValues((prev) => {
+      const next = Array.from({ length: columnCount }, (_, i) => prev[i] ?? '');
+      next[index] = value;
+      return next;
+    });
+  }, [columnCount]);
+
+  if (columnCount === 0) return null;
+
+  const cells = Array.from({ length: columnCount }, (_, i) => (
+    <TableCell
+      key={i}
+      editable
+      value={addRowValues[i] ?? ''}
+      onChange={(e) => updateValue(i, e.target.value)}
+      onBlur={i === 0 ? handleFirstCellBlur : undefined}
+      onKeyDown={i === 0 ? handleFirstCellKeyDown : undefined}
+      placeholder={i === 0 ? placeholder : ''}
+      indentLevel={i === 0 ? indentLevel : 0}
+    />
+  ));
+
+  return (
+    <tr ref={rowRef} className="border-t border-border-custom">
+      {selectionColumn && <td key="selection" className="w-[48px] min-w-[48px] border-0 p-0" />}
+      {cells}
+      {fillColumn && <td key="fill" className="w-full min-w-0 p-0" />}
+    </tr>
+  );
+}
+
 // ── TableRow ──────────────────────────────────────────────────────────────────
 
-const selectionCellNode = (selected?: boolean, onSelectChange?: (checked: boolean) => void) => (
+const selectionCellNode = (
+  selected?: boolean,
+  onSelectChange?: (checked: boolean) => void,
+  dragListeners?: Record<string, (e: React.SyntheticEvent) => void>,
+  dragAttributes?: Record<string, unknown>,
+  setActivatorRef?: (el: HTMLElement | null) => void
+) => (
   <td key="selection" className="w-[48px] min-w-[48px] border-0 p-0 align-middle">
-    <TableSelectionCell selected={selected} onSelectChange={onSelectChange} />
+    <TableSelectionCell
+      selected={selected}
+      onSelectChange={onSelectChange}
+      dragListeners={dragListeners}
+      dragAttributes={dragAttributes}
+      setActivatorRef={setActivatorRef}
+    />
   </td>
 );
 
@@ -529,50 +827,147 @@ function flattenRowChildren(children: React.ReactNode): React.ReactNode[] {
   );
 }
 
+/** First child that is a React component (TableHead/TableCell), not a raw DOM element (th/td) */
+function findFirstReactCell(children: React.ReactNode[]): { index: number; element: React.ReactElement } | null {
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i];
+    if (React.isValidElement(child) && child.type !== 'th' && child.type !== 'td') {
+      return { index: i, element: child };
+    }
+  }
+  return null;
+}
+
 const TableRow = React.forwardRef<HTMLTableRowElement, TableRowProps>(
-  ({ className, clickable, hoverCellOnly, expandContent, rowActions, selected, onSelectChange, status, onStatusChange, tagsConfig, showTagsEditor, children, ...props }, ref) => {
+  (
+    {
+      className,
+      clickable,
+      hoverCellOnly,
+      expandContent,
+      expanded: expandedProp,
+      onExpandToggle,
+      rowActions,
+      selected,
+      onSelectChange,
+      status,
+      onStatusChange,
+      statusContent,
+      tagsConfig,
+      showTagsEditor,
+      subTaskRows,
+      hasSubTasks = false,
+      onAddSubTask,
+      rowId,
+      children,
+      ...props
+    },
+    ref
+  ) => {
     const ctx = useTableContext();
-    const [expanded, setExpanded] = useState(false);
-    const canExpand = Boolean(expandContent && ctx?.expandable);
+    const reorderableRows = ctx?.reorderableRows ?? false;
+    const reorderableColumns = ctx?.reorderableColumns ?? false;
+    const columnOrder = ctx?.columnOrder ?? [];
+
+    const sortableId = rowId && reorderableRows ? ROW_PREFIX + rowId : null;
+    const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
+      id: sortableId ?? `__row-${rowId ?? 'none'}`,
+      disabled: !reorderableRows || !rowId,
+    });
+    const [internalExpanded, setInternalExpanded] = useState(false);
+    const isControlled = expandedProp !== undefined;
+    const expanded = isControlled ? expandedProp : internalExpanded;
+    const handleExpandToggle = isControlled
+      ? (onExpandToggle ?? (() => {}))
+      : () => setInternalExpanded((e) => !e);
+    const canExpandFromContent = Boolean(expandContent && ctx?.expandable);
+    const canExpandFromSubTasks = Boolean(
+      statusContent && ctx?.statusColumn && (subTaskRows || onAddSubTask)
+    );
+    const canExpand = canExpandFromContent || canExpandFromSubTasks;
+    const addSubTaskAction: TableRowAction | null =
+      statusContent && onAddSubTask
+        ? { icon: <Plus size={14} />, label: 'Ajouter une sous-tâche', onClick: onAddSubTask }
+        : null;
+    const mergedRowActions = addSubTaskAction
+      ? [addSubTaskAction, ...(rowActions ?? [])]
+      : rowActions;
     const colSpan = (ctx?.columnCount ?? 0) + (ctx?.fillColumn ? 1 : 0) + (ctx?.selectionColumn ? 1 : 0);
-    const flatChildren = flattenRowChildren(children);
+    let flatChildren = flattenRowChildren(children);
+    if (reorderableColumns && columnOrder.length > 0) {
+      flatChildren = columnOrder
+        .map((id) => flatChildren.find((c) => React.isValidElement(c) && (c.props as { columnId?: string }).columnId === id))
+        .filter((c): c is React.ReactElement => c != null);
+    }
     const firstChild = flatChildren[0];
     const isHeaderRow = React.isValidElement(firstChild) && firstChild.type === 'th';
-    const selectionCell = ctx?.selectionColumn && !isHeaderRow ? selectionCellNode(selected, onSelectChange) : null;
+    const selectionCell =
+      ctx?.selectionColumn && !isHeaderRow
+        ? selectionCellNode(
+            selected,
+            onSelectChange,
+            reorderableRows && rowId ? (listeners as Record<string, (e: React.SyntheticEvent) => void>) : undefined,
+            reorderableRows && rowId ? (attributes as unknown as Record<string, unknown>) : undefined,
+            reorderableRows && rowId ? setActivatorNodeRef : undefined
+          )
+        : null;
+    const fillCell = ctx?.fillColumn && !isHeaderRow ? (
+      <td key="fill" className="w-full min-w-0 p-0" />
+    ) : null;
 
     const rowClassName = cn(
       'group/row transition-colors',
       !hoverCellOnly && 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50',
       selected && 'bg-zinc-50 dark:bg-zinc-800/50',
       clickable && 'cursor-pointer',
+      isDragging && 'opacity-50 z-10',
       className
     );
 
+    const rowStyle = transform && reorderableRows ? { transform: CSS.Transform.toString(transform), transition } : undefined;
+    const rowRefFn = useCallback(
+      (node: HTMLTableRowElement | null) => {
+        if (typeof ref === 'function') {
+          ref(node);
+        } else if (ref != null) {
+          (ref as React.MutableRefObject<HTMLTableRowElement | null>).current = node;
+        }
+        setNodeRef(node);
+      },
+      [ref, setNodeRef]
+    );
+
     if (canExpand) {
-      const firstChild = flatChildren[0];
-      const restChildren = flatChildren.slice(1);
-      const firstCellWithExpand = React.isValidElement(firstChild) ? (
-        React.cloneElement(firstChild as React.ReactElement<TableCellProps>, {
-          expandable: true,
-          expanded,
-          onExpandToggle: () => setExpanded((e) => !e),
-          rowActions,
-          ...(ctx?.statusColumn && {
-            statusColumn: true,
-            status: status ?? 'default',
-            onStatusChange,
-          }),
-        })
-      ) : firstChild;
+      const cellToInject = findFirstReactCell(flatChildren);
+      const firstCellWithExpand = cellToInject
+        ? React.cloneElement(cellToInject.element as React.ReactElement<TableCellProps>, {
+            expandable: true,
+            expanded,
+            onExpandToggle: handleExpandToggle,
+            rowActions: mergedRowActions,
+            hasSubTasks: canExpandFromSubTasks ? hasSubTasks : true,
+            ...(ctx?.statusColumn && {
+              statusColumn: true,
+              status: status ?? 'default',
+              statusContent,
+              onStatusChange,
+            }),
+          })
+        : flatChildren[0];
+      const before = cellToInject ? flatChildren.slice(0, cellToInject.index) : [];
+      const after = cellToInject ? flatChildren.slice(cellToInject.index + 1) : flatChildren.slice(1);
 
       return (
         <>
-          <tr ref={ref} className={rowClassName} {...props}>
+          <tr ref={rowRefFn} style={rowStyle} className={rowClassName} {...props}>
             {selectionCell}
+            {before}
             {firstCellWithExpand}
-            {restChildren}
+            {after}
+            {fillCell}
           </tr>
-          {expanded && (
+          {expanded && subTaskRows}
+          {expanded && !subTaskRows && expandContent && (
             <tr className="bg-zinc-50/50 dark:bg-zinc-900/20">
               <td
                 colSpan={colSpan}
@@ -586,56 +981,70 @@ const TableRow = React.forwardRef<HTMLTableRowElement, TableRowProps>(
       );
     }
 
-    if (rowActions && rowActions.length > 0) {
-      const firstChild = flatChildren[0];
-      const restChildren = flatChildren.slice(1);
-
-      return (
-        <tr ref={ref} className={rowClassName} {...props}>
-          {selectionCell}
-          {          React.isValidElement(firstChild)
-            ? React.cloneElement(firstChild as React.ReactElement<TableCellProps>, {
-                rowActions,
-                ...(ctx?.statusColumn && {
-                  statusColumn: true,
-                  status: status ?? 'default',
-                  onStatusChange,
-                }),
-                ...(showTagsEditor && tagsConfig && {
-                  tagsConfig,
-                  showTagsEditor: true,
-                }),
-              })
-            : firstChild}
-          {restChildren}
-        </tr>
-      );
-    }
-
-    if (ctx?.statusColumn && flatChildren.length > 0 && React.isValidElement(flatChildren[0])) {
-      const first = flatChildren[0];
-      const rest = flatChildren.slice(1);
-      return (
-        <tr ref={ref} className={rowClassName} {...props}>
-          {selectionCell}
-          {React.cloneElement(first as React.ReactElement<TableCellProps>, {
-            statusColumn: true,
-            status: status ?? 'default',
-            onStatusChange,
+    if (mergedRowActions && mergedRowActions.length > 0) {
+      const cellToInject = findFirstReactCell(flatChildren);
+      const firstCellWithActions = cellToInject
+        ? React.cloneElement(cellToInject.element as React.ReactElement<TableCellProps>, {
+            rowActions: mergedRowActions,
+            ...(ctx?.statusColumn && {
+              statusColumn: true,
+              status: status ?? 'default',
+              statusContent,
+              onStatusChange,
+            }),
             ...(showTagsEditor && tagsConfig && {
               tagsConfig,
               showTagsEditor: true,
             }),
-          })}
-          {rest}
+          })
+        : flatChildren[0];
+      const before = cellToInject ? flatChildren.slice(0, cellToInject.index) : [];
+      const after = cellToInject ? flatChildren.slice(cellToInject.index + 1) : flatChildren.slice(1);
+
+      return (
+        <tr ref={rowRefFn} style={rowStyle} className={rowClassName} {...props}>
+          {selectionCell}
+          {before}
+          {firstCellWithActions}
+          {after}
+          {fillCell}
         </tr>
       );
     }
 
+    if (ctx?.statusColumn) {
+      const cellToInject = findFirstReactCell(flatChildren);
+      if (cellToInject) {
+        const cloned = React.cloneElement(cellToInject.element as React.ReactElement<TableCellProps>, {
+          statusColumn: true,
+          status: status ?? 'default',
+          statusContent,
+          onStatusChange,
+          ...(mergedRowActions && mergedRowActions.length > 0 && { rowActions: mergedRowActions }),
+          ...(showTagsEditor && tagsConfig && {
+            tagsConfig,
+            showTagsEditor: true,
+          }),
+        });
+        const before = flatChildren.slice(0, cellToInject.index);
+        const after = flatChildren.slice(cellToInject.index + 1);
+        return (
+          <tr ref={rowRefFn} style={rowStyle} className={rowClassName} {...props}>
+            {selectionCell}
+            {before}
+            {cloned}
+            {after}
+            {fillCell}
+          </tr>
+        );
+      }
+    }
+
     return (
-      <tr ref={ref} className={rowClassName} {...props}>
+      <tr ref={rowRefFn} style={rowStyle} className={rowClassName} {...props}>
         {selectionCell}
         {children}
+        {fillCell}
       </tr>
     );
   }
@@ -645,43 +1054,71 @@ TableRow.displayName = 'TableRow';
 // ── TableHead ────────────────────────────────────────────────────────────────
 
 const TableHead = React.forwardRef<HTMLTableCellElement, TableHeadProps>(
-  ({ className, align = 'left', sortable, minWidth = 80, defaultWidth, maxWidth, statusColumn, status, onStatusChange, children, ...props }, ref) => {
+  (
+    {
+      className,
+      align = 'left',
+      sortable,
+      minWidth = 80,
+      defaultWidth,
+      maxWidth,
+      columnId,
+      statusColumn,
+      status,
+      onStatusChange,
+      statusContent,
+      children,
+      ...props
+    },
+    ref
+  ) => {
     const ctx = useTableContext();
-    const [index, setIndex] = useState<number | null>(null);
+    const [columnKey, setColumnKey] = useState<string | null>(null);
+    const reorderableColumns = ctx?.reorderableColumns ?? false;
+    const columnOrder = ctx?.columnOrder ?? [];
+    const order = columnOrder.length > 0 ? columnOrder : (columnKey ? [columnKey] : []);
 
     useEffect(() => {
-      if (ctx && index === null) {
-        const idx = ctx.registerColumn(minWidth, defaultWidth, maxWidth);
-        setIndex(idx);
+      if (ctx) {
+        const id = ctx.registerColumn(minWidth, defaultWidth, maxWidth, columnId) as string;
+        setColumnKey(id);
       }
-    }, [ctx, minWidth, defaultWidth, maxWidth, index]);
+    }, [ctx, minWidth, defaultWidth, maxWidth, columnId]);
 
-    const isResizing = ctx?.resizable === true && index !== null;
+    const sortableId = columnId && reorderableColumns ? COL_PREFIX + columnId : null;
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+      id: sortableId ?? `__head-${columnKey ?? 'pending'}`,
+      disabled: !reorderableColumns || !columnId,
+    });
+
+    const isResizing = ctx?.resizable === true && columnKey !== null;
 
     const handleResizeStart = useCallback(
       (e: React.MouseEvent) => {
         e.preventDefault();
-        if (!ctx || index === null) return;
+        if (!ctx || columnKey === null) return;
 
         const startX = e.clientX;
-        const startWidth = ctx.columnWidths[index] ?? ctx.columnMinWidths[index] ?? minWidth;
-        const minW = ctx.columnMinWidths[index] ?? minWidth;
-        const maxW = ctx.columnMaxWidths[index];
+        const startWidth = (ctx.columnWidths as Record<string, number>)[columnKey] ?? (ctx.columnMinWidths as Record<string, number>)[columnKey] ?? minWidth;
+        const minW = (ctx.columnMinWidths as Record<string, number>)[columnKey] ?? minWidth;
+        const maxW = (ctx.columnMaxWidths as Record<string, number>)[columnKey];
+        const widths = ctx.columnWidths as Record<string, number>;
+        const mins = ctx.columnMinWidths as Record<string, number>;
+        const ids = order.length > 0 ? order : Object.keys(mins);
 
-        const sumOtherWidths = Array.from({ length: ctx.columnCount }, (_, j) =>
-          j === index ? 0 : ctx.columnWidths[j] ?? ctx.columnMinWidths[j] ?? 120
-        ).reduce((a, b) => a + b, 0);
+        const sumOtherWidths = ids.reduce((a, id) => a + (id === columnKey ? 0 : (widths[id] ?? mins[id] ?? 120)), 0);
+        const selectionWidth = ctx.selectionColumn ? 48 : 0;
+        const containerWidthAtStart = ctx.containerRef.current?.offsetWidth ?? 0;
 
         const handleMouseMove = (moveEvent: MouseEvent) => {
-          const containerWidth = ctx.containerRef.current?.offsetWidth ?? 0;
-          const containerMax = containerWidth > 0 ? containerWidth - sumOtherWidths : Infinity;
-
+          const rawWidth = ctx.containerRef.current?.offsetWidth ?? 0;
+          const containerWidth = rawWidth > 50 ? rawWidth : containerWidthAtStart;
+          const containerMax = containerWidth > 0 ? containerWidth - sumOtherWidths - selectionWidth : Infinity;
           const diff = moveEvent.clientX - startX;
           const requestedWidth = startWidth + diff;
           const effectiveMax = maxW != null ? Math.min(maxW, containerMax) : containerMax;
           const newWidth = Math.max(minW, Math.min(effectiveMax, requestedWidth));
-
-          flushSync(() => ctx.setColumnWidth(index, newWidth));
+          flushSync(() => ctx.setColumnWidth(columnKey, newWidth));
         };
 
         const handleMouseUp = () => {
@@ -696,20 +1133,40 @@ const TableHead = React.forwardRef<HTMLTableCellElement, TableHeadProps>(
         document.addEventListener('mousemove', handleMouseMove);
         document.addEventListener('mouseup', handleMouseUp);
       },
-      [ctx, index, minWidth]
+      [ctx, columnKey, minWidth, order]
+    );
+
+    const style = transform && reorderableColumns
+      ? { transform: CSS.Transform.toString(transform), transition }
+      : undefined;
+
+    const setRef = useCallback(
+      (node: HTMLTableCellElement | null) => {
+        if (typeof ref === 'function') {
+          ref(node);
+        } else if (ref != null) {
+          (ref as React.MutableRefObject<HTMLTableCellElement | null>).current = node;
+        }
+        setNodeRef(node);
+      },
+      [ref, setNodeRef]
     );
 
     return (
       <th
-        ref={ref}
+        ref={setRef}
         className={cn(
           'relative px-3 py-2.5 text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400',
           'transition-colors rounded hover:bg-zinc-100 dark:hover:bg-zinc-800/50',
           align === 'center' && 'text-center',
           align === 'right' && 'text-right',
           align === 'left' && 'text-left',
+          isDragging && 'opacity-50 z-10',
           className
         )}
+        style={style}
+        {...(reorderableColumns && sortableId ? attributes : {})}
+        {...(reorderableColumns && sortableId ? listeners : {})}
         {...props}
       >
         <span className="inline-flex items-center gap-1.5">
@@ -773,10 +1230,14 @@ const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
       statusColumn = false,
       status = 'default',
       onStatusChange,
+      statusContent,
       noHoverBorder = false,
       tagsConfig,
       showTagsEditor = false,
+      indentLevel = 0,
+      hasSubTasks = true,
       children,
+      style: styleProp,
       ...props
     },
     ref
@@ -887,19 +1348,25 @@ const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
       ) : null;
 
     const statusIndicator = statusColumn ? (
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onStatusChange?.();
-        }}
-        className={cn(
-          'shrink-0 w-4 h-4 rounded-full border-[1.5px] transition-colors mr-1.5',
-          'hover:bg-zinc-100 dark:hover:bg-zinc-800',
-          status === 'default' && 'border-dashed border-zinc-300 dark:border-zinc-600'
-        )}
-        aria-label="Changer l'état"
-      />
+      statusContent ? (
+        <div className="shrink-0 mr-1.5 flex items-center" onClick={(e) => e.stopPropagation()}>
+          {statusContent}
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onStatusChange?.();
+          }}
+          className={cn(
+            'shrink-0 w-4 h-4 rounded-full border-[1.5px] transition-colors mr-1.5',
+            'hover:bg-zinc-100 dark:hover:bg-zinc-800',
+            status === 'default' && 'border-dashed border-zinc-300 dark:border-zinc-600'
+          )}
+          aria-label="Changer l'état"
+        />
+      )
     ) : null;
 
     const tagsNode = showTagsEditor && tagsConfig ? (
@@ -919,7 +1386,10 @@ const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
           e.stopPropagation();
           onExpandToggle();
         }}
-        className="shrink-0 p-0.5 mr-[5px] rounded text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+        className={cn(
+          'shrink-0 p-0.5 mr-[5px] rounded text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors',
+          !hasSubTasks && 'opacity-0 pointer-events-none'
+        )}
         aria-expanded={expanded}
         aria-label={expanded ? 'Replier' : 'Déplier'}
       >
@@ -981,10 +1451,16 @@ const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
       </div>
     );
 
+    const indentStyle =
+      indentLevel && indentLevel > 0 ? { paddingLeft: indentLevel * 30 } : undefined;
+    const mergedStyle =
+      indentStyle || styleProp ? { ...indentStyle, ...styleProp } : undefined;
+
     return (
       <td
         ref={ref}
         className={cn('p-0', alignClass, 'group/cell', className)}
+        style={mergedStyle}
         {...props}
       >
         {innerContent}
@@ -994,4 +1470,4 @@ const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
 );
 TableCell.displayName = 'TableCell';
 
-export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell };
+export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableAddSubTaskRow };

@@ -78,6 +78,11 @@ html {
   opacity: 0.5;
 }
 
+/* Réserve l'espace de la scrollbar pour éviter le rétrécissement du contenu */
+.scrollbar-gutter-stable {
+  scrollbar-gutter: stable;
+}
+
 /* Toast Notifications (Sonner) */
 [data-sonner-toast] {
   background: var(--bg-card) !important;
