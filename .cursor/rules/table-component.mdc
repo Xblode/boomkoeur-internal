@@ -1,0 +1,94 @@
+---
+description: Documentation du composant Table atomique
+globs: src/components/**/*.tsx
+alwaysApply: false
+---
+
+# Composant Table
+
+Le composant Table est un **atom** modulaire pour construire des tableaux interactifs (redimensionnement, sélection, expansion, DnD).
+
+## Structure des fichiers
+
+Le composant est découpé dans `components/ui/atoms/Table/` :
+
+```
+Table/
+├── index.ts              # Barrel export (API publique)
+├── Table.types.ts        # Interfaces et constantes
+├── Table.context.tsx     # TableContext + useTableContext
+├── Table.tsx             # Table + TableColgroup
+├── TableHeader.tsx       # TableHeader + TableHeaderSelectionCell
+├── TableBody.tsx         # TableBody + TableSelectionCell + TableAddRow
+├── TableRow.tsx          # TableRow + helpers
+├── TableHead.tsx         # TableHead
+├── TableCell.tsx         # TableCell
+└── TableAddSubTaskRow.tsx
+```
+
+## Import
+
+```tsx
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableAddSubTaskRow,
+} from '@/components/ui/atoms';
+```
+
+## Composition de base
+
+```tsx
+<Table>
+  <TableHeader>
+    <TableRow hoverCellOnly>
+      <TableHead sortable minWidth={80} defaultWidth={140}>Nom</TableHead>
+      <TableHead sortable minWidth={100} defaultWidth={220}>Email</TableHead>
+      <TableHead align="right" sortable minWidth={60} defaultWidth={100}>Statut</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    <TableRow>
+      <TableCell>Dupont</TableCell>
+      <TableCell>dupont@example.com</TableCell>
+      <TableCell align="right">Actif</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
+```
+
+## Options principales
+
+### Table
+- `variant` : 'default' | 'bordered' | 'striped'
+- `resizable` : colonnes redimensionnables (défaut: true)
+- `fillColumn` : colonne flexible qui comble l'espace (défaut: true)
+- `selectionColumn` : colonne grip + checkbox à gauche
+- `statusColumn` : sélecteur d'état (cercle dashed) dans la 1ère cellule
+- `expandable` : lignes dépliables avec expandContent
+- `addable` : ligne "+ Ajouter une ligne" en bas
+- `reorderableColumns` / `reorderableRows` : DnD (nécessite columnId/rowId)
+
+### TableRow
+- `expandContent` : contenu affiché sous la ligne quand déplié
+- `rowActions` : boutons d'action au hover (icon, label, onClick)
+- `statusContent` : composant pour le sélecteur d'état (ex: EtatPicker)
+- `subTaskRows` : lignes sous-tâches à afficher quand déplié
+- `onAddSubTask` : callback pour ajouter une sous-tâche
+
+### TableCell
+- `editable` : cellule éditable (InlineEdit)
+- `select` : cellule avec Select
+- `noHoverBorder` : désactive la bordure au hover
+- `indentLevel` : indentation (0, 1, 2...)
+
+## Référence complète
+
+La documentation interactive avec toutes les options est disponible dans la page Test :
+**Dashboard > Test > Table** (section "docs-table").
+
+Exemples : variant bordered, actions au hover, lignes dépliables, sélecteur d'état, colonne de sélection, addable.

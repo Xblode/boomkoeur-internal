@@ -1072,6 +1072,15 @@ function TableDocsContent({ sectionHeaderNode }: { sectionHeaderNode: React.Reac
       <div className="space-y-10">
         <Card variant="outline">
           <CardHeader>
+            <CardTitle>Structure du composant Table</CardTitle>
+            <CardDescription>
+              Le composant Table est découpé en plusieurs fichiers dans <code className="font-mono text-xs bg-zinc-200 dark:bg-zinc-700 px-1 rounded">components/ui/atoms/Table/</code> : Table.tsx, TableHeader.tsx, TableBody.tsx, TableRow.tsx, TableHead.tsx, TableCell.tsx, TableAddSubTaskRow.tsx. Import depuis <code className="font-mono text-xs bg-zinc-200 dark:bg-zinc-700 px-1 rounded">@/components/ui/atoms</code>.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+
+        <Card variant="outline">
+          <CardHeader>
             <CardTitle>Options du composant Table</CardTitle>
             <CardDescription>
               Liste complète des props pour Table, TableRow, TableCell et TableHead.
