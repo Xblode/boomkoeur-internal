@@ -1084,11 +1084,17 @@ function mapDbBudgetTemplateLine(row: Record<string, unknown>): BudgetTemplateLi
 // --- KPIs & Stats ---
 
 export async function getFinanceKPIs(year?: number): Promise<FinanceKPIs> {
-  const transactions = await getTransactions(year);
-  const accounts = await getBankAccounts();
-  const currentBalance = accounts.reduce((sum, acc) => sum + acc.current_balance, 0);
+  const [allTransactions, accounts] = await Promise.all([
+    getTransactions(), // Toutes les transactions pour le cumul
+    getBankAccounts(),
+  ]);
+  const initialBalance = accounts.reduce((sum, acc) => sum + (acc.initial_balance ?? 0), 0);
+  const currentBalance =
+    initialBalance +
+    allTransactions.reduce((sum, t) => sum + (t.type === 'income' ? t.amount : -t.amount), 0);
   const currentMonth = new Date().getMonth();
   const currentYear = year ?? new Date().getFullYear();
+  const transactions = year ? allTransactions.filter((t) => t.fiscal_year === year) : allTransactions;
 
   const monthlyRevenue = transactions
     .filter((t) => t.type === 'income' && new Date(t.date).getMonth() === currentMonth && new Date(t.date).getFullYear() === currentYear)

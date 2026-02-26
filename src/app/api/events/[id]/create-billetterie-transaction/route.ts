@@ -19,9 +19,11 @@ async function getShotgunCredentials(supabase: Awaited<ReturnType<typeof createC
   return null;
 }
 
-function computeTotalRevenue(tickets: ShotgunTicket[]): number {
+/** CA brut (chiffre d'affaires) en euros. L'API Shotgun retourne deal_price en centimes. */
+function computeTotalRevenueEur(tickets: ShotgunTicket[]): number {
   const valid = tickets.filter((t) => t.ticket_status === 'valid');
-  return valid.reduce((sum, t) => sum + t.deal_price, 0);
+  const totalCents = valid.reduce((sum, t) => sum + t.deal_price, 0);
+  return Math.round(totalCents) / 100;
 }
 
 export async function POST(
@@ -34,7 +36,7 @@ export async function POST(
   // 1. Charger l'event
   const { data: eventRow, error: eventError } = await supabase
     .from('events')
-    .select('id, name, status, shotgun_event_id, org_id')
+    .select('id, name, date, status, shotgun_event_id, org_id')
     .eq('id', eventId)
     .single();
 
@@ -42,7 +44,7 @@ export async function POST(
     return NextResponse.json({ error: 'Event introuvable' }, { status: 404 });
   }
 
-  const event = eventRow as { id: string; name: string; status: string; shotgun_event_id: number | null; org_id: string | null };
+  const event = eventRow as { id: string; name: string; date: string; status: string; shotgun_event_id: number | null; org_id: string | null };
   const orgId = event.org_id ?? request.headers.get('X-Org-Id');
 
   if (event.status !== 'completed') {
@@ -115,21 +117,22 @@ export async function POST(
     }
   }
 
-  const totalRevenue = computeTotalRevenue(allTickets);
+  const totalRevenueEur = computeTotalRevenueEur(allTickets);
 
-  if (totalRevenue <= 0) {
+  if (totalRevenueEur <= 0) {
     return NextResponse.json(
       { message: 'Aucun CA brut Shotgun pour cet event. Aucune transaction créée.' },
       { status: 200 }
     );
   }
 
-  // 4. Créer la transaction
+  // 4. Créer la transaction — date = jour de l'event
   const transactionId = crypto.randomUUID();
   const entryNumber = generateUniqueCode('TRA', transactionId, 8);
   const now = new Date().toISOString();
-  const dateStr = now.slice(0, 10);
-  const fiscalYear = new Date().getFullYear();
+  const eventDate = event.date ? new Date(event.date) : new Date();
+  const dateStr = eventDate.toISOString().slice(0, 10);
+  const fiscalYear = eventDate.getFullYear();
 
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -141,11 +144,11 @@ export async function POST(
       fiscal_year: fiscalYear,
       date: dateStr,
       label: labelPrefix,
-      amount: totalRevenue,
+      amount: totalRevenueEur,
       type: 'income',
       category: 'Billetterie',
       debit: 0,
-      credit: totalRevenue,
+      credit: totalRevenueEur,
       event_id: eventId,
       status: 'pending',
       vat_applicable: false,
@@ -169,7 +172,7 @@ export async function POST(
   return NextResponse.json({
     message: 'Transaction billetterie créée',
     transactionId: inserted.id,
-    amount: totalRevenue,
+    amount: totalRevenueEur,
     label: labelPrefix,
   });
 }

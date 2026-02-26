@@ -1,19 +1,17 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Plus, ArrowRight, Instagram, Facebook, MessageCircle, Inbox, CalendarDays, Clock, ChevronRight } from 'lucide-react';
+import { ArrowRight, Instagram, Facebook, MessageCircle, Inbox, CalendarDays, Clock, ChevronRight } from 'lucide-react';
 
 // Services & Constants
-import { getMeetings } from '@/lib/supabase/meetings';
 import { CHART_SERIES_COLORS } from '@/lib/constants/chart-colors';
 import { orderDataService } from '@/lib/services/OrderDataService';
 import { productDataService } from '@/lib/services/ProductDataService';
-import { financeDataService } from '@/lib/services/FinanceDataService';
-import { getEvents } from '@/lib/supabase/events';
-import { mockSocialPosts } from '@/lib/mocks/communication';
+import { getCampaigns } from '@/lib/localStorage/communication';
+import { useEvents, useMeetings, useTransactions, useInvoices } from '@/hooks';
 
 // Types
 import type { Meeting } from '@/types/meeting';
@@ -120,9 +118,13 @@ function getStatusBadgeVariant(status: string) {
   }
 }
 
+interface ScheduledPostWithEvent extends SocialPost {
+  eventId: string;
+}
+
 interface DashboardData {
   events: { inPreparation: Event[]; next: Event | null; upcomingOthers: Event[] };
-  communication: { postsToValidate: unknown[]; scheduledThisWeek: SocialPost[] };
+  communication: { postsToValidate: unknown[]; scheduledPosts: ScheduledPostWithEvent[] };
   meetings: { next: Meeting | null; daysUntilNext: number | null; last: Meeting | null };
   orders: { pending: Order[]; count: number };
   products: { lowStock: unknown[] };
@@ -138,172 +140,204 @@ interface DashboardData {
 
 export const DashboardStats: React.FC = () => {
   const { activeOrg, isLoading: orgLoading } = useOrg();
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { events, isLoading: eventsLoading } = useEvents();
+  const { meetings, isLoading: meetingsLoading } = useMeetings();
+  const { transactions, isLoading: transactionsLoading } = useTransactions();
+  const { invoices, isLoading: invoicesLoading } = useInvoices();
+
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [lowStockProducts, setLowStockProducts] = useState<unknown[]>([]);
+  const [ordersProductsLoading, setOrdersProductsLoading] = useState(true);
 
   useEffect(() => {
     if (orgLoading || !activeOrg) return;
 
-    // Seed commandes démo au premier chargement
     if (activeOrg.slug === 'demo' && typeof window !== 'undefined') {
       const stored = localStorage.getItem('orders_demo');
       if (!stored || stored === '[]') {
-        const orders = getDemoOrders();
-        const lines = getDemoOrderLines(orders);
-        localStorage.setItem('orders_demo', JSON.stringify(orders));
+        const demoOrders = getDemoOrders();
+        const lines = getDemoOrderLines(demoOrders);
+        localStorage.setItem('orders_demo', JSON.stringify(demoOrders));
         localStorage.setItem('order_lines_demo', JSON.stringify(lines));
       }
     }
 
-    loadDashboardData();
+    const loadOrdersAndProducts = async () => {
+      setOrdersProductsLoading(true);
+      try {
+        const [ordersData, lowStock] = await Promise.all([
+          orderDataService.getOrders(),
+          productDataService.getLowStockProducts(),
+        ]);
+        setOrders(ordersData);
+        setLowStockProducts(lowStock);
+      } catch (error) {
+        console.error('Erreur chargement orders/products:', error);
+      } finally {
+        setOrdersProductsLoading(false);
+      }
+    };
+    loadOrdersAndProducts();
   }, [activeOrg, orgLoading]);
 
-  const loadDashboardData = async () => {
-    setLoading(true);
-    try {
-      const [meetings, orders, products, events, transactions, invoices] = await Promise.all([
-        getMeetings(),
-        orderDataService.getOrders(),
-        productDataService.getProducts(),
-        getEvents(),
-        financeDataService.getTransactions(),
-        financeDataService.getInvoices(),
-      ]);
+  const loading =
+    orgLoading ||
+    eventsLoading ||
+    meetingsLoading ||
+    transactionsLoading ||
+    invoicesLoading ||
+    ordersProductsLoading;
 
-      const eventsInPreparation = events.filter((e) => e.status === 'preparation');
-      const now = new Date();
-      now.setHours(0, 0, 0, 0);
-      const upcomingEvents = events.filter((e) => {
-        if (e.status === 'completed' || e.status === 'archived') return false;
-        const eventDate = new Date(e.date);
-        eventDate.setHours(0, 0, 0, 0);
-        return eventDate.getTime() >= now.getTime();
-      });
-      const sortedUpcoming = [...upcomingEvents].sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
-      let nextEvent = sortedUpcoming[0] || null;
-      if (!nextEvent && events.length > 0) {
-        nextEvent = events
+  const data = useMemo<DashboardData | null>(() => {
+    if (loading) return null;
+
+    const eventsInPreparation = events.filter((e) => e.status === 'preparation');
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const upcomingEvents = events.filter((e) => {
+      if (e.status === 'completed' || e.status === 'archived') return false;
+      const eventDate = new Date(e.date);
+      eventDate.setHours(0, 0, 0, 0);
+      return eventDate.getTime() >= now.getTime();
+    });
+    const sortedUpcoming = [...upcomingEvents].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    let nextEvent = sortedUpcoming[0] || null;
+    if (!nextEvent && events.length > 0) {
+      nextEvent =
+        events
           .filter((e) => e.status !== 'archived')
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0] || null;
+    }
+    const upcomingOthers = nextEvent
+      ? sortedUpcoming.filter((e) => e.id !== nextEvent!.id).slice(0, 5)
+      : sortedUpcoming.slice(0, 5);
+
+    const campaigns = getCampaigns();
+    const postsToValidate: unknown[] = [];
+    const scheduledPosts: ScheduledPostWithEvent[] = [];
+    for (const campaign of campaigns) {
+      if (!campaign.eventIds?.length) continue;
+      const eventId = campaign.eventIds[0];
+      for (const post of campaign.posts || []) {
+        if (post.status === 'brainstorming' || post.status === 'created' || post.status === 'review') {
+          postsToValidate.push(post);
+        }
+        if (post.scheduledDate) {
+          scheduledPosts.push({ ...post, eventId });
+        }
       }
-      const upcomingOthers = nextEvent
-        ? sortedUpcoming.filter((e) => e.id !== nextEvent!.id).slice(0, 5)
-        : sortedUpcoming.slice(0, 5);
+    }
+    scheduledPosts.sort(
+      (a, b) => new Date(a.scheduledDate!).getTime() - new Date(b.scheduledDate!).getTime()
+    );
 
-      const postsToValidate = mockSocialPosts.filter(
-        (p) => p.status === 'brainstorming' || p.status === 'created' || p.status === 'review'
+    const upcomingMeetings = meetings.filter((m) => m.status === 'upcoming' && m.date >= new Date());
+    const nextMeeting = upcomingMeetings.sort((a, b) => a.date.getTime() - b.date.getTime())[0] || null;
+    const daysUntilNext = nextMeeting
+      ? Math.ceil((nextMeeting.date.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+      : null;
+    const completedMeetings = meetings.filter((m) => m.status === 'completed');
+    const lastMeeting = completedMeetings.sort((a, b) => b.date.getTime() - a.date.getTime())[0] || null;
+
+    const pendingOrders = orders.filter(
+      (o) => o.status === 'pending_payment' || o.status === 'paid' || o.status === 'preparing'
+    );
+
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    const currentMonthTransactions = transactions.filter((t) => {
+      const tDate = new Date(t.date);
+      return (
+        t.type === 'income' &&
+        t.status === 'validated' &&
+        tDate.getMonth() === currentMonth &&
+        tDate.getFullYear() === currentYear
       );
-      const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-      const scheduledThisWeek = mockSocialPosts.filter(
-        (p) => p.scheduledDate && p.scheduledDate >= now && p.scheduledDate <= weekFromNow
-      );
+    });
 
-      const upcomingMeetings = meetings.filter((m) => m.status === 'upcoming' && m.date >= new Date());
-      const nextMeeting = upcomingMeetings.sort((a, b) => a.date.getTime() - b.date.getTime())[0] || null;
-      const daysUntilNext = nextMeeting
-        ? Math.ceil((nextMeeting.date.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-        : null;
-      const completedMeetings = meetings.filter((m) => m.status === 'completed');
-      const lastMeeting = completedMeetings.sort((a, b) => b.date.getTime() - a.date.getTime())[0] || null;
+    const revenueBySource: Record<string, number> = {};
+    currentMonthTransactions.forEach((t) => {
+      const category = t.category || 'Autre';
+      revenueBySource[category] = (revenueBySource[category] || 0) + t.amount;
+    });
 
-      const pendingOrders = orders.filter(
-        (o) => o.status === 'pending_payment' || o.status === 'paid' || o.status === 'preparing'
-      );
+    const revenueBreakdown = Object.entries(revenueBySource).map(([source, amount]) => ({
+      source,
+      amount,
+      color: CHART_SERIES_COLORS[source] || CHART_SERIES_COLORS['Autre'],
+    }));
 
-      const lowStockProducts = await productDataService.getLowStockProducts();
+    const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const previousMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
-      const currentMonth = new Date().getMonth();
-      const currentYear = new Date().getFullYear();
-      const currentMonthTransactions = transactions.filter((t) => {
+    const currentMonthRevenue = currentMonthTransactions.reduce((sum, t) => sum + t.amount, 0);
+    const currentMonthExpense = transactions
+      .filter((t) => {
         const tDate = new Date(t.date);
         return (
-          t.type === 'income' &&
+          t.type === 'expense' &&
           t.status === 'validated' &&
           tDate.getMonth() === currentMonth &&
           tDate.getFullYear() === currentYear
         );
-      });
+      })
+      .reduce((sum, t) => sum + t.amount, 0);
 
-      const revenueBySource: Record<string, number> = {};
-      currentMonthTransactions.forEach((t) => {
-        const category = t.category || 'Autre';
-        revenueBySource[category] = (revenueBySource[category] || 0) + t.amount;
-      });
+    const previousMonthRevenue = transactions
+      .filter((t) => {
+        const tDate = new Date(t.date);
+        return (
+          t.type === 'income' &&
+          t.status === 'validated' &&
+          tDate.getMonth() === previousMonth &&
+          tDate.getFullYear() === previousMonthYear
+        );
+      })
+      .reduce((sum, t) => sum + t.amount, 0);
 
-      const revenueBreakdown = Object.entries(revenueBySource).map(([source, amount]) => ({
-        source,
-        amount,
-        color: CHART_SERIES_COLORS[source] || CHART_SERIES_COLORS['Autre'],
-      }));
+    const previousMonthExpense = transactions
+      .filter((t) => {
+        const tDate = new Date(t.date);
+        return (
+          t.type === 'expense' &&
+          t.status === 'validated' &&
+          tDate.getMonth() === previousMonth &&
+          tDate.getFullYear() === previousMonthYear
+        );
+      })
+      .reduce((sum, t) => sum + t.amount, 0);
 
-      const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-      const previousMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+    const overdueInvoices = invoices.filter((inv) => {
+      const invoice = inv as Invoice & { invoice_lines: unknown[] };
+      return invoice.status === 'overdue';
+    });
 
-      const currentMonthRevenue = currentMonthTransactions.reduce((sum, t) => sum + t.amount, 0);
-      const currentMonthExpense = transactions
-        .filter((t) => {
-          const tDate = new Date(t.date);
-          return (
-            t.type === 'expense' &&
-            t.status === 'validated' &&
-            tDate.getMonth() === currentMonth &&
-            tDate.getFullYear() === currentYear
-          );
-        })
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      const previousMonthRevenue = transactions
-        .filter((t) => {
-          const tDate = new Date(t.date);
-          return (
-            t.type === 'income' &&
-            t.status === 'validated' &&
-            tDate.getMonth() === previousMonth &&
-            tDate.getFullYear() === previousMonthYear
-          );
-        })
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      const previousMonthExpense = transactions
-        .filter((t) => {
-          const tDate = new Date(t.date);
-          return (
-            t.type === 'expense' &&
-            t.status === 'validated' &&
-            tDate.getMonth() === previousMonth &&
-            tDate.getFullYear() === previousMonthYear
-          );
-        })
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      const overdueInvoices = invoices.filter((inv) => {
-        const invoice = inv as Invoice & { invoice_lines: unknown[] };
-        return invoice.status === 'overdue';
-      });
-
-      setData({
-        events: { inPreparation: eventsInPreparation, next: nextEvent, upcomingOthers },
-        communication: { postsToValidate, scheduledThisWeek },
-        meetings: { next: nextMeeting, daysUntilNext, last: lastMeeting },
-        orders: { pending: pendingOrders, count: pendingOrders.length },
-        products: { lowStock: lowStockProducts },
-        finance: {
-          revenueBreakdown,
-          monthComparison: {
-            current: { revenue: currentMonthRevenue, expense: currentMonthExpense },
-            previous: { revenue: previousMonthRevenue, expense: previousMonthExpense },
-          },
-          overdueInvoices: overdueInvoices.map((inv) => inv as Invoice & { invoice_lines: unknown[] }),
+    return {
+      events: { inPreparation: eventsInPreparation, next: nextEvent, upcomingOthers },
+      communication: { postsToValidate, scheduledPosts },
+      meetings: { next: nextMeeting, daysUntilNext, last: lastMeeting },
+      orders: { pending: pendingOrders, count: pendingOrders.length },
+      products: { lowStock: lowStockProducts },
+      finance: {
+        revenueBreakdown,
+        monthComparison: {
+          current: { revenue: currentMonthRevenue, expense: currentMonthExpense },
+          previous: { revenue: previousMonthRevenue, expense: previousMonthExpense },
         },
-      });
-    } catch (error) {
-      console.error('Erreur lors du chargement des données du dashboard:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+        overdueInvoices: overdueInvoices.map((inv) => inv as Invoice & { invoice_lines: unknown[] }),
+      },
+    };
+  }, [
+    loading,
+    events,
+    meetings,
+    transactions,
+    invoices,
+    orders,
+    lowStockProducts,
+  ]);
 
   if (loading) {
     return (
@@ -403,9 +437,8 @@ export const DashboardStats: React.FC = () => {
 
           <div>
             <Card variant="outline" className="overflow-hidden">
-              <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <Plus className="w-4 h-4 text-muted-foreground" />
+              <CardHeader className="p-2 pb-2 flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-base font-semibold">
                   Planning social
                 </CardTitle>
                 <Link
@@ -415,12 +448,12 @@ export const DashboardStats: React.FC = () => {
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </CardHeader>
-              <CardContent className="p-4 pt-0">
-                {data.communication.scheduledThisWeek.length > 0 ? (
+              <CardContent className="p-2 pt-0">
+                {data.communication.scheduledPosts.length > 0 ? (
                   <ul className="space-y-2">
-                    {data.communication.scheduledThisWeek.slice(0, 3).map((post) => (
+                    {data.communication.scheduledPosts.slice(0, 3).map((post) => (
                       <li key={post.id}>
-                        <Link href="/dashboard/events">
+                        <Link href={`/dashboard/events/${post.eventId}/campagne`}>
                           <motion.div
                             className="flex items-center justify-between p-3 rounded-lg transition-colors group bg-surface-elevated border border-border-custom hover:bg-surface-subtle hover:border-border-custom/80 cursor-pointer"
                             whileHover={{ y: -2 }}
@@ -457,9 +490,9 @@ export const DashboardStats: React.FC = () => {
                 ) : (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
                     <Inbox className="w-10 h-10 text-muted-foreground mb-3 opacity-50" />
-                    <p className="text-sm font-medium text-foreground">Aucun post planifié cette semaine</p>
+                    <p className="text-sm font-medium text-foreground">Aucun post planifié</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Planifiez vos publications dans Communication
+                      Planifiez vos publications dans les campagnes de vos événements
                     </p>
                   </div>
                 )}

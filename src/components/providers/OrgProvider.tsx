@@ -56,7 +56,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
       const superAdmin = profile?.is_super_admin ?? false;
       setIsSuperAdmin(superAdmin);
 
-      const orgs = await getUserOrganisations();
+      const orgs = await getUserOrganisations(user.id);
       setUserOrgs(orgs);
 
       if (orgs.length === 0) {
@@ -80,7 +80,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
       setActiveOrgId(selected.id);
       setActiveOrgSlug(selected.slug);
 
-      const role = await getUserRoleInOrg(selected.id);
+      const role = await getUserRoleInOrg(selected.id, user.id);
       setUserRole(role);
     } catch {
       setUserOrgs([]);
@@ -108,9 +108,9 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     setActiveOrgId(orgId);
     setActiveOrgSlug(org.slug);
 
-    const role = await getUserRoleInOrg(orgId);
+    const role = await getUserRoleInOrg(orgId, user?.id);
     setUserRole(role);
-  }, [userOrgs]);
+  }, [userOrgs, user?.id]);
 
   const isFounder = userRole === 'fondateur';
   const isAdmin = userRole === 'admin' || userRole === 'fondateur' || isSuperAdmin;

@@ -1,10 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { financeDataService } from '@/lib/services/FinanceDataService'
 import { Wallet, TrendingUp, TrendingDown, PieChart, CircleDollarSign, Users } from 'lucide-react'
 import { PageAlert } from '@/components/ui/molecules'
 import { KPIGrid } from './'
+import { useFinanceKPIs } from '@/hooks'
 
 interface FinanceKPIsProps {
   refreshTrigger?: number
@@ -12,28 +11,8 @@ interface FinanceKPIsProps {
 }
 
 function FinanceKPIs({ refreshTrigger, selectedYear }: FinanceKPIsProps) {
-  const [kpisData, setKpisData] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    loadKPIs()
-  }, [refreshTrigger, selectedYear])
-
-  async function loadKPIs() {
-    try {
-      setLoading(true)
-      setError(null)
-      const data = await financeDataService.getFinanceKPIs(selectedYear)
-      setKpisData(data)
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      setError(msg || 'Erreur lors du chargement des KPIs')
-      console.error('Erreur lors du chargement des KPIs:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { kpis: kpisData, isLoading: loading, error: errorState, refetch } = useFinanceKPIs(selectedYear)
+  const error = errorState?.message ?? null
 
   const isConfigError = error ? /relation.*does not exist|permission denied|JWT/i.test(error) : false
   const alertMessage = error
@@ -49,8 +28,8 @@ function FinanceKPIs({ refreshTrigger, selectedYear }: FinanceKPIsProps) {
       value: kpisData?.currentBalance?.toLocaleString('fr-FR') || '0',
       unit: 'EUR',
       icon: Wallet,
-      color: kpisData?.currentBalance >= 0 ? 'text-green-500' : 'text-red-500',
-      bgColor: kpisData?.currentBalance >= 0 ? 'bg-green-500/10' : 'bg-red-500/10',
+      color: (kpisData?.currentBalance ?? 0) >= 0 ? 'text-green-500' : 'text-red-500',
+      bgColor: (kpisData?.currentBalance ?? 0) >= 0 ? 'bg-green-500/10' : 'bg-red-500/10',
       subtext: `${kpisData?.monthlyRevenue?.toLocaleString('fr-FR') || 0}EUR ce mois`,
     },
     {
@@ -61,10 +40,10 @@ function FinanceKPIs({ refreshTrigger, selectedYear }: FinanceKPIsProps) {
       icon: TrendingUp,
       color: 'text-green-400',
       bgColor: 'bg-green-400/10',
-      subtext: kpisData?.incomeChange !== undefined 
-        ? `${kpisData.incomeChange >= 0 ? '+' : ''}${kpisData.incomeChange.toFixed(1)}% vs mois precedent`
+      subtext: (kpisData as { incomeChange?: number })?.incomeChange !== undefined 
+        ? `${((kpisData as { incomeChange?: number }).incomeChange ?? 0) >= 0 ? '+' : ''}${((kpisData as { incomeChange?: number }).incomeChange)!.toFixed(1)}% vs mois precedent`
         : 'Mois en cours',
-      change: kpisData?.incomeChange,
+      change: (kpisData as { incomeChange?: number })?.incomeChange,
     },
     {
       id: 'monthly-expenses',
@@ -74,10 +53,10 @@ function FinanceKPIs({ refreshTrigger, selectedYear }: FinanceKPIsProps) {
       icon: TrendingDown,
       color: 'text-red-500',
       bgColor: 'bg-red-500/10',
-      subtext: kpisData?.expensesChange !== undefined 
-        ? `${kpisData.expensesChange >= 0 ? '+' : ''}${kpisData.expensesChange.toFixed(1)}% vs mois precedent`
+      subtext: (kpisData as { expensesChange?: number })?.expensesChange !== undefined 
+        ? `${((kpisData as { expensesChange?: number }).expensesChange ?? 0) >= 0 ? '+' : ''}${((kpisData as { expensesChange?: number }).expensesChange)!.toFixed(1)}% vs mois precedent`
         : 'Mois en cours',
-      change: kpisData?.expensesChange,
+      change: (kpisData as { expensesChange?: number })?.expensesChange,
     },
     {
       id: 'remaining-budget',
@@ -87,7 +66,7 @@ function FinanceKPIs({ refreshTrigger, selectedYear }: FinanceKPIsProps) {
       icon: PieChart,
       color: kpisData?.remainingBudget !== undefined && kpisData.remainingBudget > 0 ? 'text-blue-500' : 'text-gray-500',
       bgColor: kpisData?.remainingBudget !== undefined && kpisData.remainingBudget > 0 ? 'bg-blue-500/10' : 'bg-gray-500/10',
-      subtext: kpisData?.totalBudget ? `Budget total: ${kpisData.totalBudget.toLocaleString('fr-FR')}EUR` : 'Aucun budget defini',
+      subtext: (kpisData as { totalBudget?: number })?.totalBudget ? `Budget total: ${(kpisData as { totalBudget?: number }).totalBudget!.toLocaleString('fr-FR')}EUR` : 'Aucun budget defini',
     },
     {
       id: 'subsidies',
@@ -114,7 +93,7 @@ function FinanceKPIs({ refreshTrigger, selectedYear }: FinanceKPIsProps) {
   return (
     <>
       {alertMessage && (
-        <PageAlert variant="error" message={alertMessage} onDismiss={() => loadKPIs()} className="mb-4" />
+        <PageAlert variant="error" message={alertMessage} onDismiss={() => refetch()} className="mb-4" />
       )}
       <KPIGrid kpis={kpis} loading={loading} columns={6} />
     </>

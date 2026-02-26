@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button, Input, Label, Textarea } from '@/components/ui/atoms';
 import { EventSelector } from '@/components/ui/molecules';
 import { Modal, ModalFooter } from '@/components/ui/organisms';
 import { Campaign } from '@/types/communication';
-import { getEvents } from '@/lib/supabase/events';
-import { Event } from '@/types/event';
+import { useEvents } from '@/hooks';
 
 interface CreateCampaignModalProps {
   isOpen: boolean;
@@ -24,21 +23,13 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedEventIds, setSelectedEventIds] = useState<string[]>([]);
-  const [availableEvents, setAvailableEvents] = useState<Event[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      getEvents()
-        .then((events) => {
-          const sortedEvents = [...events].sort((a, b) =>
-            new Date(b.date).getTime() - new Date(a.date).getTime()
-          );
-          setAvailableEvents(sortedEvents);
-        })
-        .catch(() => setAvailableEvents([]));
-    }
-  }, [isOpen]);
+  const { events } = useEvents({ enabled: isOpen });
+  const availableEvents = useMemo(
+    () => [...events].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [events]
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { financeDataService } from '@/lib/services/FinanceDataService'
+import { useBankAccounts, useTransactionCategories } from '@/hooks'
 import { Modal, ModalFooter } from '@/components/ui/organisms'
 import { Button, Input, Select, Textarea, Label, Checkbox, FormLabel } from '@/components/ui/atoms'
 import { TagMultiSelect, AssetUploaderPanel, FormField } from '@/components/ui/molecules'
@@ -26,8 +27,6 @@ export default function EditTransactionModal({
 }: EditTransactionModalProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [categories, setCategories] = useState<TransactionCategory[]>([])
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
   // Utiliser le hook stub pour les tags
   const transactionTags: any[] = []
   const updateTags = useUpdateTransactionTags()
@@ -92,75 +91,22 @@ export default function EditTransactionModal({
     }
   }, [transactionTags])
 
-  // Charger les categories et comptes bancaires depuis la base de donnees
-  useEffect(() => {
-    if (isOpen) {
-      loadCategories()
-      loadBankAccounts()
-    }
-  }, [isOpen, formData.type])
+  const { accounts: bankAccounts } = useBankAccounts()
+  const { categories } = useTransactionCategories(formData.type)
 
-  async function loadBankAccounts() {
-    try {
-      const data = await financeDataService.getBankAccounts()
-      setBankAccounts(data || [])
-    } catch (error) {
-      console.error('Erreur lors du chargement des comptes bancaires:', error)
-      setBankAccounts([])
-    }
-  }
-
-  async function loadCategories() {
-    try {
-      const data = await financeDataService.getTransactionCategories(formData.type)
-      setCategories(data || [])
-    } catch (error: any) {
-      console.error('Erreur lors du chargement des categories:', error)
-      // Fallback vers les categories par defaut si la table n'existe pas encore
-      const defaultIncomeCategories = [
-        'Billetterie',
-        'Bar',
-        'Merchandising',
-        'Partenariats',
-        'Subventions',
-        'Adhesions',
-        'Service',
-        'Autres revenus',
-      ]
-      const defaultExpenseCategories = [
-        'Location salle',
-        'Artistes',
-        'Prestation Artiste',
-        'Technique & Sonorisation',
-        'Securite',
-        'Marketing & Communication',
-        'Logistique',
-        'Frais administratifs',
-        'Ressources humaines',
-        'Graphisme & Print',
-        'Digital & Web',
-        'Transport',
-        'Comptabilite & Juridique',
-        'Assurances',
-        'Frais bancaires',
-        'Service',
-        'Divers',
-      ]
-      const defaultCategories = formData.type === 'income' ? defaultIncomeCategories : defaultExpenseCategories
-      setCategories(defaultCategories.map(name => ({
-        id: name,
-        name,
-        type: formData.type,
-        is_default: true,
-        is_active: true,
-        sort_order: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })))
-    }
-  }
-
-  const categoryOptions = categories.map((cat) => ({
+  const defaultIncomeCategories = ['Billetterie', 'Bar', 'Merchandising', 'Partenariats', 'Subventions', 'Adhesions', 'Service', 'Autres revenus']
+  const defaultExpenseCategories = ['Location salle', 'Artistes', 'Prestation Artiste', 'Technique & Sonorisation', 'Securite', 'Marketing & Communication', 'Logistique', 'Frais administratifs', 'Ressources humaines', 'Graphisme & Print', 'Digital & Web', 'Transport', 'Comptabilite & Juridique', 'Assurances', 'Frais bancaires', 'Service', 'Divers']
+  const fallbackCategories = (formData.type === 'income' ? defaultIncomeCategories : defaultExpenseCategories).map((name) => ({
+    id: name,
+    name,
+    type: formData.type,
+    is_default: true,
+    is_active: true,
+    sort_order: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }))
+  const categoryOptions = (categories.length > 0 ? categories : fallbackCategories).map((cat) => ({
     value: cat.name,
     label: cat.name,
   }))

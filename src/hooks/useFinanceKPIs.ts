@@ -1,31 +1,26 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { FinanceKPIs } from '@/types/finance';
-import { getFinanceKPIs } from '@/lib/supabase/finance';
+import { financeDataService } from '@/lib/services/FinanceDataService';
 import { getErrorMessage } from '@/lib/utils';
 
 export function useFinanceKPIs(year?: number) {
-  const [kpis, setKpis] = useState<FinanceKPIs | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const { data: kpis = null, isLoading, error, refetch } = useQuery({
+    queryKey: ['financeKPIs', year],
+    queryFn: async () => {
+      try {
+        return await financeDataService.getFinanceKPIs(year);
+      } catch (e) {
+        throw e instanceof Error ? e : new Error(getErrorMessage(e));
+      }
+    },
+  });
 
-  const refetch = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await getFinanceKPIs(year);
-      setKpis(data);
-    } catch (e) {
-      setError(e instanceof Error ? e : new Error(getErrorMessage(e)));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [year]);
-
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
-
-  return { kpis, isLoading, error, refetch };
+  return {
+    kpis: kpis as FinanceKPIs | null,
+    isLoading,
+    error: error instanceof Error ? error : null,
+    refetch,
+  };
 }

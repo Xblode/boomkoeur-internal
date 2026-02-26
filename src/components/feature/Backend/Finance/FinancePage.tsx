@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useQueryClient } from '@tanstack/react-query'
 import { TresorerieTabEnhanced } from './Tresorerie/components'
 import { TransactionsTab } from './Transactions/components'
 import { FacturesTab } from './Factures/components'
 import { BilanTab } from './Bilan/components'
 import { BudgetTab } from './Budget/components'
 import { financeDataService } from '@/lib/services/FinanceDataService'
+import { useEvents, useTransactions, useBudgetProjects, useCommercialContacts, useFinanceKPIs } from '@/hooks'
 import { Plus, FileUp, FileDown, CheckCheck, Settings, Filter, ChevronDown, Package, FileText as FileTextIcon, Receipt, PieChart, FileText, BarChart3, Menu } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToolbar } from '@/components/providers/ToolbarProvider'
@@ -37,11 +39,16 @@ import { useAlert } from '@/components/providers/AlertProvider'
 export default function FinancePage() {
   const { activeSection, selectedYear } = useFinanceLayout()
   const { setAlert } = useAlert()
+  const queryClient = useQueryClient()
 
-  const [stats, setStats] = useState<any>(null)
-  const [pendingInvoices, setPendingInvoices] = useState<number>(0)
+  const { refetch: refetchFinanceKPIs, error: financeKPIsError } = useFinanceKPIs(selectedYear)
+  const { events: allEvents } = useEvents()
+  const { transactions } = useTransactions(selectedYear)
+  const { projects: allProjects } = useBudgetProjects()
+  const { contacts: allContacts } = useCommercialContacts()
+
   const [refreshTrigger, setRefreshTrigger] = useState(0)
-  const [statsError, setStatsError] = useState<string | null>(null)
+  const statsError = financeKPIsError?.message ?? null
   const [tresorerieError, setTresorerieError] = useState<string | null>(null)
   const [transactionsError, setTransactionsError] = useState<string | null>(null)
   const [budgetError, setBudgetError] = useState<string | null>(null)
@@ -54,7 +61,6 @@ export default function FinancePage() {
   const [showImportCSVModal, setShowImportCSVModal] = useState(false)
   const [showReconciliationModal, setShowReconciliationModal] = useState(false)
   const [showCategoriesModal, setShowCategoriesModal] = useState(false)
-  const [transactions, setTransactions] = useState<any[]>([])
 
   // Transaction filters
   const [searchQuery, setSearchQuery] = useState('')
@@ -93,14 +99,6 @@ export default function FinancePage() {
   const bilanPeriodButtonRef = useRef<HTMLButtonElement>(null)
   const bilanMonthButtonRef = useRef<HTMLButtonElement>(null)
 
-  const allEvents = useMemo<any[]>(() => [], [])
-  const allContacts = useMemo<any[]>(() => [], [])
-  const [allProjects, setAllProjects] = useState<any[]>([])
-
-  useEffect(() => {
-    financeDataService.getBudgetProjects().then(setAllProjects).catch(console.error)
-  }, [])
-
   const allCategories = useMemo(() => {
     const categories = new Set<string>()
     transactions.forEach((t) => {
@@ -122,15 +120,11 @@ export default function FinancePage() {
 
   const { setToolbar } = useToolbar()
 
-  useEffect(() => {
-    loadStats()
-  }, [selectedYear])
-
-  useEffect(() => {
-    if (activeSection === 'transactions') {
-      financeDataService.getTransactions(selectedYear).then(setTransactions).catch(console.error)
-    }
-  }, [activeSection, selectedYear])
+  const invalidateFinance = () => {
+    queryClient.invalidateQueries({ queryKey: ['transactions'] })
+    queryClient.invalidateQueries({ queryKey: ['financeKPIs'] })
+    queryClient.invalidateQueries({ queryKey: ['invoices'] })
+  }
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -195,7 +189,7 @@ export default function FinancePage() {
           </div>
           <div>
             <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">Événement</Label>
-            <Select value={filterEventId} onChange={(e) => setFilterEventId(e.target.value)} options={[{ value: 'all', label: 'Tous' }, ...allEvents.map((e) => ({ value: e.id, label: e.title }))]} />
+            <Select value={filterEventId} onChange={(e) => setFilterEventId(e.target.value)} options={[{ value: 'all', label: 'Tous' }, ...allEvents.map((e) => ({ value: e.id, label: e.name }))]} />
           </div>
           <div>
             <Label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2 uppercase">Projet</Label>
@@ -691,20 +685,6 @@ export default function FinancePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSection, selectedYear, isFilterDropdownOpen, activeFiltersCount, allCategories, allEvents, allProjects, allContacts, budgetFilterStatus, isBudgetStatusDropdownOpen, invoiceFilterStatus, isInvoiceStatusDropdownOpen, bilanPeriodType, bilanMonth, isBilanPeriodDropdownOpen, isBilanMonthDropdownOpen])
 
-  async function loadStats() {
-    try {
-      setStatsError(null)
-      const data = await financeDataService.getFinanceKPIs(selectedYear)
-      setStats(data)
-      const pendingCount = await financeDataService.getPendingInvoicesCount()
-      setPendingInvoices(pendingCount)
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      setStatsError(msg || 'Erreur lors du chargement des statistiques')
-      console.error('Erreur:', err)
-    }
-  }
-
   const statsAlertMessage = statsError ? statsError : null
 
   const tabAlertMessage = (() => {
@@ -736,7 +716,7 @@ export default function FinancePage() {
             }
             setRefreshTrigger((prev) => prev + 1)
           } else {
-            loadStats()
+            refetchFinanceKPIs()
           }
         },
       })
@@ -794,8 +774,7 @@ export default function FinancePage() {
             filterContactId={filterContactId}
             onTransactionChange={() => {
               setRefreshTrigger((prev) => prev + 1)
-              loadStats()
-              financeDataService.getTransactions(selectedYear).then(setTransactions).catch(console.error)
+              invalidateFinance()
             }}
             onCreateTransaction={() => setShowNewTransactionModal(true)}
             onError={setTransactionsError}
@@ -896,8 +875,7 @@ export default function FinancePage() {
             onClose={() => setShowNewTransactionModal(false)}
             onSuccess={() => {
               setRefreshTrigger((prev) => prev + 1)
-              loadStats()
-              financeDataService.getTransactions(selectedYear).then(setTransactions).catch(console.error)
+              invalidateFinance()
             }}
           />
 
@@ -906,8 +884,7 @@ export default function FinancePage() {
             onClose={() => setShowImportCSVModal(false)}
             onSuccess={() => {
               setRefreshTrigger((prev) => prev + 1)
-              loadStats()
-              financeDataService.getTransactions(selectedYear).then(setTransactions).catch(console.error)
+              invalidateFinance()
             }}
           />
 
@@ -916,8 +893,7 @@ export default function FinancePage() {
             onClose={() => setShowReconciliationModal(false)}
             onSuccess={() => {
               setRefreshTrigger((prev) => prev + 1)
-              loadStats()
-              financeDataService.getTransactions(selectedYear).then(setTransactions).catch(console.error)
+              invalidateFinance()
             }}
           />
 
@@ -941,7 +917,7 @@ export default function FinancePage() {
             setShowNewInvoiceModal(false)
             setInvoiceType('invoice')
             setRefreshTrigger((prev) => prev + 1)
-            loadStats()
+            invalidateFinance()
           }}
           type={invoiceType}
         />

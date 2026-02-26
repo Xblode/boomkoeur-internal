@@ -114,6 +114,12 @@ export function EventDetailLayoutConfig({ eventId, children }: EventDetailLayout
   const router = useRouter();
   const { event: initialEvent, isLoading } = useEvent(eventId);
 
+  useEffect(() => {
+    if (initialEvent === null) {
+      router.replace('/dashboard/events');
+    }
+  }, [initialEvent, router]);
+
   if (isLoading || initialEvent === undefined) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -123,7 +129,6 @@ export function EventDetailLayoutConfig({ eventId, children }: EventDetailLayout
   }
 
   if (initialEvent === null) {
-    router.replace('/dashboard/events');
     return null;
   }
 

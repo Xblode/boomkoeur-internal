@@ -1,4 +1,5 @@
 export { FinanceKPIs } from './FinanceKPIs'
+export { ConfirmDeleteModal } from './ConfirmDeleteModal'
 export { LoadingState, DataTable, TablePagination, StatusBadge, KPICard, FilterBar, ActionButtons } from '@/components/ui/molecules'
 export type { Column } from '@/components/ui/molecules'
 export { EmptyState } from '@/components/ui/molecules'

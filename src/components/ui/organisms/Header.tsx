@@ -74,7 +74,7 @@ export const Header: React.FC<HeaderProps> = ({
   if (variant === 'admin') {
     return (
       <header className={cn(
-        "fixed top-0 left-0 right-0 z-50 h-[52px] border-b border-zinc-200 bg-white backdrop-blur-md dark:border-zinc-800 dark:bg-backend flex",
+        "fixed top-0 left-0 right-0 z-50 h-[52px] border-b border-zinc-200 bg-white backdrop-blur-md dark:border-zinc-800 dark:bg-backend flex overflow-visible",
         className
       )}>
         {/* Logo / Hamburger Area — hamburger sur mobile, logo sur desktop */}
@@ -103,7 +103,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Header Content */}
-        <div className="flex-1 flex items-center justify-between px-3">
+        <div className="flex-1 flex items-center justify-between px-3 overflow-visible">
           <div className="flex items-center min-w-0">
             <Breadcrumb variant="navigation" className="min-w-0" />
           </div>
@@ -141,7 +141,7 @@ export const Header: React.FC<HeaderProps> = ({
             </Link>
 
             {/* User Menu — désactivé en mode démo (pas d'accès paramètres/profil) */}
-            <div className="relative flex items-center gap-2">
+            <div className="flex items-center gap-2">
               {isDemo ? (
                 <>
                   <div
@@ -165,7 +165,7 @@ export const Header: React.FC<HeaderProps> = ({
                   </Button>
                 </>
               ) : (
-                <>
+                <div className="relative">
                   <Button
                     type="button"
                     variant="ghost"
@@ -184,14 +184,14 @@ export const Header: React.FC<HeaderProps> = ({
                     </div>
                   </Button>
 
-                  {/* Dropdown */}
+                  {/* Dropdown — coin haut droit aligné avec coin bas droit du bouton */}
                   {isUserMenuOpen && (
                     <>
                       <div
                         className="fixed inset-0 z-40"
                         onClick={() => setIsUserMenuOpen(false)}
                       />
-                      <div className="absolute right-0 mt-2 w-56 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-backend z-50 p-1 animate-in fade-in zoom-in-95 duration-200">
+                      <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-backend z-50 p-1 animate-in fade-in zoom-in-95 duration-200">
                         <div className="px-2 py-1.5 border-b border-zinc-100 dark:border-zinc-800 mb-1">
                           <p className="text-sm font-medium">{user.name}</p>
                           <p className="text-xs text-zinc-500">{user.email}</p>
@@ -232,7 +232,7 @@ export const Header: React.FC<HeaderProps> = ({
                       </div>
                     </>
                   )}
-                </>
+                </div>
               )}
             </div>
           </div>

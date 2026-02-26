@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { financeDataService } from '@/lib/services/FinanceDataService'
+import { useInvoices } from '@/hooks'
 import { Button } from '@/components/ui/atoms'
 import {
   Table,
@@ -20,6 +22,7 @@ import {
   LoadingState,
   TablePagination,
   EmptyState,
+  ConfirmDeleteModal,
 } from '../../shared/components'
 import { Badge, Popover, PopoverTrigger, PopoverContent } from '@/components/ui/atoms'
 import { SelectPicker } from '@/components/ui/molecules'
@@ -45,13 +48,26 @@ export default function FacturesTab({
   const filterStatus = externalFilterStatus ?? 'all'
   const year = selectedYear ?? new Date().getFullYear()
 
-  const [invoices, setInvoices] = useState<(Invoice & { invoice_lines: InvoiceLine[] })[]>([])
-  const [loading, setLoading] = useState(true)
+  const invoiceFilters = useMemo(() => {
+    const f: { status?: string; year?: number } = { year }
+    if (filterStatus !== 'all') f.status = filterStatus
+    return f
+  }, [filterStatus, year])
+
+  const queryClient = useQueryClient()
+  const { invoices, isLoading: loading, error: invoicesError, refetch: refetchInvoices } = useInvoices(invoiceFilters)
   const [error, setError] = useState<string | null>(null)
+
+  const invalidateInvoices = () => {
+    queryClient.invalidateQueries({ queryKey: ['invoices'] })
+    queryClient.invalidateQueries({ queryKey: ['financeKPIs'] })
+  }
   const [showEditInvoiceModal, setShowEditInvoiceModal] = useState(false)
   const [showViewInvoiceModal, setShowViewInvoiceModal] = useState(false)
   const [viewingInvoice, setViewingInvoice] = useState<(Invoice & { invoice_lines: InvoiceLine[] }) | null>(null)
   const [editingInvoice, setEditingInvoice] = useState<(Invoice & { invoice_lines: InvoiceLine[] }) | null>(null)
+  const [invoiceToDelete, setInvoiceToDelete] = useState<(Invoice & { invoice_lines: InvoiceLine[] }) | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [sortBy, setSortBy] = useState<SortColumn | null>(null)
@@ -60,31 +76,21 @@ export default function FacturesTab({
   const itemsPerPage = 10
 
   useEffect(() => {
-    loadInvoices()
-  }, [filterStatus, year, refreshTrigger])
-
-  async function loadInvoices() {
-    try {
-      setLoading(true)
+    if (invoicesError) {
+      const msg = invoicesError?.message ?? 'Erreur lors du chargement des factures'
+      setError(msg)
+      onError?.(msg)
+    } else {
       setError(null)
       onError?.(null)
-      const filters: { status?: string; year?: number } = {}
-      if (filterStatus !== 'all') filters.status = filterStatus
-      filters.year = year
-      const data = await financeDataService.getInvoices(filters)
-      setInvoices(data || [])
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      const errorMsg = msg || 'Erreur lors du chargement des factures'
-      setError(errorMsg)
-      onError?.(errorMsg)
-      console.error('Erreur lors du chargement des factures:', err)
-    } finally {
-      setLoading(false)
     }
-  }
+  }, [invoicesError])
 
-  const filteredInvoices = useMemo(() => invoices, [invoices])
+  useEffect(() => {
+    if (refreshTrigger) refetchInvoices()
+  }, [refreshTrigger, refetchInvoices])
+
+  const filteredInvoices = useMemo(() => invoices ?? [], [invoices])
 
   const handleSort = (column: SortColumn) => {
     if (sortBy === column) {
@@ -147,7 +153,7 @@ export default function FacturesTab({
     if (confirm('Marquer cette facture comme payée ? Une transaction sera automatiquement créée.')) {
       try {
         await financeDataService.markInvoiceAsPaid(invoice.id!)
-        await loadInvoices()
+        invalidateInvoices()
       } catch (err) {
         console.error('Erreur:', err)
         alert('Erreur lors de la mise à jour')
@@ -155,15 +161,22 @@ export default function FacturesTab({
     }
   }
 
-  const handleDelete = async (invoice: Invoice) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')) {
-      try {
-        await financeDataService.deleteInvoice(invoice.id!)
-        await loadInvoices()
-      } catch (err) {
-        console.error('Erreur:', err)
-        alert('Erreur lors de la suppression')
-      }
+  const handleDeleteClick = (invoice: Invoice & { invoice_lines: InvoiceLine[] }) => {
+    setInvoiceToDelete(invoice)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!invoiceToDelete) return
+    try {
+      setIsDeleting(true)
+      await financeDataService.deleteInvoice(invoiceToDelete.id!)
+      invalidateInvoices()
+      setInvoiceToDelete(null)
+    } catch (err) {
+      console.error('Erreur:', err)
+      alert('Erreur lors de la suppression')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -185,7 +198,7 @@ export default function FacturesTab({
   const updateClientType = async (inv: Invoice & { invoice_lines: InvoiceLine[] }, clientType: 'client' | 'supplier') => {
     try {
       await financeDataService.updateInvoice(inv.id, { invoice: { client_type: clientType } })
-      await loadInvoices()
+      invalidateInvoices()
     } catch (err) {
       console.error('Erreur:', err)
     }
@@ -194,7 +207,7 @@ export default function FacturesTab({
   const updateCategory = async (inv: Invoice & { invoice_lines: InvoiceLine[] }, category: string) => {
     try {
       await financeDataService.updateInvoice(inv.id, { invoice: { category: category || undefined } })
-      await loadInvoices()
+      invalidateInvoices()
     } catch (err) {
       console.error('Erreur:', err)
     }
@@ -203,7 +216,7 @@ export default function FacturesTab({
   const updateStatus = async (inv: Invoice & { invoice_lines: InvoiceLine[] }, status: string) => {
     try {
       await financeDataService.updateInvoice(inv.id, { invoice: { status: status as Invoice['status'] } })
-      await loadInvoices()
+      invalidateInvoices()
     } catch (err) {
       console.error('Erreur:', err)
     }
@@ -290,35 +303,16 @@ export default function FacturesTab({
                 >
                   <TableCell
                     noHoverBorder
-                    className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                    className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 px-2 overflow-hidden"
                     onClick={() => handleView(inv)}
                   >
-                    <div className="flex items-center justify-between gap-2 h-full group/row">
-                      <div className="truncate min-w-0 flex-1">
-                        <div className="font-medium text-sm text-zinc-900 dark:text-zinc-100 truncate">
-                          {inv.client_name}
-                        </div>
-                      </div>
-                      <div
-                        className="shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleEdit(inv)
-                          }}
-                          className="h-6 w-6 p-0 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600"
-                          title="Modifier"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </Button>
+                    <div className="min-w-0 overflow-hidden">
+                      <div className="font-medium text-sm text-zinc-900 dark:text-zinc-100 truncate block" title={inv.client_name}>
+                        {inv.client_name}
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50" onClick={() => handleView(inv)}>
+                  <TableCell className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 px-2" onClick={() => handleView(inv)}>
                     <span className="font-mono text-xs text-zinc-500 whitespace-nowrap">{inv.invoice_number}</span>
                   </TableCell>
                   <TableCell className="p-0">
@@ -351,12 +345,12 @@ export default function FacturesTab({
                       className="w-full h-8 min-h-8"
                     />
                   </TableCell>
-                  <TableCell align="right" className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50" onClick={() => handleView(inv)}>
+                  <TableCell align="right" className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 px-2" onClick={() => handleView(inv)}>
                     <span className="font-mono font-bold text-sm text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
                       {(inv.total_incl_tax || 0).toLocaleString('fr-FR')} €
                     </span>
                   </TableCell>
-                  <TableCell className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50" onClick={() => handleView(inv)}>
+                  <TableCell className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 px-2" onClick={() => handleView(inv)}>
                     {inv.due_date ? (
                       <span className="font-mono text-xs text-zinc-500 whitespace-nowrap">
                         {new Date(inv.due_date).toLocaleDateString('fr-FR')}
@@ -426,7 +420,7 @@ export default function FacturesTab({
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDelete(inv)}
+                          onClick={() => handleDeleteClick(inv)}
                           className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                         >
                           <Trash2 className="w-3.5 h-3.5 mr-2" />
@@ -452,6 +446,19 @@ export default function FacturesTab({
         />
       )}
 
+      <ConfirmDeleteModal
+        isOpen={!!invoiceToDelete}
+        onClose={() => setInvoiceToDelete(null)}
+        onConfirm={handleDeleteConfirm}
+        title={invoiceToDelete?.status === 'quote' ? 'Supprimer le devis' : 'Supprimer la facture'}
+        description={
+          invoiceToDelete?.status === 'quote'
+            ? 'Êtes-vous sûr de vouloir supprimer ce devis ? Cette action est irréversible.'
+            : 'Êtes-vous sûr de vouloir supprimer cette facture ? Cette action est irréversible.'
+        }
+        isLoading={isDeleting}
+      />
+
       <EditInvoiceModal
         isOpen={showEditInvoiceModal}
         onClose={() => {
@@ -459,7 +466,7 @@ export default function FacturesTab({
           setEditingInvoice(null)
         }}
         onSuccess={() => {
-          loadInvoices()
+          invalidateInvoices()
           setShowEditInvoiceModal(false)
           setEditingInvoice(null)
         }}

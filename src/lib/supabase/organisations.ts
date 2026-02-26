@@ -81,14 +81,19 @@ function slugify(name: string): string {
 
 // --- Organisations ---
 
-export async function getUserOrganisations(): Promise<Organisation[]> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Non authentifié');
+/** Récupère les organisations de l'utilisateur. Passe userId pour éviter un appel getUser() redondant. */
+export async function getUserOrganisations(userId?: string): Promise<Organisation[]> {
+  let uid = userId;
+  if (!uid) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Non authentifié');
+    uid = user.id;
+  }
 
   const { data: profile } = await supabase
     .from('profiles')
     .select('is_super_admin')
-    .eq('id', user.id)
+    .eq('id', uid)
     .single();
 
   if (profile?.is_super_admin) {
@@ -103,7 +108,7 @@ export async function getUserOrganisations(): Promise<Organisation[]> {
   const { data: members, error: membersErr } = await supabase
     .from('organisation_members')
     .select('org_id')
-    .eq('user_id', user.id);
+    .eq('user_id', uid);
 
   if (membersErr) throw membersErr;
   if (!members?.length) return [];
@@ -316,14 +321,19 @@ export async function joinByInvite(token: string): Promise<Organisation> {
   return org;
 }
 
-export async function getUserRoleInOrg(orgId: string): Promise<OrgRole | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+/** Récupère le rôle de l'utilisateur dans une org. Passe userId pour éviter un appel getUser() redondant. */
+export async function getUserRoleInOrg(orgId: string, userId?: string): Promise<OrgRole | null> {
+  let uid = userId;
+  if (!uid) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    uid = user.id;
+  }
 
   const { data: profile } = await supabase
     .from('profiles')
     .select('is_super_admin')
-    .eq('id', user.id)
+    .eq('id', uid)
     .single();
 
   if (profile?.is_super_admin) return 'admin';
@@ -332,7 +342,7 @@ export async function getUserRoleInOrg(orgId: string): Promise<OrgRole | null> {
     .from('organisation_members')
     .select('role')
     .eq('org_id', orgId)
-    .eq('user_id', user.id)
+    .eq('user_id', uid)
     .single();
 
   if (error || !data) return null;

@@ -1,13 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import type { Event } from '@/types/event';
-import type { Meeting } from '@/types/meeting';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { CalendarItem } from '@/types/calendar';
-import { getEvents } from '@/lib/supabase/events';
-import { getMeetings as getMeetingsFromSupabase } from '@/lib/supabase/meetings';
+import { useEvents } from '@/hooks/useEvents';
+import { useMeetings } from '@/hooks/useMeetings';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
-import { getErrorMessage } from '@/lib/utils';
 
 export interface UseCalendarDataOptions {
   orgId?: string | null;
@@ -18,42 +15,25 @@ export interface UseCalendarDataOptions {
 
 /**
  * Agrège les données de toutes les sources du calendrier :
- * - Events (Supabase)
- * - Meetings (Supabase)
- * - Posts planifiés des campagnes d'événements (Supabase)
+ * - Events (via useEvents - cache partagé)
+ * - Meetings (via useMeetings - cache partagé)
+ * - Posts planifiés des campagnes d'événements
  * - Google Calendar (si org configurée)
- *
- * Extensible : ajouter de nouvelles sources dans buildItems()
  */
 export function useCalendarData(options: UseCalendarDataOptions = {}) {
   const { orgId, googleCalendarId, currentDate = new Date() } = options;
 
-  const [events, setEvents] = useState<Event[]>([]);
-  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const { events, isLoading: eventsLoading, error: eventsError, refetch: refetchEvents } = useEvents();
+  const { meetings, isLoading: meetingsLoading, error: meetingsError, refetch: refetchMeetings } = useMeetings();
+
   const [googleEvents, setGoogleEvents] = useState<CalendarItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+
+  const isLoading = eventsLoading || meetingsLoading;
+  const error = eventsError || meetingsError;
 
   const refetch = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const [eventsData, meetingsData] = await Promise.all([
-        getEvents(),
-        getMeetingsFromSupabase(),
-      ]);
-      setEvents(eventsData);
-      setMeetings(meetingsData);
-    } catch (e) {
-      setError(e instanceof Error ? e : new Error(getErrorMessage(e)));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
+    await Promise.all([refetchEvents(), refetchMeetings()]);
+  }, [refetchEvents, refetchMeetings]);
 
   useEffect(() => {
     if (!orgId || !googleCalendarId) {
@@ -89,7 +69,7 @@ export function useCalendarData(options: UseCalendarDataOptions = {}) {
       .catch(() => setGoogleEvents([]));
   }, [orgId, googleCalendarId, currentDate.getFullYear(), currentDate.getMonth()]);
 
-  const items = useCallback((): CalendarItem[] => {
+  const items = useMemo((): CalendarItem[] => {
     const result: CalendarItem[] = [];
 
     for (const e of events) {
@@ -104,7 +84,6 @@ export function useCalendarData(options: UseCalendarDataOptions = {}) {
         source: e,
       });
 
-      // Posts planifiés de la campagne de l'événement
       const posts = e.comWorkflow?.posts ?? [];
       for (const p of posts) {
         if (p.scheduledDate) {
@@ -144,7 +123,7 @@ export function useCalendarData(options: UseCalendarDataOptions = {}) {
   }, [events, meetings, googleEvents]);
 
   return {
-    items: items(),
+    items,
     events,
     meetings,
     isLoading,

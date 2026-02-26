@@ -90,13 +90,13 @@ export default function BackendLayout({
 }) {
   return (
     <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-      storageKey="theme-dashboard"
-    >
-      <OrgProvider>
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+        storageKey="theme-dashboard"
+      >
+        <OrgProvider>
         <ToolbarProvider>
           <AlertProvider>
             <PageSidebarProvider>
@@ -112,7 +112,7 @@ export default function BackendLayout({
             </PageSidebarProvider>
           </AlertProvider>
         </ToolbarProvider>
-      </OrgProvider>
-    </ThemeProvider>
+        </OrgProvider>
+      </ThemeProvider>
   );
 }

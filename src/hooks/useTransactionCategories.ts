@@ -1,31 +1,26 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { TransactionCategory } from '@/types/finance';
-import { getTransactionCategories } from '@/lib/supabase/finance';
+import { financeDataService } from '@/lib/services/FinanceDataService';
 import { getErrorMessage } from '@/lib/utils';
 
 export function useTransactionCategories(type?: 'income' | 'expense') {
-  const [categories, setCategories] = useState<TransactionCategory[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const { data: categories = [], isLoading, error, refetch } = useQuery({
+    queryKey: ['transactionCategories', type],
+    queryFn: async () => {
+      try {
+        return await financeDataService.getTransactionCategories(type);
+      } catch (e) {
+        throw e instanceof Error ? e : new Error(getErrorMessage(e));
+      }
+    },
+  });
 
-  const refetch = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await getTransactionCategories(type);
-      setCategories(data);
-    } catch (e) {
-      setError(e instanceof Error ? e : new Error(getErrorMessage(e)));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [type]);
-
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
-
-  return { categories, isLoading, error, refetch };
+  return {
+    categories,
+    isLoading,
+    error: error instanceof Error ? error : null,
+    refetch,
+  };
 }

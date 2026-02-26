@@ -1,13 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Trash2 } from 'lucide-react';
 import { Button, Input, Label, Textarea } from '@/components/ui/atoms';
 import { EventSelector } from '@/components/ui/molecules';
 import { Modal, ModalFooter } from '@/components/ui/organisms';
 import { Campaign } from '@/types/communication';
-import { getEvents } from '@/lib/supabase/events';
-import { Event } from '@/types/event';
+import { useEvents } from '@/hooks';
 
 interface CampaignSettingsModalProps {
   isOpen: boolean;
@@ -33,20 +32,17 @@ export const CampaignSettingsModal: React.FC<CampaignSettingsModalProps> = ({
     campaign.endDate ? new Date(campaign.endDate).toISOString().split('T')[0] : ''
   );
   const [selectedEventIds, setSelectedEventIds] = useState<string[]>(campaign.eventIds || []);
-  const [availableEvents, setAvailableEvents] = useState<Event[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const { events } = useEvents({ enabled: isOpen });
+  const availableEvents = useMemo(
+    () => [...events].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [events]
+  );
+
   useEffect(() => {
-    if (isOpen) {
-      getEvents()
-        .then((events) => {
-          const sortedEvents = [...events].sort((a, b) =>
-            new Date(b.date).getTime() - new Date(a.date).getTime()
-          );
-          setAvailableEvents(sortedEvents);
-          setSelectedEventIds(campaign.eventIds || []);
-        })
-        .catch(() => setAvailableEvents([]));
+    if (isOpen && campaign.eventIds) {
+      setSelectedEventIds(campaign.eventIds);
     }
   }, [isOpen, campaign.eventIds]);
 

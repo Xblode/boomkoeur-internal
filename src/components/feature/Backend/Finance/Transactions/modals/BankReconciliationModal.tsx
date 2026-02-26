@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { financeDataService } from '@/lib/services/FinanceDataService'
+import { useTransactions } from '@/hooks'
 import { Modal, ModalFooter } from '@/components/ui/organisms'
 import { Button, Input, Select } from '@/components/ui/atoms'
 import { EmptyState, LoadingState } from '@/components/ui/molecules'
@@ -22,34 +24,21 @@ export default function BankReconciliationModal({
   onSuccess,
   selectedYear = new Date().getFullYear(),
 }: BankReconciliationModalProps) {
-  const [loading, setLoading] = useState(false)
-  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const queryClient = useQueryClient()
+  const { transactions = [], isLoading: loading } = useTransactions(selectedYear, { enabled: isOpen })
+  const [isReconcilingAll, setIsReconcilingAll] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'validated'>('validated')
 
-  const loadTransactions = async () => {
-    try {
-      setLoading(true)
-      const data = await financeDataService.getTransactions(selectedYear)
-      setTransactions(data || [])
-    } catch (error) {
-      console.error('Erreur lors du chargement des transactions:', error)
-    } finally {
-      setLoading(false)
-    }
+  const invalidateFinance = () => {
+    queryClient.invalidateQueries({ queryKey: ['transactions'] })
+    queryClient.invalidateQueries({ queryKey: ['financeKPIs'] })
   }
-
-  useEffect(() => {
-    if (isOpen) {
-      loadTransactions()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen])
 
   const handleReconcile = async (transactionId: string) => {
     try {
       await financeDataService.reconcileTransaction(transactionId)
-      await loadTransactions()
+      invalidateFinance()
       onSuccess?.()
     } catch (error) {
       console.error('Erreur lors du rapprochement:', error)
@@ -61,7 +50,7 @@ export default function BankReconciliationModal({
     if (!confirm('Rapprocher toutes les transactions validees ?')) return
 
     try {
-      setLoading(true)
+      setIsReconcilingAll(true)
       const toReconcile = filteredTransactions.filter(
         (t) => t.status === 'validated' && !t.reconciled
       )
@@ -70,13 +59,13 @@ export default function BankReconciliationModal({
         await financeDataService.reconcileTransaction(transaction.id)
       }
 
-      await loadTransactions()
+      invalidateFinance()
       onSuccess?.()
     } catch (error) {
       console.error('Erreur lors du rapprochement:', error)
       alert('Erreur lors du rapprochement')
     } finally {
-      setLoading(false)
+      setIsReconcilingAll(false)
     }
   }
 
@@ -120,7 +109,7 @@ export default function BankReconciliationModal({
                 variant="primary"
                 size="sm"
                 onClick={handleReconcileAll}
-                disabled={loading}
+                disabled={loading || isReconcilingAll}
               >
                 <CheckCheck className="w-4 h-4 mr-2" />
                 Tout rapprocher
@@ -156,7 +145,7 @@ export default function BankReconciliationModal({
 
         {/* Liste des transactions */}
         <div className="space-y-2 max-h-96 overflow-y-auto">
-          {loading ? (
+          {loading || isReconcilingAll ? (
             <LoadingState message="Chargement..." />
           ) : filteredTransactions.length === 0 ? (
             <EmptyState
@@ -214,7 +203,7 @@ export default function BankReconciliationModal({
                       variant="secondary"
                       size="sm"
                       onClick={() => handleReconcile(transaction.id)}
-                      disabled={loading}
+                      disabled={loading || isReconcilingAll}
                     >
                       <CheckCheck className="w-4 h-4 mr-2" />
                       Rapprocher
@@ -229,7 +218,7 @@ export default function BankReconciliationModal({
       </div>
 
       <ModalFooter>
-        <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={loading}>
+        <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={loading || isReconcilingAll}>
           Fermer
         </Button>
       </ModalFooter>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { financeDataService } from '@/lib/services/FinanceDataService'
+import { useTransactions, useTransactionCategories } from '@/hooks'
 import { Button } from '@/components/ui/atoms'
 import {
   Table,
@@ -11,7 +12,7 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/atoms'
-import { Edit, Trash2, Repeat, Power, ChevronDown, ChevronUp, Receipt, Plus, MoreVertical } from 'lucide-react'
+import { Trash2, Repeat, Power, ChevronDown, ChevronUp, Receipt, Plus, MoreVertical } from 'lucide-react'
 import type { Transaction, RecurringTransaction } from '@/types/finance'
 import EditTransactionModal from '../modals/EditTransactionModal'
 import ViewTransactionModal from '../modals/ViewTransactionModal'
@@ -30,6 +31,7 @@ import {
   LoadingState,
   TablePagination,
   EmptyState,
+  ConfirmDeleteModal,
 } from '@/components/feature/Backend/Finance/shared/components'
 import { Badge } from '@/components/ui/atoms'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/atoms'
@@ -81,11 +83,11 @@ export default function TransactionsTab({
 
   const [showViewTransactionModal, setShowViewTransactionModal] = useState(false)
   const [viewingTransaction, setViewingTransaction] = useState<Transaction | null>(null)
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>([])
   const [showRecurringSection, setShowRecurringSection] = useState(false)
+  const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const { setDetailPanel } = useDetailPanel()
@@ -95,6 +97,9 @@ export default function TransactionsTab({
 
   const { events: allEvents } = useEvents()
   const { contacts: allContacts } = useCommercialContacts()
+  const { transactions, isLoading: loading, refetch: refetchTransactions } = useTransactions(selectedYear)
+  const { categories: categoriesIncome } = useTransactionCategories('income')
+  const { categories: categoriesExpense } = useTransactionCategories('expense')
   const linksData = useMemo(() => {
     const eventsMap: Record<string, { id: string; title: string }> = {}
     const contactsMap: Record<string, { id: string; name: string }> = {}
@@ -106,40 +111,18 @@ export default function TransactionsTab({
   const [showLinkEventModal, setShowLinkEventModal] = useState(false)
   const [linkingTransactionId, setLinkingTransactionId] = useState<string | null>(null)
   const [linkingField, setLinkingField] = useState<'event' | 'contact' | null>(null)
-  const [categoriesIncome, setCategoriesIncome] = useState<TransactionCategory[]>([])
-  const [categoriesExpense, setCategoriesExpense] = useState<TransactionCategory[]>([])
 
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
   useEffect(() => {
-    loadTransactions()
     loadRecurringTransactions()
     setCurrentPage(1)
   }, [selectedYear, refreshTrigger])
 
   useEffect(() => {
-    financeDataService.getTransactionCategories('income').then(setCategoriesIncome).catch(() => setCategoriesIncome([]))
-    financeDataService.getTransactionCategories('expense').then(setCategoriesExpense).catch(() => setCategoriesExpense([]))
-  }, [])
-
-  async function loadTransactions() {
-    try {
-      setLoading(true)
-      setError(null)
-      onError?.(null)
-      const data = await financeDataService.getTransactions(selectedYear)
-      setTransactions(data || [])
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      const errorMsg = msg || 'Erreur lors du chargement des transactions'
-      setError(errorMsg)
-      onError?.(errorMsg)
-      console.error('Erreur lors du chargement des transactions:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
+    if (refreshTrigger) refetchTransactions()
+  }, [refreshTrigger, refetchTransactions])
 
   async function loadRecurringTransactions() {
     try {
@@ -160,7 +143,7 @@ export default function TransactionsTab({
     try {
       await toggleRecurringTransactionActive(id)
       await loadRecurringTransactions()
-      await loadTransactions()
+      await refetchTransactions()
       if (onTransactionChange) onTransactionChange()
     } catch (error) {
       console.error('Erreur lors de la modification:', error)
@@ -183,7 +166,7 @@ export default function TransactionsTab({
     try {
       const count = await generateRecurringTransactions()
       alert(`${count} transaction(s) recurrente(s) generee(s)`)
-      await loadTransactions()
+      await refetchTransactions()
       await loadRecurringTransactions()
       if (onTransactionChange) onTransactionChange()
     } catch (error) {
@@ -261,7 +244,7 @@ export default function TransactionsTab({
   const handleLinkEvent = async (transactionId: string, eventId: string) => {
     try {
       await financeDataService.updateTransaction(transactionId, { event_id: eventId })
-      await loadTransactions()
+      await refetchTransactions()
       onTransactionChange?.()
     } catch (error) {
       console.error('Erreur lors de la liaison:', error)
@@ -271,7 +254,7 @@ export default function TransactionsTab({
   const handleUnlinkEvent = async (transactionId: string) => {
     try {
       await financeDataService.updateTransaction(transactionId, { event_id: undefined })
-      await loadTransactions()
+      await refetchTransactions()
       onTransactionChange?.()
     } catch (error) {
       console.error('Erreur lors de la déliaison:', error)
@@ -281,7 +264,7 @@ export default function TransactionsTab({
   const handleLinkContact = async (transactionId: string, contactId: string) => {
     try {
       await financeDataService.updateTransaction(transactionId, { contact_id: contactId })
-      await loadTransactions()
+      await refetchTransactions()
       onTransactionChange?.()
     } catch (error) {
       console.error('Erreur lors de la liaison:', error)
@@ -291,7 +274,7 @@ export default function TransactionsTab({
   const handleUnlinkContact = async (transactionId: string) => {
     try {
       await financeDataService.updateTransaction(transactionId, { contact_id: undefined })
-      await loadTransactions()
+      await refetchTransactions()
       onTransactionChange?.()
     } catch (error) {
       console.error('Erreur lors de la déliaison:', error)
@@ -306,7 +289,7 @@ export default function TransactionsTab({
           isOpen={true}
           onClose={() => setDetailPanel(null)}
           onSuccess={() => {
-            loadTransactions()
+            refetchTransactions()
             onTransactionChange?.()
             setDetailPanel(null)
           }}
@@ -318,16 +301,23 @@ export default function TransactionsTab({
     })
   }
 
-  const handleDelete = async (transaction: Transaction) => {
-    if (confirm('Etes-vous sûr de vouloir supprimer cette transaction ?')) {
-      try {
-        await financeDataService.deleteTransaction(transaction.id!)
-        await loadTransactions()
-        onTransactionChange?.()
-      } catch (error) {
-        console.error('Erreur:', error)
-        alert('Erreur lors de la suppression')
-      }
+  const handleDeleteClick = (transaction: Transaction) => {
+    setTransactionToDelete(transaction)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!transactionToDelete) return
+    try {
+      setIsDeleting(true)
+      await financeDataService.deleteTransaction(transactionToDelete.id!)
+      await refetchTransactions()
+      onTransactionChange?.()
+      setTransactionToDelete(null)
+    } catch (error) {
+      console.error('Erreur:', error)
+      alert('Erreur lors de la suppression')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -335,7 +325,7 @@ export default function TransactionsTab({
     if (!date) return
     try {
       await financeDataService.updateTransaction(t.id, { date: date.toISOString().split('T')[0] })
-      await loadTransactions()
+      await refetchTransactions()
       onTransactionChange?.()
     } catch (err) {
       console.error('Erreur:', err)
@@ -345,7 +335,7 @@ export default function TransactionsTab({
   const updateCategory = async (t: Transaction, category: string) => {
     try {
       await financeDataService.updateTransaction(t.id, { category: category || '' })
-      await loadTransactions()
+      await refetchTransactions()
       onTransactionChange?.()
     } catch (err) {
       console.error('Erreur:', err)
@@ -355,7 +345,7 @@ export default function TransactionsTab({
   const updateStatus = async (t: Transaction, status: 'pending' | 'validated' | 'reconciled') => {
     try {
       await financeDataService.updateTransaction(t.id, { status })
-      await loadTransactions()
+      await refetchTransactions()
       onTransactionChange?.()
     } catch (err) {
       console.error('Erreur:', err)
@@ -365,7 +355,7 @@ export default function TransactionsTab({
   const updateType = async (t: Transaction, type: 'income' | 'expense') => {
     try {
       await financeDataService.updateTransaction(t.id, { type })
-      await loadTransactions()
+      await refetchTransactions()
       onTransactionChange?.()
     } catch (err) {
       console.error('Erreur:', err)
@@ -562,43 +552,29 @@ export default function TransactionsTab({
                   >
                     <TableCell
                       noHoverBorder
-                      className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                      className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 overflow-hidden px-2"
                       onClick={() => handleEdit(t)}
                     >
-                      <div className="flex items-center justify-between gap-2 h-full group/row">
-                        <div className="truncate min-w-0 flex-1">
-                          <div className="font-medium text-sm text-zinc-900 dark:text-zinc-100 truncate">{t.label}</div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            {t.piece_number && (
-                              <span className="text-[10px] text-zinc-400 font-mono">#{t.piece_number}</span>
-                            )}
-                            {t.paid_by_member && t.member_name && (
-                              <span className="text-[10px] text-purple-400 flex items-center gap-1">
-                                <span>👤</span> {t.member_name}
-                              </span>
-                            )}
-                          </div>
-                        </div>
+                      <div className="flex flex-col gap-0.5 min-w-0 overflow-hidden">
                         <div
-                          className="shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity"
-                          onClick={(e) => e.stopPropagation()}
+                          className="font-medium text-sm text-zinc-900 dark:text-zinc-100 truncate block"
+                          title={t.label || undefined}
                         >
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleEdit(t)
-                            }}
-                            className="h-6 w-6 p-0 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600"
-                            title="Modifier"
-                          >
-                            <Edit className="w-3.5 h-3.5" />
-                          </Button>
+                          {t.label || '—'}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {t.piece_number && (
+                            <span className="text-[10px] text-zinc-400 font-mono">#{t.piece_number}</span>
+                          )}
+                          {t.paid_by_member && t.member_name && (
+                            <span className="text-[10px] text-purple-400 flex items-center gap-1">
+                              <span>👤</span> {t.member_name}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="p-0">
+                    <TableCell className="p-0 px-2">
                       <div className="w-full h-full min-h-8 flex items-center">
                         <DatePicker
                           date={t.date ? new Date(t.date) : undefined}
@@ -610,7 +586,7 @@ export default function TransactionsTab({
                         />
                       </div>
                     </TableCell>
-                    <TableCell className="p-0">
+                    <TableCell className="p-0 px-2">
                       <SelectPicker
                         variant="table"
                         size="xs"
@@ -624,7 +600,7 @@ export default function TransactionsTab({
                         className="w-full h-8 min-h-8"
                       />
                     </TableCell>
-                    <TableCell className="p-0">
+                    <TableCell className="p-0 px-2">
                       <SelectPicker
                         variant="table"
                         size="xs"
@@ -643,7 +619,7 @@ export default function TransactionsTab({
                         className="w-full h-8 min-h-8"
                       />
                     </TableCell>
-                    <TableCell className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                    <TableCell className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 px-2">
                       <EventPicker
                         value={t.event_id}
                         onSelect={(eventId) => handleLinkEvent(t.id, eventId)}
@@ -669,7 +645,7 @@ export default function TransactionsTab({
                         )}
                       </EventPicker>
                     </TableCell>
-                    <TableCell className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                    <TableCell className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 px-2">
                       <ContactPicker
                         value={t.contact_id}
                         onSelect={(contactId) => handleLinkContact(t.id, contactId)}
@@ -695,7 +671,7 @@ export default function TransactionsTab({
                         )}
                       </ContactPicker>
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell align="right" className="px-2">
                       <span
                         className={cn(
                           'font-mono font-bold text-sm whitespace-nowrap',
@@ -706,7 +682,7 @@ export default function TransactionsTab({
                         {(t.amount || 0).toLocaleString('fr-FR')} €
                       </span>
                     </TableCell>
-                    <TableCell align="center" className="p-0">
+                    <TableCell align="center" className="p-0 px-2">
                       <SelectPicker
                         variant="table"
                         size="xs"
@@ -736,7 +712,7 @@ export default function TransactionsTab({
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDelete(t)}
+                            onClick={() => handleDeleteClick(t)}
                             className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                           >
                             <Trash2 className="w-3.5 h-3.5 mr-2" />
@@ -761,6 +737,15 @@ export default function TransactionsTab({
           onPageChange={setCurrentPage}
         />
       )}
+
+      <ConfirmDeleteModal
+        isOpen={!!transactionToDelete}
+        onClose={() => setTransactionToDelete(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Supprimer la transaction"
+        description="Êtes-vous sûr de vouloir supprimer cette transaction ? Cette action est irréversible."
+        isLoading={isDeleting}
+      />
 
       <ViewTransactionModal
         isOpen={showViewTransactionModal}

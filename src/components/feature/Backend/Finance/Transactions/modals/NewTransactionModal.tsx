@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { financeDataService } from '@/lib/services/FinanceDataService'
+import { useBankAccounts, useTransactionCategories } from '@/hooks'
 import { Modal, ModalFooter, Button, Input, Select, Textarea, Label, Checkbox, FormLabel } from '@/components/ui'
 import { FormField } from '@/components/ui/molecules'
 import type { TransactionCategory, BankAccount } from '@/types/finance'
@@ -21,9 +22,7 @@ interface NewTransactionModalProps {
 export default function NewTransactionModal({ isOpen, onClose, onSuccess, eventId, contactId, projectId }: NewTransactionModalProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [categories, setCategories] = useState<TransactionCategory[]>([])
-  const [events, setEvents] = useState<Event[]>([])
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
+  const [events] = useState<Event[]>([])
 
   // Form state
   const [formData, setFormData] = useState({
@@ -53,6 +52,9 @@ export default function NewTransactionModal({ isOpen, onClose, onSuccess, eventI
     end_date: '',
   })
 
+  const { accounts: bankAccounts } = useBankAccounts()
+  const { categories } = useTransactionCategories(formData.type)
+
   // Pre-remplir event_id, contact_id, project_id si fournis
   useEffect(() => {
     if (isOpen && (eventId || contactId || projectId)) {
@@ -65,87 +67,54 @@ export default function NewTransactionModal({ isOpen, onClose, onSuccess, eventI
     }
   }, [isOpen, eventId, contactId, projectId])
 
-  // Charger les categories, evenements et comptes bancaires depuis la base de donnees
+  // Charger les evenements (TODO: implementer)
   useEffect(() => {
     if (isOpen) {
-      loadCategories()
-      loadEvents()
-      loadBankAccounts()
+      // loadEvents - pour l'instant vide
     }
-  }, [isOpen, formData.type])
+  }, [isOpen])
 
-  async function loadBankAccounts() {
-    try {
-      const data = await financeDataService.getBankAccounts()
-      setBankAccounts(data || [])
-    } catch (error) {
-      console.error('Erreur lors du chargement des comptes bancaires:', error)
-      setBankAccounts([])
-    }
-  }
-
-  async function loadEvents() {
-    try {
-      // TODO: Implementer la recuperation des evenements depuis le service
-      // Pour l'instant, on utilise une liste vide
-      setEvents([])
-    } catch (error) {
-      console.error('Erreur lors du chargement des evenements:', error)
-      setEvents([])
-    }
-  }
-
-  async function loadCategories() {
-    try {
-      const data = await financeDataService.getTransactionCategories(formData.type)
-      setCategories(data || [])
-    } catch (error: any) {
-      console.error('Erreur lors du chargement des categories:', error)
-      // Fallback vers les categories par defaut si la table n'existe pas encore
-      const defaultIncomeCategories = [
-        'Billetterie',
-        'Bar',
-        'Merchandising',
-        'Partenariats',
-        'Subventions',
-        'Adhesions',
-        'Service',
-        'Autres revenus',
-      ]
-      const defaultExpenseCategories = [
-        'Location salle',
-        'Artistes',
-        'Prestation Artiste',
-        'Technique & Sonorisation',
-        'Securite',
-        'Marketing & Communication',
-        'Logistique',
-        'Frais administratifs',
-        'Ressources humaines',
-        'Graphisme & Print',
-        'Digital & Web',
-        'Transport',
-        'Comptabilite & Juridique',
-        'Assurances',
-        'Frais bancaires',
-        'Service',
-        'Divers',
-      ]
-      const defaultCategories = formData.type === 'income' ? defaultIncomeCategories : defaultExpenseCategories
-      setCategories(defaultCategories.map(name => ({
-        id: name,
-        name,
-        type: formData.type,
-        is_default: true,
-        is_active: true,
-        sort_order: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })))
-    }
-  }
-
-  const categoryOptions = categories.map((cat) => ({
+  const defaultIncomeCategories = [
+    'Billetterie',
+    'Bar',
+    'Merchandising',
+    'Partenariats',
+    'Subventions',
+    'Adhesions',
+    'Service',
+    'Autres revenus',
+  ]
+  const defaultExpenseCategories = [
+    'Location salle',
+    'Artistes',
+    'Prestation Artiste',
+    'Technique & Sonorisation',
+    'Securite',
+    'Marketing & Communication',
+    'Logistique',
+    'Frais administratifs',
+    'Ressources humaines',
+    'Graphisme & Print',
+    'Digital & Web',
+    'Transport',
+    'Comptabilite & Juridique',
+    'Assurances',
+    'Frais bancaires',
+    'Service',
+    'Divers',
+  ]
+  const defaultCategories = formData.type === 'income' ? defaultIncomeCategories : defaultExpenseCategories
+  const fallbackCategories = defaultCategories.map((name) => ({
+    id: name,
+    name,
+    type: formData.type,
+    is_default: true,
+    is_active: true,
+    sort_order: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }))
+  const categoryOptions = (categories.length > 0 ? categories : fallbackCategories).map((cat) => ({
     value: cat.name,
     label: cat.name,
   }))

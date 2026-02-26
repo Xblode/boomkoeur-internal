@@ -2,17 +2,15 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { financeDataService } from '@/lib/services/FinanceDataService'
 import { Card, CardContent, CardHeader } from '@/components/ui/molecules'
 import { Button } from '@/components/ui/atoms'
 import { Plus, TrendingUp, DollarSign, Calendar as CalendarIcon, Package, Link2 } from 'lucide-react'
 import type { EventBudgetSummary, BudgetProjectSummary } from '@/types/finance'
-import { getEvents } from '@/lib/supabase/events'
 import { getEventBudgets } from '@/lib/supabase/finance'
+import { useEvents, useBudgetProjects } from '@/hooks'
 
-async function getAllEventsWithBudgets({ year }: { year: number }) {
-  const allEvents = await getEvents()
-  const eventsInYear = allEvents.filter((e) => {
+async function getEventsWithBudgets(events: { id: string; name: string; date: string | Date; status?: string }[], year: number) {
+  const eventsInYear = events.filter((e) => {
     const date = e.date instanceof Date ? e.date : new Date(e.date)
     return date.getFullYear() === year
   })
@@ -75,40 +73,48 @@ export default function BudgetTab({ selectedYear: externalSelectedYear, filterSt
   const selectedYear = externalSelectedYear ?? internalSelectedYear
   const filterStatus = externalFilterStatus ?? 'all'
   const [projectFilterStatus, setProjectFilterStatus] = useState<ProjectFilterStatus>('all')
-  const [events, setEvents] = useState<any[]>([])
-  const [projects, setProjects] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [eventsWithBudgets, setEventsWithBudgets] = useState<any[]>([])
+  const [budgetsLoading, setBudgetsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadData()
-  }, [selectedYear, refreshTrigger])
+  const { events } = useEvents()
+  const { projects } = useBudgetProjects({ year: selectedYear })
 
-  async function loadData() {
-    try {
-      setLoading(true)
-      setError(null)
-      onError?.(null)
-      const [eventsData, projectsData] = await Promise.all([
-        getAllEventsWithBudgets({ year: selectedYear }),
-        financeDataService.getBudgetProjects({ year: selectedYear })
-      ])
-      setEvents(eventsData || [])
-      setProjects(projectsData || [])
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      const errorMsg = msg || 'Erreur lors du chargement des donnees'
-      setError(errorMsg)
-      onError?.(errorMsg)
-      console.error('Erreur lors du chargement des donnees:', err)
-    } finally {
-      setLoading(false)
+  useEffect(() => {
+    if (!events.length) {
+      setBudgetsLoading(false)
+      setEventsWithBudgets([])
+      return
     }
-  }
+    let cancelled = false
+    setBudgetsLoading(true)
+    setError(null)
+    onError?.(null)
+    getEventsWithBudgets(events, selectedYear)
+      .then((data) => {
+        if (!cancelled) {
+          setEventsWithBudgets(data || [])
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          const msg = err instanceof Error ? err.message : String(err)
+          setError(msg || 'Erreur lors du chargement des donnees')
+          onError?.(msg)
+          console.error('Erreur lors du chargement des donnees:', err)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setBudgetsLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [events, selectedYear, refreshTrigger])
+
+  const loading = budgetsLoading
 
   // Filtrer les evenements
   const filteredEvents = useMemo(() => {
-    return events.filter(event => {
+    return eventsWithBudgets.filter(event => {
       // Filtre par statut
       if (filterStatus !== 'all' && event.status !== filterStatus) {
         return false
@@ -116,11 +122,11 @@ export default function BudgetTab({ selectedYear: externalSelectedYear, filterSt
 
       return true
     })
-  }, [events, filterStatus])
+  }, [eventsWithBudgets, filterStatus])
 
   // Filtrer les projets
   const filteredProjects = useMemo(() => {
-    return projects.filter(project => {
+    return (projects || []).filter((project: any) => {
       // Filtre par statut
       if (projectFilterStatus !== 'all' && project.status !== projectFilterStatus) {
         return false
@@ -216,10 +222,10 @@ export default function BudgetTab({ selectedYear: externalSelectedYear, filterSt
                 onSelect={(eventId) => handleCreateBudget(eventId)}
                 onUnlink={() => {}}
               >
-                <Button variant="primary" size="sm">
-                  <Link2 className="w-4 h-4 mr-2" />
+                <span className="inline-flex items-center justify-center font-medium h-8 text-xs px-3 py-1 rounded-md gap-1.5 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100">
+                  <Link2 className="w-4 h-4" />
                   Lier un event
-                </Button>
+                </span>
               </EventPicker>
             </div>
           )}
@@ -236,10 +242,10 @@ export default function BudgetTab({ selectedYear: externalSelectedYear, filterSt
                   onSelect={(eventId) => handleCreateBudget(eventId)}
                   onUnlink={() => {}}
                 >
-                  <Button variant="primary" size="sm">
-                    <Link2 className="w-4 h-4 mr-2" />
+                  <span className="inline-flex items-center justify-center font-medium h-8 text-xs px-3 py-1 rounded-md gap-1.5 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100">
+                    <Link2 className="w-4 h-4" />
                     Lier un event
-                  </Button>
+                  </span>
                 </EventPicker>
               ) : (
                 <Button 
@@ -303,10 +309,10 @@ export default function BudgetTab({ selectedYear: externalSelectedYear, filterSt
           />
         ) : (
           <div className="space-y-4">
-            {filteredProjects.map(project => (
+            {filteredProjects.map((project: any) => (
               <BudgetProjectCard
                 key={project.id}
-                summary={project.budget_summary || {
+                summary={project.budget_summary ?? {
                   project_id: project.id,
                   project_title: project.title,
                   project_type: project.type,

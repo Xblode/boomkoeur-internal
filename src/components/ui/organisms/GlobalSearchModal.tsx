@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   Search,
   X,
@@ -16,18 +17,12 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Input, IconButton } from '@/components/ui/atoms';
-import { useOrg } from '@/hooks';
-import { getEvents } from '@/lib/supabase/events';
+import { useOrg, useEvents, useTransactions, useInvoices } from '@/hooks';
 import { getCampaigns } from '@/lib/localStorage/communication';
-import { getTransactions } from '@/lib/supabase/finance';
-import { getInvoices } from '@/lib/supabase/finance';
 import { getProducts } from '@/lib/supabase/products';
 import { getCommercialContacts } from '@/lib/supabase/commercial';
 import { getOrgUsers } from '@/lib/supabase/users';
-import type { Event } from '@/types/event';
 import type { Campaign } from '@/types/communication';
-import type { Transaction } from '@/types/finance';
-import type { Invoice } from '@/types/finance';
 import type { Product } from '@/types/product';
 import type { CommercialContact } from '@/types/commercial';
 import type { User as UserType } from '@/types/user';
@@ -54,18 +49,38 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [results, setResults] = useState<SearchResultItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [dataLoaded, setDataLoaded] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
 
-  const [events, setEvents] = useState<Event[]>([]);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [invoices, setInvoices] = useState<(Invoice & { invoice_lines: unknown[] })[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [contacts, setContacts] = useState<CommercialContact[]>([]);
-  const [members, setMembers] = useState<UserType[]>([]);
+  const { events, isLoading: eventsLoading } = useEvents({ enabled: isOpen });
+  const { transactions, isLoading: transactionsLoading } = useTransactions(undefined, { enabled: isOpen });
+  const { invoices, isLoading: invoicesLoading } = useInvoices(undefined, { enabled: isOpen });
+
+  const { data: products = [], isLoading: productsLoading } = useQuery({
+    queryKey: ['products', 'search'],
+    queryFn: () => getProducts(),
+    enabled: isOpen,
+  });
+
+  const { data: contacts = [], isLoading: contactsLoading } = useQuery({
+    queryKey: ['commercialContacts', 'search'],
+    queryFn: getCommercialContacts,
+    enabled: isOpen,
+  });
+
+  const { data: members = [], isLoading: membersLoading } = useQuery({
+    queryKey: ['orgUsers', activeOrg?.id],
+    queryFn: () => (activeOrg?.id ? getOrgUsers(activeOrg.id) : Promise.resolve([])),
+    enabled: isOpen && !!activeOrg?.id,
+  });
+
+  const campaigns = useMemo(
+    () => (isOpen && typeof window !== 'undefined' ? getCampaigns() : []),
+    [isOpen]
+  );
+
+  const loading =
+    eventsLoading || transactionsLoading || invoicesLoading || productsLoading || contactsLoading || membersLoading;
 
   useEffect(() => {
     setMounted(true);
@@ -82,40 +97,6 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
     const t = setTimeout(() => setDebouncedQuery(query), DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [query]);
-
-  const loadAllData = useCallback(async () => {
-    if (dataLoaded) return;
-    setLoading(true);
-    try {
-      const [evts, camp, tx, inv, prods, cont] = await Promise.all([
-        getEvents(),
-        typeof window !== 'undefined' ? getCampaigns() : Promise.resolve([]),
-        getTransactions(),
-        getInvoices(),
-        getProducts(),
-        getCommercialContacts(),
-      ]);
-      setEvents(evts);
-      setCampaigns(camp);
-      setTransactions(tx);
-      setInvoices(inv);
-      setProducts(prods);
-      setContacts(cont);
-      if (activeOrg?.id) {
-        const mems = await getOrgUsers(activeOrg.id);
-        setMembers(mems);
-      }
-      setDataLoaded(true);
-    } catch (err) {
-      console.error('Erreur chargement recherche:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [dataLoaded, activeOrg?.id]);
-
-  useEffect(() => {
-    if (isOpen) loadAllData();
-  }, [isOpen, loadAllData]);
 
   useEffect(() => {
     if (!debouncedQuery.trim()) {
@@ -338,7 +319,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto py-2">
-          {loading && !dataLoaded ? (
+          {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
             </div>
