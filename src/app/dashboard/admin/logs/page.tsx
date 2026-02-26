@@ -16,7 +16,7 @@ import {
 import { TablePagination } from '@/components/ui/molecules';
 import { getActivities, type Activity, type ActivityType } from '@/lib/activities';
 
-const ITEMS_PER_PAGE = 30;
+const ITEMS_PER_PAGE = 14;
 
 const TYPE_LABELS: Record<ActivityType, string> = {
   event: 'Événement',

@@ -11,11 +11,13 @@ import { createAdminClient } from '@/lib/supabase/admin';
 
 const TOKEN_EXPIRY_BUFFER_MS = 5 * 60 * 1000; // 5 min avant expiration
 
-function getOAuth2Client() {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+function getOAuth2Client(creds?: GoogleCredentials | null) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-  const redirectUri = `${baseUrl}/api/admin/integrations/google/callback`;
+  const defaultRedirectUri = `${baseUrl}/api/admin/integrations/google/callback`;
+
+  const clientId = creds?.client_id?.trim() || process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = creds?.client_secret?.trim() || process.env.GOOGLE_CLIENT_SECRET;
+  const redirectUri = creds?.redirect_uri?.trim() || defaultRedirectUri;
 
   if (!clientId || !clientSecret) {
     throw new Error('GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET requis');
@@ -48,11 +50,11 @@ async function refreshCredentialsIfNeeded(
   creds: GoogleCredentials
 ): Promise<GoogleCredentials> {
   const now = Date.now();
-  if (creds.expires_at - TOKEN_EXPIRY_BUFFER_MS > now) {
+  if ((creds.expires_at ?? 0) - TOKEN_EXPIRY_BUFFER_MS > now) {
     return creds;
   }
 
-  const oauth2Client = getOAuth2Client();
+  const oauth2Client = getOAuth2Client(creds);
   oauth2Client.setCredentials({
     refresh_token: creds.refresh_token,
   });
@@ -63,10 +65,10 @@ async function refreshCredentialsIfNeeded(
   }
 
   const updated: GoogleCredentials = {
+    ...creds,
     access_token: credentials.access_token,
     refresh_token: credentials.refresh_token ?? creds.refresh_token,
     expires_at: credentials.expiry_date ?? now + 3600 * 1000,
-    email: creds.email,
   };
 
   const plain = JSON.stringify(updated);
@@ -92,7 +94,7 @@ export async function getDriveClient(orgId: string): Promise<drive_v3.Drive | nu
   if (!creds) return null;
 
   const fresh = await refreshCredentialsIfNeeded(orgId, creds);
-  const oauth2Client = getOAuth2Client();
+  const oauth2Client = getOAuth2Client(fresh);
   oauth2Client.setCredentials({
     access_token: fresh.access_token,
     refresh_token: fresh.refresh_token,
@@ -109,7 +111,7 @@ export async function getGmailClient(orgId: string): Promise<gmail_v1.Gmail | nu
   if (!creds) return null;
 
   const fresh = await refreshCredentialsIfNeeded(orgId, creds);
-  const oauth2Client = getOAuth2Client();
+  const oauth2Client = getOAuth2Client(fresh);
   oauth2Client.setCredentials({
     access_token: fresh.access_token,
     refresh_token: fresh.refresh_token,
@@ -126,7 +128,7 @@ export async function getDocsClient(orgId: string): Promise<docs_v1.Docs | null>
   if (!creds) return null;
 
   const fresh = await refreshCredentialsIfNeeded(orgId, creds);
-  const oauth2Client = getOAuth2Client();
+  const oauth2Client = getOAuth2Client(fresh);
   oauth2Client.setCredentials({
     access_token: fresh.access_token,
     refresh_token: fresh.refresh_token,
@@ -143,7 +145,7 @@ export async function getSheetsClient(orgId: string): Promise<sheets_v4.Sheets |
   if (!creds) return null;
 
   const fresh = await refreshCredentialsIfNeeded(orgId, creds);
-  const oauth2Client = getOAuth2Client();
+  const oauth2Client = getOAuth2Client(fresh);
   oauth2Client.setCredentials({
     access_token: fresh.access_token,
     refresh_token: fresh.refresh_token,
@@ -160,7 +162,7 @@ export async function getCalendarClient(orgId: string): Promise<calendar_v3.Cale
   if (!creds) return null;
 
   const fresh = await refreshCredentialsIfNeeded(orgId, creds);
-  const oauth2Client = getOAuth2Client();
+  const oauth2Client = getOAuth2Client(fresh);
   oauth2Client.setCredentials({
     access_token: fresh.access_token,
     refresh_token: fresh.refresh_token,

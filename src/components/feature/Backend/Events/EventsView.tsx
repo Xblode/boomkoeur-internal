@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, IconButton } from '@/components/ui/atoms';
 import { Modal, ModalFooter, PageContentLayout } from '@/components/ui/organisms';
-import { SectionHeader } from '@/components/ui/molecules';
+import { SectionHeader, Pagination } from '@/components/ui/molecules';
 import { useAlert } from '@/components/providers/AlertProvider';
 import { useOrg } from '@/components/providers/OrgProvider';
 import { usePageLayout } from '@/components/providers/PageLayoutProvider';
@@ -44,6 +44,9 @@ export const EventsView: React.FC = () => {
   const [isChoiceOpen, setIsChoiceOpen] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [pastEventsPage, setPastEventsPage] = useState(1);
+
+  const PAST_EVENTS_PER_PAGE = 3;
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -163,6 +166,18 @@ export const EventsView: React.FC = () => {
     );
     return { activeEvents: active, pastEvents: past };
   }, [filteredAndSortedEvents]);
+
+  // Pagination "Voir plus" des événements passés : 3 de base, puis 3 par 3
+  const pastEventsTotalPages = Math.max(1, Math.ceil(pastEvents.length / PAST_EVENTS_PER_PAGE));
+  const pastEventsVisible = useMemo(() => {
+    const count = pastEventsPage * PAST_EVENTS_PER_PAGE;
+    return pastEvents.slice(0, count);
+  }, [pastEvents, pastEventsPage]);
+
+  // Réinitialiser la page quand les événements passés changent (filtres)
+  useEffect(() => {
+    setPastEventsPage(1);
+  }, [pastEvents.length]);
 
   // Handlers
   const handleCreateEvent = () => {
@@ -359,7 +374,7 @@ export const EventsView: React.FC = () => {
       {!isLoading && (
         <>
       {/* Compteur */}
-      <div className="text-sm text-zinc-600 dark:text-zinc-400">
+      <div className="py-4 text-sm text-zinc-600 dark:text-zinc-400">
         {filteredAndSortedEvents.length} événement{filteredAndSortedEvents.length > 1 ? 's' : ''}{' '}
         {filteredAndSortedEvents.length !== events.length && `sur ${events.length}`}
       </div>
@@ -375,7 +390,7 @@ export const EventsView: React.FC = () => {
         />
       )}
 
-      {/* Liste des événements passés */}
+      {/* Liste des événements passés (pagination 3 par 3) */}
       {pastEvents.length > 0 && (
         <div className="mt-8 space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-zinc-200 dark:border-zinc-800">
@@ -386,13 +401,23 @@ export const EventsView: React.FC = () => {
           </div>
           <div className="opacity-75">
             <EventsList
-              events={pastEvents}
+              events={pastEventsVisible}
               onEdit={handleEditEvent}
               onDelete={handleDeleteClick}
               onDuplicate={handleDuplicateEvent}
               onClick={handleEventClick}
             />
           </div>
+          {pastEvents.length > PAST_EVENTS_PER_PAGE && pastEventsPage < pastEventsTotalPages && (
+            <Pagination
+              variant="loadMore"
+              currentPage={pastEventsPage}
+              totalPages={pastEventsTotalPages}
+              totalItems={pastEvents.length}
+              itemsPerPage={PAST_EVENTS_PER_PAGE}
+              onPageChange={setPastEventsPage}
+            />
+          )}
         </div>
       )}
 

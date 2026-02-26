@@ -65,6 +65,13 @@ export default function AdminIntegrationPage() {
   const [loadingCalendars, setLoadingCalendars] = useState(false);
   const [savingCalendarId, setSavingCalendarId] = useState(false);
   const [googleCalendarExpanded, setGoogleCalendarExpanded] = useState(false);
+  const [googleConfigExpanded, setGoogleConfigExpanded] = useState(false);
+  const [googleConfig, setGoogleConfig] = useState({
+    clientId: '',
+    clientSecret: '',
+    redirectUri: '',
+  });
+  const [savingGoogleConfig, setSavingGoogleConfig] = useState(false);
   const [apiKeysExpanded, setApiKeysExpanded] = useState(false);
 
   const fetchStatus = async (provider: IntegrationId) => {
@@ -125,6 +132,25 @@ export default function AdminIntegrationPage() {
       activeOrg?.googleCalendarId ? activeOrg.googleCalendarId.split(',').map((id) => id.trim()).filter(Boolean) : []
     );
   }, [activeOrg?.googleCalendarId]);
+
+  const fetchGoogleConfig = useCallback(async () => {
+    if (!activeOrg?.id) return;
+    try {
+      const res = await fetch(`/api/admin/integrations/google/config?org_id=${activeOrg.id}`);
+      const data = await res.json();
+      const baseUrl =
+        typeof window !== 'undefined'
+          ? `${window.location.origin}/api/admin/integrations/google/callback`
+          : '';
+      setGoogleConfig({
+        clientId: data.client_id ?? '',
+        clientSecret: '', // jamais retourné pour sécurité
+        redirectUri: data.redirect_uri ?? baseUrl,
+      });
+    } catch {
+      setGoogleConfig({ clientId: '', clientSecret: '', redirectUri: '' });
+    }
+  }, [activeOrg?.id]);
 
   const fetchCalendars = useCallback(async () => {
     if (!activeOrg?.id || !googleConnected) return;
@@ -374,6 +400,34 @@ export default function AdminIntegrationPage() {
     }
   };
 
+  const handleSaveGoogleConfig = async () => {
+    if (!activeOrg?.id) return;
+    setSavingGoogleConfig(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/integrations/google/config?org_id=${activeOrg.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: googleConfig.clientId.trim(),
+          client_secret: googleConfig.clientSecret || undefined,
+          redirect_uri: googleConfig.redirectUri.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Erreur lors de l'enregistrement");
+        return;
+      }
+      toast.success('Configuration Google enregistrée');
+      setGoogleConfigExpanded(false);
+    } catch {
+      setError('Erreur réseau');
+    } finally {
+      setSavingGoogleConfig(false);
+    }
+  };
+
   const handleDisconnectGoogle = async () => {
     if (!activeOrg?.id) return;
     setGoogleDisconnecting(true);
@@ -530,12 +584,12 @@ export default function AdminIntegrationPage() {
       {/* Google Workspace */}
       <EditableCard
         variant="outline"
-        isEditing={googleCalendarExpanded}
-        onEdit={() => {
-          setGoogleCalendarExpanded(true);
-          fetchCalendars();
+        isEditing={googleConfigExpanded || googleCalendarExpanded}
+        onEdit={() => {}}
+        onCloseEdit={() => {
+          setGoogleConfigExpanded(false);
+          setGoogleCalendarExpanded(false);
         }}
-        onCloseEdit={() => setGoogleCalendarExpanded(false)}
         headerContent={
           <div className="flex items-start justify-between gap-3 w-full">
             <div className="flex items-start gap-3 min-w-0">
@@ -572,6 +626,7 @@ export default function AdminIntegrationPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => {
+                      setGoogleConfigExpanded(false);
                       setGoogleCalendarExpanded(true);
                       fetchCalendars();
                     }}
@@ -601,23 +656,120 @@ export default function AdminIntegrationPage() {
                   </Button>
                 </>
               ) : (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleConnectGoogle}
-                  disabled={googleLoading}
-                >
-                  Connecter avec Google
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setGoogleCalendarExpanded(false);
+                      setGoogleConfigExpanded(true);
+                      fetchGoogleConfig();
+                    }}
+                    className="text-zinc-500 hover:text-foreground"
+                  >
+                    <Settings size={14} className="mr-1.5" />
+                    Paramètres
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleConnectGoogle}
+                    disabled={googleLoading}
+                  >
+                    Connecter avec Google
+                  </Button>
+                </>
               )}
             </div>
           </div>
         }
         editContent={
-          <div className="space-y-3">
-            <Label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 block">
-              Calendriers à afficher dans le dashboard
-            </Label>
+          googleConfigExpanded ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSaveGoogleConfig();
+              }}
+              className="space-y-4"
+              autoComplete="off"
+            >
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Configurez les identifiants OAuth de votre projet Google Cloud pour connecter Google Workspace.
+                L&apos;URI de redirection doit être ajoutée dans la console Google.
+              </p>
+              {error && (
+                <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-sm">
+                  {error}
+                </div>
+              )}
+              <div>
+                <Label htmlFor="google-client-id" className="block mb-2">
+                  Client ID
+                </Label>
+                <TokenInput
+                  id="google-client-id"
+                  name="google_client_id"
+                  masked={false}
+                  value={googleConfig.clientId}
+                  onChange={(e) => setGoogleConfig((c) => ({ ...c, clientId: e.target.value }))}
+                  placeholder="xxx.apps.googleusercontent.com"
+                  className="w-full"
+                />
+              </div>
+              <div>
+                <Label htmlFor="google-client-secret" className="block mb-2">
+                  Client Secret
+                </Label>
+                <TokenInput
+                  id="google-client-secret"
+                  name="google_client_secret"
+                  value={googleConfig.clientSecret}
+                  onChange={(e) => setGoogleConfig((c) => ({ ...c, clientSecret: e.target.value }))}
+                  placeholder="Laissez vide pour conserver l&apos;existant"
+                  className="w-full font-mono"
+                />
+              </div>
+              <div>
+                <Label htmlFor="google-redirect-uri" className="block mb-2">
+                  URI de redirection
+                </Label>
+                <TokenInput
+                  id="google-redirect-uri"
+                  name="google_redirect_uri"
+                  masked={false}
+                  value={googleConfig.redirectUri}
+                  onChange={(e) => setGoogleConfig((c) => ({ ...c, redirectUri: e.target.value }))}
+                  placeholder="https://votredomaine.com/api/admin/integrations/google/callback"
+                  className="w-full"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setGoogleConfigExpanded(false)}
+                  disabled={savingGoogleConfig}
+                >
+                  Annuler
+                </Button>
+                <Button type="submit" variant="primary" size="sm" disabled={savingGoogleConfig}>
+                  {savingGoogleConfig ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin mr-1.5" />
+                      Enregistrement...
+                    </>
+                  ) : (
+                    'Enregistrer'
+                  )}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <div className="space-y-3">
+              <Label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 block">
+                Calendriers à afficher dans le dashboard
+              </Label>
             {loadingCalendars ? (
               <div className="flex items-center gap-2 text-sm text-zinc-500 py-4">
                 <Loader2 size={16} className="animate-spin" />
@@ -664,6 +816,7 @@ export default function AdminIntegrationPage() {
               )}
             </Button>
           </div>
+          )
         }
       />
 

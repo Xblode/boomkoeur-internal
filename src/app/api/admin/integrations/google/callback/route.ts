@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { verifyAndParseOAuthState } from '@/lib/integrations/google-oauth';
-import { upsertOrgIntegration } from '@/lib/supabase/integrations';
+import { verifyAndParseOAuthStateWithOrgSecret } from '@/lib/integrations/google-oauth';
+import { getOrgIntegration, upsertOrgIntegration } from '@/lib/supabase/integrations';
 import type { GoogleCredentials } from '@/lib/supabase/integrations';
 import { google } from 'googleapis';
 
@@ -54,9 +54,15 @@ export async function GET(request: NextRequest) {
     return redirectWithError('Paramètres OAuth manquants');
   }
 
-  const parsed = verifyAndParseOAuthState(state);
+  const parsed = await verifyAndParseOAuthStateWithOrgSecret(state, async (oid) => {
+    const supabase = await createClient();
+    const config = await getOrgIntegration<GoogleCredentials>(supabase, oid, 'google');
+    return config?.client_secret ?? null;
+  });
   if (!parsed) {
-    return redirectWithError('State OAuth invalide');
+    return redirectWithError(
+      'Session expirée ou lien invalide. Fermez la fenêtre et réessayez de connecter Google.'
+    );
   }
 
   const auth = await ensureOrgAdmin(parsed.org_id);
@@ -64,13 +70,19 @@ export async function GET(request: NextRequest) {
     return redirectWithError(auth.error ?? 'Accès refusé');
   }
 
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
-  const redirectUri = `${baseUrl}/api/admin/integrations/google/callback`;
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
+  const defaultRedirectUri = `${baseUrl}/api/admin/integrations/google/callback`;
+
+  const orgConfig = await getOrgIntegration<GoogleCredentials>(auth.supabase, parsed.org_id, 'google');
+  const clientId = orgConfig?.client_id?.trim() || process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = orgConfig?.client_secret?.trim() || process.env.GOOGLE_CLIENT_SECRET;
+  const redirectUri = orgConfig?.redirect_uri?.trim() || defaultRedirectUri;
 
   if (!clientId || !clientSecret) {
-    return redirectWithError('Configuration Google manquante');
+    return redirectWithError(
+      'Configuration Google manquante. Configurez Client ID et Secret dans Paramètres.'
+    );
   }
 
   const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
@@ -87,10 +99,14 @@ export async function GET(request: NextRequest) {
     const email = userInfo?.email ?? undefined;
 
     const credentials: GoogleCredentials = {
+      ...orgConfig,
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
       expires_at: tokens.expiry_date ?? Date.now() + 3600 * 1000,
       email,
+      client_id: clientId,
+      client_secret: clientSecret,
+      redirect_uri: redirectUri,
     };
 
     await upsertOrgIntegration(auth.supabase, parsed.org_id, 'google', credentials);

@@ -61,9 +61,16 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ calendars: items });
   } catch (err: unknown) {
+    const isScopeError =
+      err instanceof Error &&
+      /insufficient authentication scopes/i.test(err.message);
     const message =
-      err instanceof Error ? err.message : 'Erreur lors du chargement des calendriers';
+      isScopeError
+        ? 'Permissions Google Calendar insuffisantes. Déconnectez puis reconnectez l\'intégration Google dans Administration > Intégrations pour accorder l\'accès aux calendriers.'
+        : err instanceof Error
+          ? err.message
+          : 'Erreur lors du chargement des calendriers';
     console.error('Calendar list error:', err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: isScopeError ? 403 : 500 });
   }
 }

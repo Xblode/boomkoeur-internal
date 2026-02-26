@@ -47,11 +47,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ connected: false });
   }
 
+  // Pour Google : connecté uniquement si on a les tokens OAuth (pas juste la config Client ID/Secret)
+  const isGoogleConnected =
+    provider === 'google' &&
+    'access_token' in config &&
+    'refresh_token' in config &&
+    !!config.access_token &&
+    !!config.refresh_token;
+
   const response: { connected: boolean; hasCredentials?: boolean; email?: string } = {
-    connected: true,
+    connected: provider === 'google' ? isGoogleConnected : true,
     hasCredentials: true,
   };
-  if (provider === 'google' && 'email' in config && config.email) {
+  if (provider === 'google' && isGoogleConnected && 'email' in config && config.email) {
     response.email = config.email;
   }
   return NextResponse.json(response);

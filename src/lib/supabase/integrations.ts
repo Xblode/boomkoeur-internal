@@ -28,10 +28,14 @@ export interface MetaCredentials {
 }
 
 export interface GoogleCredentials {
-  access_token: string;
-  refresh_token: string;
-  expires_at: number;
+  access_token?: string;
+  refresh_token?: string;
+  expires_at?: number;
   email?: string;
+  /** Config OAuth (Client ID, Secret, URI) - peut être définie avant la connexion */
+  client_id?: string;
+  client_secret?: string;
+  redirect_uri?: string;
 }
 
 export type IntegrationCredentials = ShotgunCredentials | MetaCredentials | GoogleCredentials;

@@ -90,6 +90,9 @@ export type { FilterBarProps } from './FilterBar';
 export { FilterField } from './FilterField';
 export type { FilterFieldProps } from './FilterField';
 
+export { Pagination } from './Pagination';
+export type { PaginationProps } from './Pagination';
+
 export { TablePagination } from './TablePagination';
 export type { TablePaginationProps } from './TablePagination';
 
