@@ -38,7 +38,7 @@ const getTreasuryEvolution = async (period: PeriodType, year: number) => {
       new Date(a.date).getTime() - new Date(b.date).getTime()
     )
     
-    // Grouper par periode
+    // Grouper par periode (jour pour month/year, trimestre pour quarter)
     const dataByPeriod: Record<string, { date: string; income: number; expense: number; balance: number }> = {}
     let cumulativeBalance = initialBalance
     
@@ -51,25 +51,23 @@ const getTreasuryEvolution = async (period: PeriodType, year: number) => {
         return // Ignorer cette transaction
       }
       
-      let periodKey: string
-      
-      // Obtenir le mois et l'annee de maniere securisee
-      const month = date.getMonth() + 1 // getMonth() retourne 0-11
+      const month = date.getMonth() + 1
       const year = date.getFullYear()
+      const day = date.getDate()
       
-      // Generer la cle de periode selon le type
+      let periodKey: string
       switch (period) {
         case 'month':
-          periodKey = `${year}-${safePadStart(month, 2, '0')}-01`
+        case 'year':
+          // Granularite journaliere : date reelle (ex: 2026-02-07)
+          periodKey = `${year}-${safePadStart(month, 2, '0')}-${safePadStart(day, 2, '0')}`
           break
         case 'quarter':
           const quarter = Math.floor((month - 1) / 3) + 1
           periodKey = `${year}-Q${quarter}`
           break
-        case 'year':
         default:
-          periodKey = `${year}-${safePadStart(month, 2, '0')}-01`
-          break
+          periodKey = `${year}-${safePadStart(month, 2, '0')}-${safePadStart(day, 2, '0')}`
       }
       
       // Initialiser la periode si elle n'existe pas

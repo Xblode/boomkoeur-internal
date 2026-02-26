@@ -1,16 +1,40 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CalendarItem } from '@/types/calendar';
 import { useEvents } from '@/hooks/useEvents';
 import { useMeetings } from '@/hooks/useMeetings';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
 
 export interface UseCalendarDataOptions {
   orgId?: string | null;
   googleCalendarId?: string | null;
   /** Mois affiché pour la plage de requête Google Calendar */
   currentDate?: Date;
+}
+
+const GOOGLE_CALENDAR_STALE_MS = 2 * 60 * 1000; // 2 min de cache
+
+async function fetchGoogleCalendarEvents(
+  orgId: string,
+  timeMin: string,
+  timeMax: string
+): Promise<CalendarItem[]> {
+  const url = new URL('/api/admin/integrations/google/calendar/events', window.location.origin);
+  url.searchParams.set('org_id', orgId);
+  url.searchParams.set('time_min', timeMin);
+  url.searchParams.set('time_max', timeMax);
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error ?? `Erreur ${res.status}`);
+  }
+  const data = await res.json();
+  return (data.events ?? []).map((ev: { date: string; time?: string }) => ({
+    ...ev,
+    date: new Date(ev.date),
+  }));
 }
 
 /**
@@ -22,52 +46,50 @@ export interface UseCalendarDataOptions {
  */
 export function useCalendarData(options: UseCalendarDataOptions = {}) {
   const { orgId, googleCalendarId, currentDate = new Date() } = options;
+  const queryClient = useQueryClient();
 
   const { events, isLoading: eventsLoading, error: eventsError, refetch: refetchEvents } = useEvents();
   const { meetings, isLoading: meetingsLoading, error: meetingsError, refetch: refetchMeetings } = useMeetings();
 
-  const [googleEvents, setGoogleEvents] = useState<CalendarItem[]>([]);
+  const monthStart = startOfMonth(currentDate);
+  const monthEnd = endOfMonth(currentDate);
+  const timeMin = monthStart.toISOString();
+  const timeMax = monthEnd.toISOString();
+
+  const {
+    data: googleEvents = [],
+    isLoading: googleLoading,
+    refetch: refetchGoogle,
+  } = useQuery({
+    queryKey: ['google-calendar-events', orgId, currentDate.getFullYear(), currentDate.getMonth()],
+    queryFn: () => fetchGoogleCalendarEvents(orgId!, timeMin, timeMax),
+    enabled: !!orgId && !!googleCalendarId,
+    staleTime: GOOGLE_CALENDAR_STALE_MS,
+    placeholderData: (prev) => prev,
+  });
+
+  // Prefetch mois précédent/suivant pour affichage instantané au changement
+  useEffect(() => {
+    if (!orgId || !googleCalendarId) return;
+    for (const delta of [-1, 1]) {
+      const targetMonth = delta === 1 ? addMonths(currentDate, 1) : subMonths(currentDate, 1);
+      const targetStart = startOfMonth(targetMonth);
+      const targetEnd = endOfMonth(targetMonth);
+      queryClient.prefetchQuery({
+        queryKey: ['google-calendar-events', orgId, targetMonth.getFullYear(), targetMonth.getMonth()],
+        queryFn: () =>
+          fetchGoogleCalendarEvents(orgId, targetStart.toISOString(), targetEnd.toISOString()),
+        staleTime: GOOGLE_CALENDAR_STALE_MS,
+      });
+    }
+  }, [orgId, googleCalendarId, currentDate, queryClient]);
 
   const isLoading = eventsLoading || meetingsLoading;
   const error = eventsError || meetingsError;
 
   const refetch = useCallback(async () => {
-    await Promise.all([refetchEvents(), refetchMeetings()]);
-  }, [refetchEvents, refetchMeetings]);
-
-  useEffect(() => {
-    if (!orgId || !googleCalendarId) {
-      setGoogleEvents([]);
-      return;
-    }
-
-    const monthStart = startOfMonth(currentDate);
-    const monthEnd = endOfMonth(currentDate);
-    const timeMin = monthStart.toISOString();
-    const timeMax = monthEnd.toISOString();
-
-    const url = new URL('/api/admin/integrations/google/calendar/events', window.location.origin);
-    url.searchParams.set('org_id', orgId);
-    url.searchParams.set('time_min', timeMin);
-    url.searchParams.set('time_max', timeMax);
-
-    fetch(url.toString())
-      .then(async (res) => {
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.error ?? `Erreur ${res.status}`);
-        }
-        return res.json();
-      })
-      .then((data) => {
-        const items = (data.events ?? []).map((ev: { date: string; time?: string }) => ({
-          ...ev,
-          date: new Date(ev.date),
-        }));
-        setGoogleEvents(items);
-      })
-      .catch(() => setGoogleEvents([]));
-  }, [orgId, googleCalendarId, currentDate.getFullYear(), currentDate.getMonth()]);
+    await Promise.all([refetchEvents(), refetchMeetings(), refetchGoogle()]);
+  }, [refetchEvents, refetchMeetings, refetchGoogle]);
 
   const items = useMemo((): CalendarItem[] => {
     const result: CalendarItem[] = [];

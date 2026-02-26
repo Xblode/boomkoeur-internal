@@ -69,46 +69,39 @@ export async function GET(request: NextRequest) {
       ? new Date(timeMax)
       : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-    const allEvents: Array<{
-      id: string;
-      title: string;
-      date: Date;
-      time?: string;
-      location?: string;
-      type: 'google_calendar';
-      href?: string;
-      source: unknown;
-    }> = [];
+    type GCalEvent = { id?: string; summary?: string; start?: { dateTime?: string; date?: string }; location?: string; htmlLink?: string };
+    const mapEvent = (ev: GCalEvent) => {
+      const start = ev.start?.dateTime
+        ? new Date(ev.start.dateTime)
+        : ev.start?.date
+          ? new Date(ev.start.date)
+          : new Date();
+      return {
+        id: ev.id ?? `gc-${Date.now()}-${Math.random()}`,
+        title: ev.summary ?? 'Sans titre',
+        date: start,
+        time: ev.start?.dateTime ? start.toTimeString().slice(0, 5) : undefined,
+        location: ev.location ?? undefined,
+        type: 'google_calendar' as const,
+        href: ev.htmlLink ?? undefined,
+        source: ev,
+      };
+    };
 
-    for (const calendarId of calendarIds) {
-      const response = await calendar.events.list({
+    const fetchPromises = calendarIds.map((calendarId: string) =>
+      calendar.events.list({
         calendarId,
         timeMin: min.toISOString(),
         timeMax: max.toISOString(),
         singleEvents: true,
         orderBy: 'startTime',
-      });
+      })
+    );
 
-      const items = (response.data.items ?? []).map((ev) => {
-        const start = ev.start?.dateTime
-          ? new Date(ev.start.dateTime)
-          : ev.start?.date
-            ? new Date(ev.start.date)
-            : new Date();
-        return {
-          id: ev.id ?? `gc-${Date.now()}-${Math.random()}`,
-          title: ev.summary ?? 'Sans titre',
-          date: start,
-          time: ev.start?.dateTime ? start.toTimeString().slice(0, 5) : undefined,
-          location: ev.location ?? undefined,
-          type: 'google_calendar' as const,
-          href: ev.htmlLink ?? undefined,
-          source: ev,
-        };
-      });
-      allEvents.push(...items);
-    }
-
+    const responses = await Promise.all(fetchPromises);
+    const allEvents = responses.flatMap((r) =>
+      (r.data.items ?? []).map((ev: GCalEvent) => mapEvent(ev))
+    );
     allEvents.sort((a, b) => a.date.getTime() - b.date.getTime());
 
     return NextResponse.json({ events: allEvents });

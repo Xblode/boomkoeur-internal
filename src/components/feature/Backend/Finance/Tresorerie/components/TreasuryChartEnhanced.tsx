@@ -63,11 +63,14 @@ export default function TreasuryChartEnhanced({
   const [showBalance, setShowBalance] = useState(true)
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr)
-    if (period === 'year') {
-      return date.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' })
+    if (dateStr.match(/^\d{4}-Q\d$/)) return dateStr
+    const parts = dateStr.split('-').map(Number)
+    if (parts.length >= 3) {
+      const [y, m, d] = parts
+      const date = new Date(y, m - 1, d)
+      return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
     }
-    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+    return dateStr
   }
 
   const formatCurrency = (value: number) => {
@@ -87,26 +90,32 @@ export default function TreasuryChartEnhanced({
     ? ((data[data.length - 1].balance - data[0].balance) / Math.abs(data[0].balance || 1)) * 100
     : 0
 
+  const formatTooltipDate = (dateStr: string) => {
+    if (!dateStr) return ''
+    if (dateStr.match(/^\d{4}-Q\d$/)) {
+      const [, year, q] = dateStr.match(/^(\d{4})-Q(\d)$/) || []
+      const quarterLabels: Record<string, string> = { '1': 'Janv.-Mars', '2': 'Avr.-Juin', '3': 'Juil.-Sept.', '4': 'Oct.-Déc.' }
+      return `${quarterLabels[q] || `Trim. ${q}`} ${year}`
+    }
+    const parts = dateStr.split('-').map(Number)
+    if (parts.length >= 3) {
+      const [y, m, d] = parts
+      const date = new Date(y, m - 1, d)
+      return date.toLocaleDateString('fr-FR', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
+    }
+    return dateStr
+  }
+
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
+      const dateStr = payload[0]?.payload?.date ?? label
+      const displayDate = formatTooltipDate(dateStr)
       return (
-        <div style={{
-          borderRadius: '8px',
-          border: `1px solid ${CHART_UI_COLORS.tooltipBorder}`,
-          fontSize: '12px',
-          backgroundColor: CHART_UI_COLORS.tooltipBg,
-          padding: '12px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-        }}>
-          <p className="text-xs text-zinc-500 mb-2">
-            {new Date(label).toLocaleDateString('fr-FR', { 
-              weekday: 'short', 
-              year: 'numeric', 
-              month: 'short', 
-              day: 'numeric' 
-            })}
+        <div className="rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm shadow-xl">
+          <p className="text-zinc-300 mb-2 text-xs">
+            {displayDate}
           </p>
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             {payload.map((entry: any, index: number) => {
               let entryLabel = entry.name
               let color = entry.color
@@ -115,7 +124,7 @@ export default function TreasuryChartEnhanced({
                 entryLabel = 'Solde'
                 color = BALANCE_COLOR
               } else if (entry.dataKey === 'income') {
-                entryLabel = 'Entrees'
+                entryLabel = 'Entrées'
                 color = INCOME_COLOR
               } else if (entry.dataKey === 'expense') {
                 entryLabel = 'Sorties'
@@ -123,9 +132,9 @@ export default function TreasuryChartEnhanced({
               }
               
               return (
-                <div key={index} className="flex items-center justify-between gap-4">
-                  <span className="text-xs" style={{ color }}>{entryLabel}</span>
-                  <span className="font-bold text-xs tabular-nums" style={{ color }}>
+                <div key={index} className="flex items-center justify-between gap-6">
+                  <span className="text-zinc-300 text-xs" style={{ color: color || '#a1a1aa' }}>{entryLabel}</span>
+                  <span className="font-semibold text-xs tabular-nums text-white" style={{ color: color || '#fff' }}>
                     {formatCurrency(entry.value)}
                   </span>
                 </div>
