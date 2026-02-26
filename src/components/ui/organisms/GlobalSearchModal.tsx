@@ -17,10 +17,9 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Input, IconButton } from '@/components/ui/atoms';
-import { useOrg, useEvents, useTransactions, useInvoices } from '@/hooks';
+import { useOrg, useEvents, useTransactions, useInvoices, useCommercialContacts } from '@/hooks';
 import { getCampaigns } from '@/lib/localStorage/communication';
 import { getProducts } from '@/lib/supabase/products';
-import { getCommercialContacts } from '@/lib/supabase/commercial';
 import { getOrgUsers } from '@/lib/supabase/users';
 import type { Campaign } from '@/types/communication';
 import type { Product } from '@/types/product';
@@ -55,17 +54,12 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
   const { events, isLoading: eventsLoading } = useEvents({ enabled: isOpen });
   const { transactions, isLoading: transactionsLoading } = useTransactions(undefined, { enabled: isOpen });
   const { invoices, isLoading: invoicesLoading } = useInvoices(undefined, { enabled: isOpen });
+  const { contacts, isLoading: contactsLoading } = useCommercialContacts({ enabled: isOpen });
 
   const { data: products = [], isLoading: productsLoading } = useQuery({
-    queryKey: ['products', 'search'],
+    queryKey: ['products', activeOrg?.id, 'search'],
     queryFn: () => getProducts(),
-    enabled: isOpen,
-  });
-
-  const { data: contacts = [], isLoading: contactsLoading } = useQuery({
-    queryKey: ['commercialContacts', 'search'],
-    queryFn: getCommercialContacts,
-    enabled: isOpen,
+    enabled: isOpen && !!activeOrg?.id,
   });
 
   const { data: members = [], isLoading: membersLoading } = useQuery({

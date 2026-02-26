@@ -64,7 +64,7 @@ export default function CommercialPage() {
           <CommercialList
             contacts={contacts}
             isLoading={isLoading}
-            onRefetch={(silent) => refetch(!silent)}
+            onRefetch={async () => { await refetch(); }}
             onContactUpdate={updateContactInPlace}
           />
         )}

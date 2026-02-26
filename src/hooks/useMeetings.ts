@@ -3,13 +3,18 @@
 import { useQuery } from '@tanstack/react-query';
 import { getMeetings } from '@/lib/supabase/meetings';
 import { getErrorMessage } from '@/lib/utils';
+import { useOrgOptional } from '@/components/providers/OrgProvider';
 
-export function useMeetings() {
+export function useMeetings(options?: { enabled?: boolean }) {
+  const orgContext = useOrgOptional();
+  const orgId = orgContext?.activeOrg?.id ?? null;
+
   const { data: meetings = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['meetings'],
+    queryKey: ['meetings', orgId],
+    enabled: !!orgId && (options?.enabled ?? true),
     queryFn: async () => {
       try {
-        return await getMeetings();
+        return await getMeetings(orgId!);
       } catch (e) {
         throw e instanceof Error ? e : new Error(getErrorMessage(e));
       }

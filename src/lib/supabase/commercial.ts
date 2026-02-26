@@ -126,11 +126,14 @@ function contactToDbPayloadPartial(updates: Partial<CommercialContactInput>): Re
 
 // --- API Contacts ---
 
-export async function getCommercialContacts(): Promise<CommercialContact[]> {
-  const orgId = getActiveOrgId();
-  let query = supabase.from('commercial_contacts').select('*');
-  if (orgId) query = query.eq('org_id', orgId);
-  query = query.order('name', { ascending: true });
+export async function getCommercialContacts(orgId?: string | null): Promise<CommercialContact[]> {
+  const resolvedOrgId = orgId ?? getActiveOrgId();
+  if (!resolvedOrgId) return [];
+  const query = supabase
+    .from('commercial_contacts')
+    .select('*')
+    .eq('org_id', resolvedOrgId)
+    .order('name', { ascending: true });
   const { data, error } = await query;
 
   if (error) throw error;

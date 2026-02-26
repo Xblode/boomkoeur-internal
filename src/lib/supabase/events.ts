@@ -114,10 +114,16 @@ function mapDbArtistToArtist(row: DbArtist, assignment?: DbEventArtist): Artist 
 
 // --- API ---
 
-export async function getEvents(): Promise<Event[]> {
-  const orgId = getActiveOrgId();
+/**
+ * Récupère les événements de l'organisation.
+ * @param orgId - ID de l'organisation (obligatoire pour éviter les fuites cross-org)
+ * @returns [] si orgId est null/undefined
+ */
+export async function getEvents(orgId?: string | null): Promise<Event[]> {
+  const resolvedOrgId = orgId ?? getActiveOrgId();
+  if (!resolvedOrgId) return [];
   let query = supabase.from('events').select('*');
-  if (orgId) query = query.eq('org_id', orgId);
+  query = query.eq('org_id', resolvedOrgId);
   const { data: eventsData, error: eventsError } = await query.order('date', { ascending: true });
 
   if (eventsError) throw eventsError;

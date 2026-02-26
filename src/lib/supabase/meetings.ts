@@ -116,10 +116,16 @@ function buildPartialUpdatePayload(updates: Partial<Meeting> | Partial<MeetingIn
 
 // --- API ---
 
-export async function getMeetings(): Promise<Meeting[]> {
-  const orgId = getActiveOrgId();
+/**
+ * Récupère les réunions de l'organisation.
+ * @param orgId - ID de l'organisation (obligatoire pour éviter les fuites cross-org)
+ * @returns [] si orgId est null/undefined
+ */
+export async function getMeetings(orgId?: string | null): Promise<Meeting[]> {
+  const resolvedOrgId = orgId ?? getActiveOrgId();
+  if (!resolvedOrgId) return [];
   let query = supabase.from('meetings').select('*');
-  if (orgId) query = query.eq('org_id', orgId);
+  query = query.eq('org_id', resolvedOrgId);
   query = query.order('date', { ascending: false });
   const { data, error } = await query;
 

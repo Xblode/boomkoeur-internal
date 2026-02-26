@@ -29,10 +29,10 @@ import type {
 
 // --- Bank Accounts ---
 
-export async function getBankAccounts(): Promise<BankAccount[]> {
-  const orgId = getActiveOrgId();
-  let query = supabase.from('finance_bank_accounts').select('*').eq('is_active', true);
-  if (orgId) query = query.eq('org_id', orgId);
+export async function getBankAccounts(orgId?: string | null): Promise<BankAccount[]> {
+  const resolvedOrgId = orgId ?? getActiveOrgId();
+  if (!resolvedOrgId) return [];
+  const query = supabase.from('finance_bank_accounts').select('*').eq('is_active', true).eq('org_id', resolvedOrgId);
   const { data, error } = await query.order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -114,10 +114,10 @@ function mapDbBankAccount(row: Record<string, unknown>): BankAccount {
 
 // --- Transactions ---
 
-export async function getTransactions(year?: number): Promise<Transaction[]> {
-  const orgId = getActiveOrgId();
-  let query = supabase.from('finance_transactions').select('*');
-  if (orgId) query = query.eq('org_id', orgId);
+export async function getTransactions(year?: number, orgId?: string | null): Promise<Transaction[]> {
+  const resolvedOrgId = orgId ?? getActiveOrgId();
+  if (!resolvedOrgId) return [];
+  let query = supabase.from('finance_transactions').select('*').eq('org_id', resolvedOrgId);
   query = query.order('date', { ascending: false });
   if (year) query = query.eq('fiscal_year', year);
   const { data, error } = await query;
@@ -261,23 +261,23 @@ function mapDbTransaction(row: Record<string, unknown>): Transaction {
 
 // --- Transaction Categories ---
 
-export async function getTransactionCategories(type?: 'income' | 'expense'): Promise<TransactionCategory[]> {
-  const orgId = getActiveOrgId();
-  let query = supabase.from('finance_transaction_categories').select('*').eq('is_active', true);
-  if (orgId) query = query.eq('org_id', orgId);
+export async function getTransactionCategories(type?: 'income' | 'expense', orgId?: string | null): Promise<TransactionCategory[]> {
+  const resolvedOrgId = orgId ?? getActiveOrgId();
+  if (!resolvedOrgId) return [];
+  let query = supabase.from('finance_transaction_categories').select('*').eq('is_active', true).eq('org_id', resolvedOrgId);
   query = query.order('sort_order');
   if (type) query = query.eq('type', type);
   const { data, error } = await query;
   if (error) throw error;
   const categories = (data ?? []).map(mapDbTransactionCategory);
   if (categories.length === 0) {
-    await seedDefaultTransactionCategories();
-    return getTransactionCategories(type);
+    await seedDefaultTransactionCategories(resolvedOrgId);
+    return getTransactionCategories(type, resolvedOrgId);
   }
   return categories;
 }
 
-async function seedDefaultTransactionCategories(): Promise<void> {
+async function seedDefaultTransactionCategories(orgId: string): Promise<void> {
   const defaults = [
     { name: 'Billetterie', type: 'income', sort_order: 1 },
     { name: 'Bar', type: 'income', sort_order: 2 },
@@ -295,7 +295,7 @@ async function seedDefaultTransactionCategories(): Promise<void> {
       is_default: true,
       is_active: true,
       sort_order: c.sort_order,
-      org_id: getActiveOrgId(),
+      org_id: orgId,
     });
   }
 }
@@ -553,10 +553,13 @@ export async function deleteAllEventBudgets(eventId: string): Promise<void> {
 
 // --- Budget Projects ---
 
-export async function getBudgetProjects(filters?: { status?: string; year?: number }): Promise<BudgetProject[]> {
-  const orgId = getActiveOrgId();
-  let query = supabase.from('finance_budget_projects').select('*');
-  if (orgId) query = query.eq('org_id', orgId);
+export async function getBudgetProjects(
+  filters?: { status?: string; year?: number },
+  orgId?: string | null
+): Promise<BudgetProject[]> {
+  const resolvedOrgId = orgId ?? getActiveOrgId();
+  if (!resolvedOrgId) return [];
+  let query = supabase.from('finance_budget_projects').select('*').eq('org_id', resolvedOrgId);
   query = query.order('created_at', { ascending: false });
   if (filters?.status && filters.status !== 'all') query = query.eq('status', filters.status);
   const { data, error } = await query;
@@ -685,14 +688,13 @@ function mapDbBudgetProjectLine(row: Record<string, unknown>): BudgetProjectLine
 
 // --- Invoices ---
 
-export async function getInvoices(filters?: {
-  type?: string;
-  status?: string;
-  year?: number;
-}): Promise<(Invoice & { invoice_lines: InvoiceLine[] })[]> {
-  const orgId = getActiveOrgId();
-  let query = supabase.from('finance_invoices').select('*');
-  if (orgId) query = query.eq('org_id', orgId);
+export async function getInvoices(
+  filters?: { type?: string; status?: string; year?: number },
+  orgId?: string | null
+): Promise<(Invoice & { invoice_lines: InvoiceLine[] })[]> {
+  const resolvedOrgId = orgId ?? getActiveOrgId();
+  if (!resolvedOrgId) return [];
+  let query = supabase.from('finance_invoices').select('*').eq('org_id', resolvedOrgId);
   query = query.order('issue_date', { ascending: false });
   if (filters?.type && filters.type !== 'all') query = query.eq('type', filters.type);
   if (filters?.status && filters.status !== 'all') query = query.eq('status', filters.status);
@@ -1083,10 +1085,22 @@ function mapDbBudgetTemplateLine(row: Record<string, unknown>): BudgetTemplateLi
 
 // --- KPIs & Stats ---
 
-export async function getFinanceKPIs(year?: number): Promise<FinanceKPIs> {
+export async function getFinanceKPIs(year?: number, orgId?: string | null): Promise<FinanceKPIs> {
+  const resolvedOrgId = orgId ?? getActiveOrgId();
+  if (!resolvedOrgId) {
+    return {
+      currentBalance: 0,
+      monthlyRevenue: 0,
+      monthlyExpense: 0,
+      subsidy: 0,
+      membership: 0,
+      remainingBudget: 0,
+      trends: { revenue: [], expense: [], balance: [] },
+    };
+  }
   const [allTransactions, accounts] = await Promise.all([
-    getTransactions(), // Toutes les transactions pour le cumul
-    getBankAccounts(),
+    getTransactions(undefined, resolvedOrgId),
+    getBankAccounts(resolvedOrgId),
   ]);
   const initialBalance = accounts.reduce((sum, acc) => sum + (acc.initial_balance ?? 0), 0);
   const currentBalance =

@@ -33,14 +33,14 @@ import * as InvoicesLS from '@/lib/localStorage/finance/invoices';
  */
 export interface IFinanceDataService {
   // Bank Accounts
-  getBankAccounts(): Promise<BankAccount[]>
+  getBankAccounts(orgId?: string | null): Promise<BankAccount[]>
   getBankAccountById(id: string): Promise<BankAccount | null>
   createBankAccount(data: Omit<BankAccount, 'id' | 'created_at' | 'updated_at'>): Promise<BankAccount>
   updateBankAccount(id: string, updates: Partial<BankAccount>): Promise<BankAccount>
   deleteBankAccount(id: string): Promise<void>
 
   // Transactions
-  getTransactions(year?: number): Promise<Transaction[]>
+  getTransactions(year?: number, orgId?: string | null): Promise<Transaction[]>
   getTransactionById(id: string): Promise<Transaction | null>
   createTransaction(data: Omit<Transaction, 'id' | 'entry_number' | 'created_at' | 'updated_at'>): Promise<Transaction>
   updateTransaction(id: string, updates: Partial<Transaction>): Promise<Transaction>
@@ -49,7 +49,7 @@ export interface IFinanceDataService {
   reconcileTransaction(id: string): Promise<Transaction>
 
   // Transaction Categories
-  getTransactionCategories(type?: 'income' | 'expense'): Promise<TransactionCategory[]>
+  getTransactionCategories(type?: 'income' | 'expense', orgId?: string | null): Promise<TransactionCategory[]>
   createTransactionCategory(data: Omit<TransactionCategory, 'id' | 'created_at' | 'updated_at'>): Promise<TransactionCategory>
   updateTransactionCategory(id: string, updates: Partial<TransactionCategory>): Promise<TransactionCategory>
   deleteTransactionCategory(id: string): Promise<TransactionCategory>
@@ -61,7 +61,7 @@ export interface IFinanceDataService {
   updateBudget(id: string, data: { total_budget?: number; description?: string; target_events_count?: number; target_revenue?: number; target_margin?: number; categories?: { category: string; allocated_amount: number; notes?: string }[] }): Promise<Budget & { categories: BudgetCategory[] }>
 
   // Budget Projects
-  getBudgetProjects(filters?: { status?: string; year?: number }): Promise<BudgetProject[]>
+  getBudgetProjects(filters?: { status?: string; year?: number }, orgId?: string | null): Promise<BudgetProject[]>
   getBudgetProject(projectId: string): Promise<BudgetProject | null>
   getProjectBudgetLines(projectId: string): Promise<BudgetProjectLine[]>
   createBudgetProject(data: Omit<BudgetProject, 'id' | 'created_at' | 'updated_at'>): Promise<BudgetProject>
@@ -71,7 +71,7 @@ export interface IFinanceDataService {
   deleteProjectBudgetLines(projectId: string): Promise<void>
 
   // Invoices
-  getInvoices(filters?: { type?: string; status?: string; year?: number }): Promise<(Invoice & { invoice_lines: InvoiceLine[] })[]>
+  getInvoices(filters?: { type?: string; status?: string; year?: number }, orgId?: string | null): Promise<(Invoice & { invoice_lines: InvoiceLine[] })[]>
   getInvoiceById(id: string): Promise<(Invoice & { invoice_lines: InvoiceLine[] }) | null>
   createInvoice(data: { invoice: Omit<Invoice, 'id' | 'invoice_number' | 'created_at' | 'updated_at'>; lines: Omit<InvoiceLine, 'id' | 'invoice_id' | 'created_at'>[] }): Promise<Invoice & { invoice_lines: InvoiceLine[] }>
   updateInvoice(id: string, updates: { invoice?: Partial<Invoice>; lines?: Omit<InvoiceLine, 'id' | 'invoice_id' | 'created_at'>[] }): Promise<Invoice & { invoice_lines: InvoiceLine[] }>
@@ -79,7 +79,7 @@ export interface IFinanceDataService {
   markInvoiceAsPaid(id: string, paidDate?: string): Promise<Invoice & { invoice_lines: InvoiceLine[] }>
 
   // KPIs & Stats
-  getFinanceKPIs(year?: number): Promise<FinanceKPIs>
+  getFinanceKPIs(year?: number, orgId?: string | null): Promise<FinanceKPIs>
   getProfitAndLoss(periodType?: 'month' | 'quarter' | 'semester' | 'year', year?: number, month?: number): Promise<ProfitAndLoss>
   getBalanceSheet(periodType?: 'month' | 'quarter' | 'semester' | 'year', year?: number): Promise<BalanceSheet>
   getFinancialRatios(periodType?: 'month' | 'quarter' | 'semester' | 'year', year?: number): Promise<FinancialRatios>
@@ -91,7 +91,7 @@ export interface IFinanceDataService {
  */
 class LocalStorageFinanceService implements IFinanceDataService {
   // Bank Accounts
-  async getBankAccounts(): Promise<BankAccount[]> {
+  async getBankAccounts(_orgId?: string | null): Promise<BankAccount[]> {
     return BankAccountsLS.getBankAccounts()
   }
 
@@ -112,7 +112,7 @@ class LocalStorageFinanceService implements IFinanceDataService {
   }
 
   // Transactions
-  async getTransactions(year?: number): Promise<Transaction[]> {
+  async getTransactions(year?: number, _orgId?: string | null): Promise<Transaction[]> {
     return TransactionsLS.getTransactions(year)
   }
 
@@ -141,7 +141,7 @@ class LocalStorageFinanceService implements IFinanceDataService {
   }
 
   // Transaction Categories
-  async getTransactionCategories(type?: 'income' | 'expense'): Promise<TransactionCategory[]> {
+  async getTransactionCategories(type?: 'income' | 'expense', _orgId?: string | null): Promise<TransactionCategory[]> {
     return TransactionsLS.getTransactionCategories(type)
   }
 
@@ -175,7 +175,7 @@ class LocalStorageFinanceService implements IFinanceDataService {
   }
 
   // Budget Projects
-  async getBudgetProjects(filters?: { status?: string; year?: number }): Promise<BudgetProject[]> {
+  async getBudgetProjects(filters?: { status?: string; year?: number }, _orgId?: string | null): Promise<BudgetProject[]> {
     return BudgetsLS.getBudgetProjects(filters)
   }
 
@@ -208,7 +208,7 @@ class LocalStorageFinanceService implements IFinanceDataService {
   }
 
   // Invoices
-  async getInvoices(filters?: { type?: string; status?: string; year?: number }): Promise<(Invoice & { invoice_lines: InvoiceLine[] })[]> {
+  async getInvoices(filters?: { type?: string; status?: string; year?: number }, _orgId?: string | null): Promise<(Invoice & { invoice_lines: InvoiceLine[] })[]> {
     return InvoicesLS.getInvoices(filters)
   }
 
@@ -233,7 +233,7 @@ class LocalStorageFinanceService implements IFinanceDataService {
   }
 
   // KPIs & Stats (Simplified implementations)
-  async getFinanceKPIs(year?: number): Promise<FinanceKPIs> {
+  async getFinanceKPIs(year?: number, _orgId?: string | null): Promise<FinanceKPIs> {
     const transactions = await this.getTransactions(year)
     const accounts = await this.getBankAccounts()
     
@@ -340,8 +340,8 @@ class LocalStorageFinanceService implements IFinanceDataService {
  * Implémentation Supabase du service
  */
 class SupabaseFinanceService implements IFinanceDataService {
-  async getBankAccounts(): Promise<BankAccount[]> {
-    return FinanceSupabase.getBankAccounts();
+  async getBankAccounts(orgId?: string | null): Promise<BankAccount[]> {
+    return FinanceSupabase.getBankAccounts(orgId);
   }
   async getBankAccountById(id: string): Promise<BankAccount | null> {
     return FinanceSupabase.getBankAccountById(id);
@@ -356,8 +356,8 @@ class SupabaseFinanceService implements IFinanceDataService {
     return FinanceSupabase.deleteBankAccount(id);
   }
 
-  async getTransactions(year?: number): Promise<Transaction[]> {
-    return FinanceSupabase.getTransactions(year);
+  async getTransactions(year?: number, orgId?: string | null): Promise<Transaction[]> {
+    return FinanceSupabase.getTransactions(year, orgId);
   }
   async getTransactionById(id: string): Promise<Transaction | null> {
     return FinanceSupabase.getTransactionById(id);
@@ -378,8 +378,8 @@ class SupabaseFinanceService implements IFinanceDataService {
     return FinanceSupabase.reconcileTransaction(id);
   }
 
-  async getTransactionCategories(type?: 'income' | 'expense'): Promise<TransactionCategory[]> {
-    return FinanceSupabase.getTransactionCategories(type);
+  async getTransactionCategories(type?: 'income' | 'expense', orgId?: string | null): Promise<TransactionCategory[]> {
+    return FinanceSupabase.getTransactionCategories(type, orgId);
   }
   async createTransactionCategory(data: Omit<TransactionCategory, 'id' | 'created_at' | 'updated_at'>): Promise<TransactionCategory> {
     return FinanceSupabase.createTransactionCategory(data);
@@ -404,8 +404,8 @@ class SupabaseFinanceService implements IFinanceDataService {
     return FinanceSupabase.updateBudget(id, data);
   }
 
-  async getBudgetProjects(filters?: { status?: string; year?: number }): Promise<BudgetProject[]> {
-    return FinanceSupabase.getBudgetProjects(filters);
+  async getBudgetProjects(filters?: { status?: string; year?: number }, orgId?: string | null): Promise<BudgetProject[]> {
+    return FinanceSupabase.getBudgetProjects(filters, orgId);
   }
   async getBudgetProject(projectId: string): Promise<BudgetProject | null> {
     return FinanceSupabase.getBudgetProject(projectId);
@@ -429,8 +429,8 @@ class SupabaseFinanceService implements IFinanceDataService {
     return FinanceSupabase.deleteProjectBudgetLines(projectId);
   }
 
-  async getInvoices(filters?: { type?: string; status?: string; year?: number }): Promise<(Invoice & { invoice_lines: InvoiceLine[] })[]> {
-    return FinanceSupabase.getInvoices(filters);
+  async getInvoices(filters?: { type?: string; status?: string; year?: number }, orgId?: string | null): Promise<(Invoice & { invoice_lines: InvoiceLine[] })[]> {
+    return FinanceSupabase.getInvoices(filters, orgId);
   }
   async getInvoiceById(id: string): Promise<(Invoice & { invoice_lines: InvoiceLine[] }) | null> {
     return FinanceSupabase.getInvoiceById(id);
@@ -448,8 +448,8 @@ class SupabaseFinanceService implements IFinanceDataService {
     return FinanceSupabase.markInvoiceAsPaid(id, paidDate);
   }
 
-  async getFinanceKPIs(year?: number): Promise<FinanceKPIs> {
-    return FinanceSupabase.getFinanceKPIs(year);
+  async getFinanceKPIs(year?: number, orgId?: string | null): Promise<FinanceKPIs> {
+    return FinanceSupabase.getFinanceKPIs(year, orgId);
   }
   async getProfitAndLoss(periodType?: 'month' | 'quarter' | 'semester' | 'year', year?: number, month?: number): Promise<ProfitAndLoss> {
     return FinanceSupabase.getProfitAndLoss(periodType, year, month);
