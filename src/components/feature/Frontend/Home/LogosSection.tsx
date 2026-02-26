@@ -8,7 +8,6 @@ import { fadeInUp } from '@/lib/animations';
 const LOGOS = [
   { src: '/svg/logo-studio.svg', alt: 'Logo Studio' },
   { src: '/svg/BMKR_Logo.svg', alt: 'BMKR' },
-  { src: '/svg/Logo_Ekho.svg', alt: 'Ekho' },
 ];
 
 export const LogosSection: React.FC = () => {

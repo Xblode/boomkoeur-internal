@@ -93,7 +93,7 @@ export const Hero: React.FC = () => {
         <div className="relative rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-lg overflow-visible">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-0">
             {/* Contenu texte à gauche */}
-            <div className="p-8 lg:p-12 flex flex-col justify-center text-left min-h-[320px] overflow-hidden rounded-l-2xl">
+            <div className="p-8 lg:p-12 flex flex-col justify-center text-left min-h-[320px] overflow-hidden rounded-2xl lg:rounded-l-2xl">
               <motion.h1
                 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-3 tracking-tight"
                 variants={fadeInUp}
@@ -135,8 +135,8 @@ export const Hero: React.FC = () => {
               </motion.div>
             </div>
 
-            {/* Zone animation 3D à droite */}
-            <div className="relative min-h-[420px] lg:min-h-[520px] flex items-center justify-center bg-zinc-50/50 dark:bg-zinc-900/20 p-8 overflow-visible">
+            {/* Zone animation 3D à droite — masquée sur mobile et tablette */}
+            <div className="hidden lg:flex relative min-h-[420px] lg:min-h-[520px] items-center justify-center bg-zinc-50/50 dark:bg-zinc-900/20 p-8 overflow-visible">
               <div 
                 className="relative w-full h-full flex items-center justify-center scale-100 min-w-[320px] min-h-[320px] lg:min-w-[420px] lg:min-h-[420px]" 
                 style={{ perspective: '1400px' }}
