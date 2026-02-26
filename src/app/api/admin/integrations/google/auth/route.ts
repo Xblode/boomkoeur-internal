@@ -48,14 +48,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
+  const baseUrl = (
+    process.env.NEXT_PUBLIC_APP_URL ?? `http://localhost:${process.env.PORT ?? 3000}`
+  ).replace(/\/+$/, '');
   const defaultRedirectUri = `${baseUrl}/api/admin/integrations/google/callback`;
 
   const orgConfig = await getOrgIntegration<GoogleCredentials>(auth.supabase, orgId, 'google');
   const clientId = orgConfig?.client_id?.trim() || process.env.GOOGLE_CLIENT_ID;
   const clientSecret = orgConfig?.client_secret?.trim() || process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = orgConfig?.redirect_uri?.trim() || defaultRedirectUri;
+  const rawRedirect = orgConfig?.redirect_uri?.trim() || defaultRedirectUri;
+  const redirectUri = rawRedirect.replace(/\/+$/, ''); // Google exige correspondance exacte, pas de slash final
 
   if (!clientId || !clientSecret) {
     return NextResponse.json(

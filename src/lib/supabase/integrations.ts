@@ -40,6 +40,17 @@ export interface GoogleCredentials {
 
 export type IntegrationCredentials = ShotgunCredentials | MetaCredentials | GoogleCredentials;
 
+/**
+ * Récupère la config d'intégration avec le client admin (bypass RLS).
+ * Utilisé quand on n'a pas de session utilisateur (ex: callback OAuth sur autre domaine).
+ */
+export async function getOrgIntegrationWithAdmin<T extends IntegrationCredentials>(
+  orgId: string,
+  provider: IntegrationProvider
+): Promise<T | null> {
+  return getOrgIntegration(createAdminClient(), orgId, provider);
+}
+
 export async function getOrgIntegration<T extends IntegrationCredentials>(
   supabase: SupabaseClient,
   orgId: string,

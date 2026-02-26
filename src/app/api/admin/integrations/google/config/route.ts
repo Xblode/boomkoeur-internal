@@ -37,8 +37,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
+  const baseUrl = (
+    process.env.NEXT_PUBLIC_APP_URL ?? `http://localhost:${process.env.PORT ?? 3000}`
+  ).replace(/\/+$/, '');
   const defaultRedirectUri = `${baseUrl}/api/admin/integrations/google/callback`;
 
   const config = await getOrgIntegration<GoogleCredentials>(auth.supabase, orgId, 'google');
@@ -97,10 +98,13 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
+  const baseUrl = (
+    process.env.NEXT_PUBLIC_APP_URL ?? `http://localhost:${process.env.PORT ?? 3000}`
+  ).replace(/\/+$/, '');
   if (!merged.redirect_uri) {
     merged.redirect_uri = `${baseUrl}/api/admin/integrations/google/callback`;
+  } else {
+    merged.redirect_uri = merged.redirect_uri.replace(/\/+$/, '');
   }
 
   try {

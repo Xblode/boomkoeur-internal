@@ -707,7 +707,8 @@ export default function AdminIntegrationPage() {
             >
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Configurez les identifiants OAuth de votre projet Google Cloud pour connecter Google Workspace.
-                L&apos;URI de redirection doit être ajoutée dans la console Google.
+                Copiez l&apos;URI ci-dessous et ajoutez-la dans Google Console &gt; Credentials &gt; OAuth 2.0 Client ID &gt; Authorized redirect URIs.
+                La correspondance doit être <strong>exacte</strong> (pas de slash final, même protocole).
               </p>
               {error && (
                 <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-sm">
@@ -751,7 +752,7 @@ export default function AdminIntegrationPage() {
                   masked={false}
                   value={googleConfig.redirectUri}
                   onChange={(e) => setGoogleConfig((c) => ({ ...c, redirectUri: e.target.value }))}
-                  placeholder="https://votredomaine.com/api/admin/integrations/google/callback"
+                  placeholder="http://localhost:3000/api/admin/integrations/google/callback"
                   className="w-full"
                 />
               </div>

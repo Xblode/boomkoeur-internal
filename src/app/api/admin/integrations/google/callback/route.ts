@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { verifyAndParseOAuthStateWithOrgSecret } from '@/lib/integrations/google-oauth';
-import { getOrgIntegration, upsertOrgIntegration } from '@/lib/supabase/integrations';
+import { getOrgIntegration, getOrgIntegrationWithAdmin, upsertOrgIntegration } from '@/lib/supabase/integrations';
 import type { GoogleCredentials } from '@/lib/supabase/integrations';
 import { google } from 'googleapis';
 
@@ -55,8 +55,7 @@ export async function GET(request: NextRequest) {
   }
 
   const parsed = await verifyAndParseOAuthStateWithOrgSecret(state, async (oid) => {
-    const supabase = await createClient();
-    const config = await getOrgIntegration<GoogleCredentials>(supabase, oid, 'google');
+    const config = await getOrgIntegrationWithAdmin<GoogleCredentials>(oid, 'google');
     return config?.client_secret ?? null;
   });
   if (!parsed) {
@@ -70,14 +69,16 @@ export async function GET(request: NextRequest) {
     return redirectWithError(auth.error ?? 'Accès refusé');
   }
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
+  const baseUrl = (
+    process.env.NEXT_PUBLIC_APP_URL ?? `http://localhost:${process.env.PORT ?? 3000}`
+  ).replace(/\/+$/, '');
   const defaultRedirectUri = `${baseUrl}/api/admin/integrations/google/callback`;
 
   const orgConfig = await getOrgIntegration<GoogleCredentials>(auth.supabase, parsed.org_id, 'google');
   const clientId = orgConfig?.client_id?.trim() || process.env.GOOGLE_CLIENT_ID;
   const clientSecret = orgConfig?.client_secret?.trim() || process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = orgConfig?.redirect_uri?.trim() || defaultRedirectUri;
+  const rawRedirect = orgConfig?.redirect_uri?.trim() || defaultRedirectUri;
+  const redirectUri = rawRedirect.replace(/\/+$/, '');
 
   if (!clientId || !clientSecret) {
     return redirectWithError(
