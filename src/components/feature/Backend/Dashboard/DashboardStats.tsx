@@ -28,6 +28,7 @@ import { DashboardKPIs } from './DashboardKPIs';
 import { EventCard } from '@/components/feature/Backend/Events';
 import MeetingCard from '@/components/feature/Backend/Meetings/MeetingCard';
 import { CampaignWorkflowCard } from './CampaignWorkflowCard';
+import { DashboardActivityFeed } from './DashboardActivityFeed';
 import { Card, CardContent, CardHeader, CardTitle, EmptyState } from '@/components/ui/molecules';
 import { Badge } from '@/components/ui/atoms';
 import { fadeInUp } from '@/lib/animations';
@@ -522,6 +523,9 @@ export const DashboardStats: React.FC = () => {
               </Card>
             )}
           </div>
+
+          {/* Activités récentes */}
+          <DashboardActivityFeed />
         </div>
       </section>
     </motion.div>

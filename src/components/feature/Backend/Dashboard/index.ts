@@ -5,3 +5,4 @@ export { DashboardAlerts } from './DashboardAlerts';
 export { DashboardNextPostCard } from './DashboardNextPostCard';
 export { DashboardCharts } from './DashboardCharts';
 export { DashboardActivity } from './DashboardActivity';
+export { DashboardActivityFeed } from './DashboardActivityFeed';
