@@ -215,7 +215,12 @@ export default function AdminIntegrationPage() {
 
   useEffect(() => {
     const handleOAuthMessage = (e: MessageEvent) => {
-      if (e.origin !== window.location.origin) return;
+      // Accepter les messages du même domaine ou domaine alternatif (perret.app ↔ dashboard.perret.app)
+      const base = window.location.origin;
+      const alt = window.location.hostname.startsWith('dashboard.')
+        ? `${window.location.protocol}//${window.location.hostname.replace(/^dashboard\./, '')}`
+        : `${window.location.protocol}//dashboard.${window.location.hostname}`;
+      if (e.origin !== base && e.origin !== alt) return;
       if (e.data?.type === 'google-oauth') {
         if (e.data.success) {
           toast.success('Compte Google connecté avec succès');
@@ -236,9 +241,16 @@ export default function AdminIntegrationPage() {
         toast.error(e.data.error ?? 'Erreur lors de la connexion');
       }
     };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') fetchGoogleStatus();
+    };
     window.addEventListener('message', handleOAuthMessage);
-    return () => window.removeEventListener('message', handleOAuthMessage);
-  }, [fetchGoogleStatus]);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.removeEventListener('message', handleOAuthMessage);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [fetchGoogleStatus, fetchStatus]);
 
   const handleConnectMeta = () => {
     if (!activeOrg?.id) return;

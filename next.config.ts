@@ -2,6 +2,16 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
+  async headers() {
+    return [
+      {
+        source: '/site.webmanifest',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+        ],
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {

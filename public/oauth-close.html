@@ -19,14 +19,15 @@
       var targetOrigin = window.location.origin;
 
       if (window.opener) {
-        if (success === 'meta') {
-          window.opener.postMessage({ type: 'meta-oauth', success: true }, targetOrigin);
-        } else if (success === 'google') {
-          window.opener.postMessage({ type: 'google-oauth', success: true }, targetOrigin);
-        } else if (error) {
-          window.opener.postMessage({ type: 'oauth-popup-error', success: false, error: error }, targetOrigin);
+        var msg = success === 'meta' ? { type: 'meta-oauth', success: true }
+          : success === 'google' ? { type: 'google-oauth', success: true }
+          : error ? { type: 'oauth-popup-error', success: false, error: error } : null;
+        if (msg) {
+          window.opener.postMessage(msg, '*');
+          setTimeout(function() { window.close(); }, 100);
+        } else {
+          window.close();
         }
-        window.close();
       } else {
         window.location.replace('/dashboard/admin/integration' + (success ? '?success=' + success : error ? '?error=' + encodeURIComponent(error) : ''));
       }

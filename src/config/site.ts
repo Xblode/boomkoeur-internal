@@ -19,10 +19,13 @@ export const siteConfig = {
   keywords: ['événements', 'billetterie', 'gestion', 'finance', 'campagnes', 'organisation'],
 };
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://perret.app';
+
 /**
  * Métadonnées par défaut
  */
 export const defaultMetadata: Metadata = {
+  metadataBase: new URL(appUrl),
   title: {
     default: siteConfig.name,
     template: `%s | ${siteConfig.name}`,
