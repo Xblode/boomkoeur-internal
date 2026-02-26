@@ -1,5 +1,5 @@
 /**
- * Mise à jour de la session Supabase dans le middleware.
+ * Mise à jour de la session Supabase dans le proxy.
  * Rafraîchit les tokens expirés et protège les routes /dashboard.
  */
 
@@ -72,16 +72,22 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Connecte sur login/register => dashboard
+  // Connecte sur login/register => dashboard (toujours sur dashboard.perret.app en prod)
   if (user && isAuthRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = ROUTES.DASHBOARD;
+    const host = request.headers.get('host') ?? '';
+    const dashboardUrl =
+      process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://dashboard.perret.app';
+    const isProd = host.includes('perret.app');
+    const url = isProd
+      ? new URL(ROUTES.DASHBOARD, dashboardUrl)
+      : request.nextUrl.clone();
+    if (!isProd) url.pathname = ROUTES.DASHBOARD;
     return NextResponse.redirect(url);
   }
 
   // Connecte sur dashboard => verifier s'il a des orgs
   // La verification fine est faite cote client par l'OrgProvider
-  // Le middleware ne peut pas facilement lire la DB, donc on laisse le provider gerer
+  // Le proxy ne peut pas facilement lire la DB, donc on laisse le provider gerer
 
   return supabaseResponse;
 }

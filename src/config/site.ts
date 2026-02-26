@@ -7,8 +7,8 @@ export const siteConfig = {
   name: 'Perret',
   title: 'Perret - Gestion d\'événements et de projets',
   description: 'Plateforme tout-en-un pour gérer vos événements, billetterie, finances, contacts et campagnes. Organisez, pilotez et communiquez en un seul endroit.',
-  url: 'https://perret.fr',
-  ogImage: 'https://perret.fr/og.jpg',
+  url: 'https://perret.app',
+  ogImage: 'https://perret.app/og.jpg',
   links: {
     twitter: 'https://twitter.com',
     github: 'https://github.com',

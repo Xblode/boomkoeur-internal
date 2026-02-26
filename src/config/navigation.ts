@@ -1,22 +1,9 @@
 import { LayoutDashboard, CalendarDays, Wallet, Package, Users, ClipboardList } from 'lucide-react';
 
 /**
- * Configuration de la navigation Frontend
+ * Configuration de la navigation Frontend (header)
  */
-export const frontendNavigation = [
-  {
-    label: 'Accueil',
-    href: '/',
-  },
-  {
-    label: 'À propos',
-    href: '/about',
-  },
-  {
-    label: 'Contact',
-    href: '/contact',
-  },
-];
+export const frontendNavigation: Array<{ label: string; href: string }> = [];
 
 /**
  * Configuration de la navigation Backend
@@ -59,7 +46,6 @@ export const backendNavigation = [
  */
 export const footerLinksGuest = [
   { label: 'Accueil', href: '/' },
-  { label: 'À propos', href: '/about' },
   { label: 'Contact', href: '/contact' },
   { label: 'Connexion', href: '/login' },
   { label: 'Inscription', href: '/register' },
@@ -71,7 +57,6 @@ export const footerLinksGuest = [
  */
 export const footerLinksAuth = [
   { label: 'Accueil', href: '/' },
-  { label: 'À propos', href: '/about' },
   { label: 'Contact', href: '/contact' },
   { label: 'Dashboard', href: '/dashboard' },
   { label: 'Mentions légales', href: '/legal' },

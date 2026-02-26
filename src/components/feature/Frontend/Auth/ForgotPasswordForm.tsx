@@ -48,7 +48,7 @@ export const ForgotPasswordForm: React.FC = () => {
           initial="hidden"
           animate="visible"
         >
-          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 shadow-sm text-center">
+          <div className="rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 shadow-sm text-center">
             <h1 className="text-2xl font-bold text-foreground mb-4">
               Vérifiez votre boîte mail
             </h1>
@@ -73,7 +73,7 @@ export const ForgotPasswordForm: React.FC = () => {
         initial="hidden"
         animate="visible"
       >
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 shadow-sm">
+        <div className="rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 shadow-sm">
           <h1 className="text-3xl font-bold text-foreground mb-2 text-center">
             Mot de passe oublié
           </h1>

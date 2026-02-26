@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
   const admin = createAdminClient();
 
   try {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://dashboard.perret.app';
     const { data, error } = await admin.auth.admin.inviteUserByEmail(email.trim(), {
       data: {
         first_name: firstName?.trim() ?? '',
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
         phone: phone ?? '',
         position: position ?? '',
       },
+      redirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent('/onboarding')}`,
     });
     if (error) {
       return NextResponse.json(

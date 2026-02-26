@@ -48,7 +48,7 @@ const FEATURES = [
 
 export const FeaturesSection: React.FC = () => {
   return (
-    <section className="w-full min-h-[40vh] flex flex-col justify-center px-4 py-12 bg-zinc-50 dark:bg-zinc-900">
+    <section className="w-full min-h-[30vh] flex flex-col justify-center px-4 py-12 bg-zinc-50 dark:bg-zinc-900">
       <motion.div
         className="max-w-7xl mx-auto w-full"
         variants={staggerContainer}

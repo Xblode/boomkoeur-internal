@@ -6,6 +6,60 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/atoms';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
 import { ROUTES } from '@/lib/constants';
+import { cn } from '@/lib/utils';
+import {
+  CalendarDays,
+  ClipboardList,
+  Users,
+  Wallet,
+  Package,
+  Megaphone,
+} from 'lucide-react';
+
+const CARDS = [
+  {
+    title: 'Événements',
+    icon: CalendarDays,
+    className: 'text-blue-500',
+    pos: { x: -220, y: -50, z: 15, rotateX: 10, rotateY: 35, rotateZ: -10 },
+    duration: 3.5,
+  },
+  {
+    title: 'Réunions',
+    icon: ClipboardList,
+    className: 'text-purple-500',
+    pos: { x: -20, y: -170, z: -60, rotateX: 45, rotateY: 0, rotateZ: 15 },
+    duration: 4.2,
+  },
+  {
+    title: 'Commercial',
+    icon: Users,
+    className: 'text-emerald-500',
+    pos: { x: -50, y: 20, z: 40, rotateX: 55, rotateY: 0, rotateZ: -20 },
+    duration: 3.8,
+  },
+  {
+    title: 'Finance',
+    icon: Wallet,
+    className: 'text-amber-500',
+    pos: { x: -100, y: 200, z: 50, rotateX: 65, rotateY: 0, rotateZ: 25 },
+    duration: 4.5,
+  },
+  {
+    title: 'Produits',
+    icon: Package,
+    className: 'text-rose-500',
+    pos: { x: 200, y: 80, z: 70, rotateX: 10, rotateY: -35, rotateZ: 15 },
+    duration: 3.6,
+  },
+  {
+    title: 'Communication',
+    icon: Megaphone,
+    className: 'text-cyan-500',
+    pos: { x: 180, y: -110, z: -30, rotateX: 20, rotateY: -25, rotateZ: -5 },
+    duration: 4.0,
+  },
+];
 
 export const Hero: React.FC = () => {
   return (
@@ -16,10 +70,10 @@ export const Hero: React.FC = () => {
         initial="hidden"
         animate="visible"
       >
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-lg overflow-hidden">
+        <div className="relative rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-lg overflow-visible">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-0">
             {/* Contenu texte à gauche */}
-            <div className="p-8 lg:p-12 flex flex-col justify-center text-left min-h-[320px]">
+            <div className="p-8 lg:p-12 flex flex-col justify-center text-left min-h-[320px] overflow-hidden rounded-l-2xl">
               <motion.h1
                 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-3 tracking-tight"
                 variants={fadeInUp}
@@ -61,16 +115,46 @@ export const Hero: React.FC = () => {
               </motion.div>
             </div>
 
-            {/* Zone animation à droite
-                Idée: 6 mini-cartes flottantes (icônes Événements, Réunions, Commercial, etc.)
-                qui orbitent doucement autour d'un point central, avec un léger effet de parallaxe
-                au survol. Style "dashboard preview" qui donne une impression de productivité. */}
-            <div className="min-h-[280px] lg:min-h-[320px] flex items-center justify-center bg-zinc-50 dark:bg-zinc-900/50 p-8">
-              {/* Placeholder pour l'animation */}
-              <div className="w-full h-full rounded-lg border-2 border-dashed border-zinc-300 dark:border-zinc-700 flex items-center justify-center text-zinc-400 dark:text-zinc-500 text-sm">
-                Zone animation
+            {/* Zone animation 3D à droite */}
+            <div className="relative min-h-[420px] lg:min-h-[520px] flex items-center justify-center bg-zinc-50/50 dark:bg-zinc-900/20 p-8 overflow-visible">
+              <div 
+                className="relative w-full h-full flex items-center justify-center scale-100 min-w-[320px] min-h-[320px] lg:min-w-[420px] lg:min-h-[420px]" 
+                style={{ perspective: '1400px' }}
+              >
+                {CARDS.map((card, i) => (
+                  <motion.div
+                    key={card.title}
+                    initial={{
+                      x: card.pos.x,
+                      y: card.pos.y,
+                      z: card.pos.z,
+                      rotateX: card.pos.rotateX,
+                      rotateY: card.pos.rotateY,
+                      rotateZ: card.pos.rotateZ,
+                    }}
+                    animate={{
+                      y: [card.pos.y, card.pos.y - 15, card.pos.y],
+                    }}
+                    transition={{
+                      duration: card.duration,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                      delay: i * 0.2,
+                    }}
+                    className="absolute w-44 h-52 rounded-2xl bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-white dark:border-zinc-700 shadow-[0_25px_50px_-15px_rgba(0,0,0,0.2)] dark:shadow-[0_25px_50px_-15px_rgba(0,0,0,0.6)] flex flex-col items-center justify-center gap-4 p-5"
+                    style={{ transformStyle: 'preserve-3d' }}
+                  >
+                    <div className={cn("p-4 rounded-xl bg-zinc-100 dark:bg-zinc-950 shadow-inner", card.className)}>
+                      <card.icon size={34} strokeWidth={2.5} />
+                    </div>
+                    <span className="font-semibold text-zinc-700 dark:text-zinc-200 text-base text-center leading-tight">
+                      {card.title}
+                    </span>
+                  </motion.div>
+                ))}
               </div>
             </div>
+            
           </div>
         </div>
       </motion.div>

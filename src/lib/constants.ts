@@ -4,7 +4,6 @@
 export const ROUTES = {
   // Frontend
   HOME: '/',
-  ABOUT: '/about',
   CONTACT: '/contact',
   LOGIN: '/login',
   REGISTER: '/register',
