@@ -26,7 +26,9 @@ function BackendLayoutContent({
   const pathname = usePathname();
   const isDetail = isDetailPage(pathname);
   const useShell = usesDashboardShell(pathname);
-  const isPresentationMode = pathname?.includes('/present');
+  // Mode présentation : /meetings/[id]/present (exclure /presentation utilisé par docs)
+  const isPresentationMode =
+    pathname?.includes('/present') && !pathname?.includes('/presentation');
   const { toolbar } = useToolbar();
 
   // Mode présentation : pas de layout du tout

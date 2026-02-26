@@ -1,52 +1,24 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import UsersList from '@/components/feature/Backend/Admin/Users/UsersList';
 import UserForm from '@/components/feature/Backend/Admin/Users/UserForm';
-import UserDetails from '@/components/feature/Backend/Admin/Users/UserDetails';
 import { User } from '@/types/user';
 import { userService } from '@/lib/services/UserService';
 
 export default function AdminUtilisateursPage() {
   const searchParams = useSearchParams();
   const userIdFromUrl = searchParams.get('userId');
-
   const [refreshKey, setRefreshKey] = useState(0);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    if (userIdFromUrl) {
-      userService.getUserById(userIdFromUrl).then((user) => {
-        if (user) {
-          setSelectedUser(user);
-          setIsDetailsOpen(true);
-        }
-      });
-    }
-  }, [userIdFromUrl]);
 
   const handleRefresh = () => {
     setRefreshKey((prev) => prev + 1);
   };
 
   const handleCreateUser = () => {
-    setEditingUser(null);
     setIsFormOpen(true);
-  };
-
-  const handleEditUser = (user: User) => {
-    setEditingUser(user);
-    setIsDetailsOpen(false);
-    setIsFormOpen(true);
-  };
-
-  const handleViewUser = (user: User) => {
-    setSelectedUser(user);
-    setIsDetailsOpen(true);
   };
 
   const handleDeleteUser = async (user: User) => {
@@ -54,7 +26,6 @@ export default function AdminUtilisateursPage() {
 
     try {
       await userService.deleteUser(user.id);
-      setIsDetailsOpen(false);
       handleRefresh();
     } catch (error) {
       console.error('Error deleting user:', error);
@@ -88,27 +59,16 @@ export default function AdminUtilisateursPage() {
     <div key={refreshKey}>
       <UsersList
         onCreateUser={handleCreateUser}
-        onEditUser={handleEditUser}
-        onViewUser={handleViewUser}
         onDeleteUser={handleDeleteUser}
         onResetPassword={handleResetPassword}
         refreshTrigger={refreshKey}
+        initialExpandedUserId={userIdFromUrl ?? undefined}
       />
 
       <UserForm
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         onSuccess={handleFormSuccess}
-        user={editingUser}
-      />
-
-      <UserDetails
-        isOpen={isDetailsOpen}
-        onClose={() => setIsDetailsOpen(false)}
-        user={selectedUser}
-        onEdit={handleEditUser}
-        onDelete={handleDeleteUser}
-        onResetPassword={handleResetPassword}
       />
     </div>
   );

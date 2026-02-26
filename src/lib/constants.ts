@@ -10,6 +10,7 @@ export const ROUTES = {
 
   // Backend
   DASHBOARD: '/dashboard',
+  DEMO: '/demo',
   SETTINGS: '/dashboard/settings',
   ONBOARDING: '/onboarding',
 

@@ -15,7 +15,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const isTable = size === 'table';
 
     const baseStyles = isTable
-      ? 'flex h-full min-h-8 w-full rounded-md border bg-transparent py-1 text-sm placeholder:text-zinc-500 disabled:cursor-not-allowed disabled:opacity-50 transition-colors focus-visible:outline-none focus-visible:ring-1'
+      ? 'flex h-full min-h-8 w-full rounded-md border bg-transparent px-2 py-1 text-sm placeholder:text-zinc-500 disabled:cursor-not-allowed disabled:opacity-50 transition-colors focus-visible:outline-none focus-visible:ring-1'
       : isXs
         ? 'flex h-6 w-full rounded-md border bg-transparent px-2 py-0.5 text-xs placeholder:text-zinc-500 disabled:cursor-not-allowed disabled:opacity-50 transition-colors focus-visible:outline-none focus-visible:ring-1'
         : isSm

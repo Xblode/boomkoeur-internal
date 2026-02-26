@@ -59,7 +59,7 @@ export function DashboardShell({ children, className }: DashboardShellProps) {
       {hasPageSidebar && (
         <>
           {hasCustomSidebar ? (
-            <aside className="hidden lg:block w-64 shrink-0 bg-backend border-r border-border-custom sticky top-[52px] h-[calc(100vh-52px)] overflow-y-auto">
+            <aside className="hidden lg:block w-64 shrink-0 bg-backend border-r border-zinc-200 dark:border-zinc-800 sticky top-[52px] h-[calc(100vh-52px)] overflow-y-auto">
               <div className="p-4 space-y-4">{pageSidebarConfig.customContent}</div>
             </aside>
           ) : hasStandardSidebar ? (
@@ -93,7 +93,7 @@ export function DashboardShell({ children, className }: DashboardShellProps) {
                 const hasContent = pageSidebarConfig.backLink || allSections.length > 0;
                 if (!hasContent) return null;
                 return (
-                  <div className="lg:hidden flex items-center gap-1 px-2 py-1.5 border-r border-border-custom shrink-0">
+                  <div className="lg:hidden flex items-center gap-1 px-2 py-1.5 border-r border-zinc-200 dark:border-zinc-800 shrink-0">
                     {pageSidebarConfig.backLink && (
                       <Link
                         href={pageSidebarConfig.backLink.href}

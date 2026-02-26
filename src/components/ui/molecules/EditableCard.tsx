@@ -52,7 +52,7 @@ export function EditableCard({
         <div className={cn('flex items-start w-full', showDefaultActions ? 'gap-3' : 'gap-2')}>
           <div
             className={cn(
-              'flex min-w-0 flex-1 overflow-hidden',
+              'flex min-w-0 flex-1 overflow-hidden gap-3',
               showDefaultActions && !isEditing && 'cursor-pointer',
               showDefaultActions && '[&>*:first-child]:!h-10 [&>*:first-child]:!w-10 [&>*:first-child]:!shrink-0',
               !showDefaultActions && 'flex-1'

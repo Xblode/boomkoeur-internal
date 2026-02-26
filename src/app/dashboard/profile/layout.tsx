@@ -1,5 +1,10 @@
 import { ProfileLayoutConfig } from '@/components/feature/Backend/Profile/ProfileLayoutConfig';
+import { DemoGuard } from '@/components/providers/DemoGuard';
 
 export default function ProfileRootLayout({ children }: { children: React.ReactNode }) {
-  return <ProfileLayoutConfig>{children}</ProfileLayoutConfig>;
+  return (
+    <DemoGuard>
+      <ProfileLayoutConfig>{children}</ProfileLayoutConfig>
+    </DemoGuard>
+  );
 }

@@ -8,11 +8,14 @@ import {
   generateId,
   generateOrderNumber,
 } from './storage';
+import { getActiveOrgSlug } from '@/lib/supabase/activeOrg';
 
-const STORAGE_KEY = 'orders';
+function getOrdersStorageKey(): string {
+  return getActiveOrgSlug() === 'demo' ? 'orders_demo' : 'orders';
+}
 
 export function getOrders(): Order[] {
-  return getFromStorage<Order[]>(STORAGE_KEY, []);
+  return getFromStorage<Order[]>(getOrdersStorageKey(), []);
 }
 
 export function getOrderById(id: string): Order | null {
@@ -41,17 +44,17 @@ export function createOrder(input: OrderInput): Order {
   };
   
   orders.push(newOrder);
-  saveToStorage(STORAGE_KEY, orders);
+  saveToStorage(getOrdersStorageKey(), orders);
   
   return newOrder;
 }
 
 export function updateOrder(id: string, updates: Partial<Order>): Order {
-  return updateInStorage<Order>(STORAGE_KEY, id, updates);
+  return updateInStorage<Order>(getOrdersStorageKey(), id, updates);
 }
 
 export function deleteOrder(id: string): void {
-  deleteFromStorage<Order>(STORAGE_KEY, id);
+  deleteFromStorage<Order>(getOrdersStorageKey(), id);
 }
 
 export function filterOrders(filters: OrderFilters): Order[] {

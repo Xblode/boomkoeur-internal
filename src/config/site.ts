@@ -3,8 +3,11 @@ import { Metadata } from 'next';
 /**
  * Configuration générale du site
  */
+import packageJson from '../../package.json';
+
 export const siteConfig = {
   name: 'Perret',
+  version: packageJson.version,
   title: 'Perret - Gestion d\'événements et de projets',
   description: 'Plateforme tout-en-un pour gérer vos événements, billetterie, finances, contacts et campagnes. Organisez, pilotez et communiquez en un seul endroit.',
   url: 'https://perret.app',

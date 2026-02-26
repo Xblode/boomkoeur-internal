@@ -73,7 +73,7 @@ export function PageSidebar({
   const compactBar = compact && !compactBarInToolbar && allSections.length > 0 ? (
     <div
       className={cn(
-        'lg:hidden shrink-0 flex flex-col gap-1 py-2 px-1 border-r border-border-custom bg-backend w-[52px]',
+        'lg:hidden shrink-0 flex flex-col gap-1 py-2 px-1 border-r border-zinc-200 dark:border-zinc-800 bg-backend w-[52px]',
         className
       )}
     >
@@ -134,7 +134,7 @@ export function PageSidebar({
       {compactBar}
       <aside
         className={cn(
-          'w-64 shrink-0 bg-backend border-r border-border-custom sticky top-[52px] h-[calc(100vh-52px)] overflow-y-auto',
+          'w-64 shrink-0 bg-backend border-r border-zinc-200 dark:border-zinc-800 sticky top-[52px] h-[calc(100vh-52px)] overflow-y-auto',
           compact && 'hidden lg:block',
           className
         )}
@@ -145,7 +145,7 @@ export function PageSidebar({
         )}
 
         {hasNav && (
-          <div className={cn(backLink && 'border-t border-border-custom pt-4')}>
+          <div className={cn(backLink && 'border-t border-zinc-200 dark:border-zinc-800 pt-4')}>
             {entitySelector && (
               <div className="mb-3">{entitySelector}</div>
             )}

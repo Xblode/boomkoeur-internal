@@ -3,8 +3,16 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { CalendarDays, Users, Package } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/molecules';
-import { Spinner, Badge } from '@/components/ui/atoms';
+import {
+  Spinner,
+  Badge,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/atoms';
 import { TablePagination } from '@/components/ui/molecules';
 import { getActivities, type Activity, type ActivityType } from '@/lib/activities';
 
@@ -53,7 +61,7 @@ export default function AdminLogsPage() {
   const totalPages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
 
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-4">
       <div>
         <h1 className="text-3xl font-bold text-foreground mb-2">Logs</h1>
         <p className="text-muted-foreground">
@@ -61,73 +69,80 @@ export default function AdminLogsPage() {
         </p>
       </div>
 
-      <Card variant="outline" className="overflow-hidden">
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex justify-center py-16">
-              <Spinner size="md" />
-            </div>
-          ) : activities.length === 0 ? (
-            <div className="py-16 text-center text-muted-foreground text-sm">
-              Aucune activité enregistrée.
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border-custom bg-surface-subtle/50">
-                      <th className="text-left py-2.5 px-3 font-medium text-muted-foreground w-24">
-                        Date
-                      </th>
-                      <th className="text-left py-2.5 px-3 font-medium text-muted-foreground w-28">
-                        Type
-                      </th>
-                      <th className="text-left py-2.5 px-3 font-medium text-muted-foreground w-36">
-                        Créé par
-                      </th>
-                      <th className="text-left py-2.5 px-3 font-medium text-muted-foreground">
-                        Titre
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activities.map((a) => (
-                      <tr
-                        key={`${a.type}-${a.id}`}
-                        className="border-b border-border-custom last:border-b-0 hover:bg-surface-subtle/50"
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <Spinner size="md" />
+        </div>
+      ) : activities.length === 0 ? (
+        <div className="py-16 text-center text-muted-foreground text-sm">
+          Aucune activité enregistrée.
+        </div>
+      ) : (
+        <>
+          <div className="rounded-xl overflow-x-auto flex flex-col">
+            <Table
+              variant="default"
+              resizable={false}
+              statusColumn={false}
+              selectionColumn={false}
+              fillColumn={false}
+            >
+              <TableHeader>
+                <TableRow hoverCellOnly>
+                  <TableHead minWidth={100} defaultWidth={120} className="px-2">
+                    Type
+                  </TableHead>
+                  <TableHead minWidth={100} defaultWidth={120} className="px-2">
+                    Action
+                  </TableHead>
+                  <TableHead minWidth={160} defaultWidth={200}>
+                    Date
+                  </TableHead>
+                  <TableHead minWidth={220} defaultWidth={400} className="px-3">
+                    Titre
+                  </TableHead>
+                  <TableHead minWidth={180} defaultWidth={220} align="right">
+                    Créé par
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {activities.map((a) => (
+                  <TableRow key={`${a.type}-${a.id}`}>
+                    <TableCell noHoverBorder className="px-2">
+                      <Badge variant="secondary" className="inline-flex items-center gap-1">
+                        {getTypeIcon(a.type)}
+                        {TYPE_LABELS[a.type]}
+                      </Badge>
+                    </TableCell>
+                    <TableCell noHoverBorder className="px-2 text-sm">
+                      {a.action === 'deleted' ? 'Supprimé' : 'Créé'}
+                    </TableCell>
+                    <TableCell noHoverBorder className="text-muted-foreground whitespace-nowrap text-sm">
+                      {a.createdAt.toLocaleDateString('fr-FR', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </TableCell>
+                    <TableCell noHoverBorder className="px-3">
+                      <Link
+                        href={a.url}
+                        className="text-foreground hover:text-accent hover:underline truncate block w-full"
                       >
-                        <td className="py-2 px-3 text-muted-foreground whitespace-nowrap">
-                          {a.createdAt.toLocaleDateString('fr-FR', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </td>
-                        <td className="py-2 px-3">
-                          <Badge variant="secondary" className="inline-flex items-center gap-1">
-                            {getTypeIcon(a.type)}
-                            {TYPE_LABELS[a.type]}
-                          </Badge>
-                        </td>
-                        <td className="py-2 px-3 text-muted-foreground text-xs">
-                          {a.createdBy ?? '—'}
-                        </td>
-                        <td className="py-2 px-3">
-                          <Link
-                            href={a.url}
-                            className="text-foreground hover:text-accent hover:underline truncate block max-w-md"
-                          >
-                            {a.title}
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        {a.title}
+                      </Link>
+                    </TableCell>
+                    <TableCell noHoverBorder className="text-muted-foreground text-xs" align="right">
+                      {a.createdBy ?? '—'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            {totalPages > 1 && (
               <div className="px-4 pb-4">
                 <TablePagination
                   currentPage={page}
@@ -137,10 +152,10 @@ export default function AdminLogsPage() {
                   onPageChange={setPage}
                 />
               </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

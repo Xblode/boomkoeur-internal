@@ -135,7 +135,12 @@ const TableHead = React.forwardRef<HTMLTableCellElement, TableHeadProps>(
         {...(reorderableColumns && sortableId ? listeners : {})}
         {...props}
       >
-        <span className={cn('inline-flex w-full h-full items-center gap-1.5', centerContent && 'justify-center')}>
+        <span className={cn(
+          'inline-flex w-full h-full items-center gap-1.5',
+          centerContent && 'justify-center',
+          align === 'right' && 'justify-end',
+          align === 'left' && 'justify-start'
+        )}>
           {children}
           {sortable && (
             onSortClick ? (

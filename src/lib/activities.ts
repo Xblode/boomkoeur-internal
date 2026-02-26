@@ -8,6 +8,8 @@ import { getActiveOrgId } from './supabase/activeOrg';
 
 export type ActivityType = 'event' | 'meeting' | 'product';
 
+export type ActivityAction = 'created' | 'deleted';
+
 export interface Activity {
   id: string;
   type: ActivityType;
@@ -15,6 +17,8 @@ export interface Activity {
   createdAt: Date;
   url: string;
   createdBy?: string;
+  /** Action effectuée : création ou suppression */
+  action?: ActivityAction;
 }
 
 const FETCH_LIMIT_PER_TABLE = 500;
@@ -38,6 +42,7 @@ function buildEventActivity(row: EventRow, creatorNames: Map<string, string>): A
   return {
     id: row.id,
     type: 'event',
+    action: 'created',
     title: row.name,
     createdAt: new Date(row.created_at),
     url: `/dashboard/events/${row.id}`,
@@ -49,6 +54,7 @@ function buildMeetingActivity(row: MeetingRow, creatorNames: Map<string, string>
   return {
     id: row.id,
     type: 'meeting',
+    action: 'created',
     title: row.title,
     createdAt: new Date(row.created_at),
     url: `/dashboard/meetings/${row.id}`,
@@ -60,6 +66,7 @@ function buildProductActivity(row: ProductRow, creatorNames: Map<string, string>
   return {
     id: row.id,
     type: 'product',
+    action: 'created',
     title: row.name,
     createdAt: new Date(row.created_at),
     url: `/dashboard/products/${row.id}`,
@@ -96,14 +103,18 @@ export async function getActivities(
     ]);
 
   const creatorIds = new Set<string>();
-  for (const r of eventsRes.data ?? []) {
-    if ((r as EventRow).created_by) creatorIds.add((r as EventRow).created_by!);
+  const eventsData = (eventsRes.data ?? []) as unknown as EventRow[];
+  const meetingsData = (meetingsRes.data ?? []) as unknown as MeetingRow[];
+  const productsData = (productsRes.data ?? []) as unknown as ProductRow[];
+
+  for (const r of eventsData) {
+    if (r.created_by) creatorIds.add(r.created_by);
   }
-  for (const r of meetingsRes.data ?? []) {
-    if ((r as MeetingRow).created_by) creatorIds.add((r as MeetingRow).created_by!);
+  for (const r of meetingsData) {
+    if (r.created_by) creatorIds.add(r.created_by);
   }
-  for (const r of productsRes.data ?? []) {
-    if ((r as ProductRow).created_by) creatorIds.add((r as ProductRow).created_by!);
+  for (const r of productsData) {
+    if (r.created_by) creatorIds.add(r.created_by);
   }
 
   let creatorNames = new Map<string, string>();
@@ -120,15 +131,9 @@ export async function getActivities(
     );
   }
 
-  const events = (eventsRes.data ?? []).map((r) =>
-    buildEventActivity(r as EventRow, creatorNames)
-  );
-  const meetings = (meetingsRes.data ?? []).map((r) =>
-    buildMeetingActivity(r as MeetingRow, creatorNames)
-  );
-  const products = (productsRes.data ?? []).map((r) =>
-    buildProductActivity(r as ProductRow, creatorNames)
-  );
+  const events = eventsData.map((r) => buildEventActivity(r, creatorNames));
+  const meetings = meetingsData.map((r) => buildMeetingActivity(r, creatorNames));
+  const products = productsData.map((r) => buildProductActivity(r, creatorNames));
 
   const all = [...events, ...meetings, ...products].sort(
     (a, b) => b.createdAt.getTime() - a.createdAt.getTime()

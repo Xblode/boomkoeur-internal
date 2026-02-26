@@ -67,7 +67,7 @@ export const InlineEdit = React.forwardRef<HTMLInputElement, InlineEditProps>(
         className={cn(
           'group transition-colors',
           readOnly ? 'cursor-default' : 'cursor-text',
-          isTable ? 'inline-flex w-full h-full min-w-0 min-h-8 items-center rounded py-0.5' : 'rounded-lg p-1 -m-1',
+          isTable ? 'inline-flex w-full h-full min-w-0 min-h-8 items-center rounded py-0.5 px-2' : 'rounded-lg p-1 -m-1',
           !isTable && 'inline-flex items-center gap-2',
           isTable
             ? 'border-0'

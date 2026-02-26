@@ -130,11 +130,11 @@ export default function AdminGeneralPage() {
               label="Type"
               description="Le type de structure."
               htmlFor="orgType"
-              controlClassName="w-full md:w-2/3 flex justify-end"
+              controlClassName="w-full min-w-0 md:max-w-md"
             >
               <Select
                 id="orgType"
-                className="max-w-md"
+                className="w-full"
                 value={settings.type}
                 onChange={(e) => setSettings({ ...settings, type: e.target.value as OrgType })}
                 options={[

@@ -5,11 +5,14 @@ import {
   saveToStorage,
   generateId,
 } from './storage';
+import { getActiveOrgSlug } from '@/lib/supabase/activeOrg';
 
-const STORAGE_KEY = 'order_lines';
+function getOrderLinesStorageKey(): string {
+  return getActiveOrgSlug() === 'demo' ? 'order_lines_demo' : 'order_lines';
+}
 
 export function getOrderLines(): OrderLine[] {
-  return getFromStorage<OrderLine[]>(STORAGE_KEY, []);
+  return getFromStorage<OrderLine[]>(getOrderLinesStorageKey(), []);
 }
 
 export function getOrderLinesByOrderId(orderId: string): OrderLine[] {
@@ -31,7 +34,7 @@ export function addOrderLine(input: OrderLineInput): OrderLine {
   };
   
   lines.push(newLine);
-  saveToStorage(STORAGE_KEY, lines);
+  saveToStorage(getOrderLinesStorageKey(), lines);
   
   return newLine;
 }
@@ -53,7 +56,7 @@ export function updateOrderLine(
   };
   
   lines[index] = updatedLine;
-  saveToStorage(STORAGE_KEY, lines);
+  saveToStorage(getOrderLinesStorageKey(), lines);
   
   return updatedLine;
 }
@@ -61,11 +64,11 @@ export function updateOrderLine(
 export function removeOrderLine(id: string): void {
   const lines = getOrderLines();
   const filteredLines = lines.filter((l) => l.id !== id);
-  saveToStorage(STORAGE_KEY, filteredLines);
+  saveToStorage(getOrderLinesStorageKey(), filteredLines);
 }
 
 export function removeOrderLinesByOrderId(orderId: string): void {
   const lines = getOrderLines();
   const filteredLines = lines.filter((l) => l.order_id !== orderId);
-  saveToStorage(STORAGE_KEY, filteredLines);
+  saveToStorage(getOrderLinesStorageKey(), filteredLines);
 }

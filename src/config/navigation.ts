@@ -46,6 +46,7 @@ export const backendNavigation = [
  */
 export const footerLinksGuest = [
   { label: 'Accueil', href: '/' },
+  { label: 'Démo', href: '/demo' },
   { label: 'Contact', href: '/contact' },
   { label: 'Connexion', href: '/login' },
   { label: 'Inscription', href: '/register' },

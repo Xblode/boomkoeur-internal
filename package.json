@@ -1,8 +1,9 @@
 {
-  "name": "template-v1",
-  "version": "0.1.0",
+  "name": "perret",
+  "version": "1.3.0",
   "private": true,
   "scripts": {
+    "demo:create": "node scripts/create-demo.js",
     "dev": "next dev",
     "build": "next build",
     "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",

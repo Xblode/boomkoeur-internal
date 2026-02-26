@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/atoms';
@@ -61,7 +61,27 @@ const CARDS = [
   },
 ];
 
+const MOBILE_POS_SCALE = 0.4; // Rapproche les cartes sur mobile
+
 export const Hero: React.FC = () => {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)');
+    const set = () => setIsMobile(mq.matches);
+    set();
+    mq.addEventListener('change', set);
+    return () => mq.removeEventListener('change', set);
+  }, []);
+
+  const getPos = (pos: (typeof CARDS)[0]['pos']) => ({
+    x: isMobile ? pos.x * MOBILE_POS_SCALE : pos.x,
+    y: isMobile ? pos.y * MOBILE_POS_SCALE : pos.y,
+    z: pos.z,
+    rotateX: pos.rotateX,
+    rotateY: pos.rotateY,
+    rotateZ: pos.rotateZ,
+  });
+
   return (
     <section className="w-full min-h-[50vh] flex items-center justify-center px-4 py-12 bg-gradient-to-b from-white to-zinc-50 dark:from-black dark:to-zinc-900">
       <motion.div
@@ -102,14 +122,14 @@ export const Hero: React.FC = () => {
                 className="flex flex-col sm:flex-row gap-4"
                 variants={fadeInUp}
               >
-                <Link href={ROUTES.LOGIN}>
-                  <Button variant="outline" size="lg">
-                    Connexion
+                <Link href={ROUTES.DEMO}>
+                  <Button variant="primary" size="lg">
+                    Essayer la démo
                   </Button>
                 </Link>
                 <Link href={ROUTES.REGISTER}>
-                  <Button variant="primary" size="lg">
-                    S&apos;inscrire
+                  <Button variant="outline" size="lg">
+                    Commencer
                   </Button>
                 </Link>
               </motion.div>
@@ -121,19 +141,22 @@ export const Hero: React.FC = () => {
                 className="relative w-full h-full flex items-center justify-center scale-100 min-w-[320px] min-h-[320px] lg:min-w-[420px] lg:min-h-[420px]" 
                 style={{ perspective: '1400px' }}
               >
-                {CARDS.map((card, i) => (
+                {CARDS.map((card, i) => {
+                  const pos = getPos(card.pos);
+                  const bounceOffset = isMobile ? 8 : 15;
+                  return (
                   <motion.div
                     key={card.title}
                     initial={{
-                      x: card.pos.x,
-                      y: card.pos.y,
-                      z: card.pos.z,
-                      rotateX: card.pos.rotateX,
-                      rotateY: card.pos.rotateY,
-                      rotateZ: card.pos.rotateZ,
+                      x: pos.x,
+                      y: pos.y,
+                      z: pos.z,
+                      rotateX: pos.rotateX,
+                      rotateY: pos.rotateY,
+                      rotateZ: pos.rotateZ,
                     }}
                     animate={{
-                      y: [card.pos.y, card.pos.y - 15, card.pos.y],
+                      y: [pos.y, pos.y - bounceOffset, pos.y],
                     }}
                     transition={{
                       duration: card.duration,
@@ -151,7 +174,8 @@ export const Hero: React.FC = () => {
                       {card.title}
                     </span>
                   </motion.div>
-                ))}
+                );
+                })}
               </div>
             </div>
             

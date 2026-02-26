@@ -7,7 +7,7 @@ import { getUserOrganisations, getUserRoleInOrg } from '@/lib/supabase/organisat
 import { supabase } from '@/lib/supabase/client';
 import { useUser } from '@/hooks';
 import { userService } from '@/lib/services/UserService';
-import { setActiveOrgId } from '@/lib/supabase/activeOrg';
+import { setActiveOrgId, setActiveOrgSlug } from '@/lib/supabase/activeOrg';
 
 const ACTIVE_ORG_KEY = 'active_org_id';
 
@@ -43,6 +43,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
       setUserRole(null);
       setIsSuperAdmin(false);
       setIsLoading(false);
+      setActiveOrgSlug(null);
       return;
     }
 
@@ -61,6 +62,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
       if (orgs.length === 0) {
         setActiveOrg(null);
         setUserRole(null);
+        setActiveOrgSlug(null);
         setIsLoading(false);
         if (pathname?.startsWith('/dashboard')) {
           router.push('/onboarding');
@@ -76,6 +78,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(ACTIVE_ORG_KEY, selected.id);
       userService.setOrgId(selected.id);
       setActiveOrgId(selected.id);
+      setActiveOrgSlug(selected.slug);
 
       const role = await getUserRoleInOrg(selected.id);
       setUserRole(role);
@@ -83,6 +86,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
       setUserOrgs([]);
       setActiveOrg(null);
       setUserRole(null);
+      setActiveOrgSlug(null);
     } finally {
       setIsLoading(false);
     }
@@ -102,6 +106,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(ACTIVE_ORG_KEY, orgId);
     userService.setOrgId(orgId);
     setActiveOrgId(orgId);
+    setActiveOrgSlug(org.slug);
 
     const role = await getUserRoleInOrg(orgId);
     setUserRole(role);
@@ -135,4 +140,9 @@ export function useOrg() {
     throw new Error('useOrg must be used within an OrgProvider');
   }
   return context;
+}
+
+/** Version optionnelle : retourne undefined si hors OrgProvider (ex. Header frontend) */
+export function useOrgOptional() {
+  return useContext(OrgContext);
 }

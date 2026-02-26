@@ -9,7 +9,7 @@ const DETAIL_PAGE_PREFIXES = [
   '/dashboard/meetings/', // MeetingDetailLayout
   '/dashboard/finance',
   '/dashboard/commercial',
-  '/dashboard/test',
+  '/dashboard/docs',
   '/dashboard/products',
   '/dashboard/admin',
   '/dashboard/settings',
@@ -29,7 +29,7 @@ export function isDetailPage(pathname: string | null | undefined): boolean {
 /** Routes qui utilisent DashboardShell (config via providers) au lieu du layout legacy */
 const DASHBOARD_SHELL_PREFIXES = [
   '/dashboard',
-  '/dashboard/test',
+  '/dashboard/docs',
   '/dashboard/commercial',
   '/dashboard/finance',
   '/dashboard/profile',

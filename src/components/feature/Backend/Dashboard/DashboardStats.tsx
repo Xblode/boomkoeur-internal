@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Plus, ArrowRight, Instagram, Facebook, MessageCircle, Inbox, CalendarDays, Clock } from 'lucide-react';
+import { Plus, ArrowRight, Instagram, Facebook, MessageCircle, Inbox, CalendarDays, Clock, ChevronRight } from 'lucide-react';
 
 // Services & Constants
 import { getMeetings } from '@/lib/supabase/meetings';
@@ -32,6 +32,74 @@ import { DashboardActivityFeed } from './DashboardActivityFeed';
 import { Card, CardContent, CardHeader, CardTitle, EmptyState } from '@/components/ui/molecules';
 import { Badge } from '@/components/ui/atoms';
 import { fadeInUp } from '@/lib/animations';
+import { useOrg } from '@/components/providers/OrgProvider';
+import { getDemoOrders, getDemoOrderLines } from '@/lib/demo/seed-orders';
+
+const ITEM_SIZE = 128; // Hauteur = EventCard compact lg (w-32 h-32)
+const GAP = 8;
+const VISIBLE_COUNT = 2;
+
+function UpcomingEventsCarousel({ events }: { events: Event[] }) {
+  const [index, setIndex] = React.useState(0);
+  const maxIndex = Math.max(0, events.length - VISIBLE_COUNT);
+  const step = VISIBLE_COUNT;
+  const canNext = index < maxIndex;
+
+  const handleNext = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIndex((i) => Math.min(i + step, maxIndex));
+  };
+
+  const itemWidth = ITEM_SIZE + GAP;
+
+  return (
+    <div className="relative w-[calc(2*(128px+8px))] h-full min-h-[128px] flex-shrink-0 group/carousel self-stretch">
+      <div className="overflow-hidden rounded-md h-full">
+        <div
+          className="flex gap-2 h-full transition-transform duration-300 ease-out"
+          style={{ transform: `translateX(-${index * itemWidth}px)` }}
+        >
+          {events.map((ev) => {
+            const imgUrl = ev.media?.posterShotgun || ev.media?.posterInsta || ev.media?.posterA4;
+            const hasImg = !!imgUrl;
+            return (
+              <Link
+                key={ev.id}
+                href={`/dashboard/events/${ev.id}`}
+                className="w-32 h-32 flex-shrink-0 rounded-md overflow-hidden bg-zinc-800 border border-border-custom hover:border-zinc-500 transition-colors"
+              >
+                {hasImg ? (
+                  <Image
+                    src={imgUrl}
+                    alt={ev.name}
+                    width={128}
+                    height={128}
+                    className="object-cover w-full h-full"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <CalendarDays size={32} className="text-zinc-600" aria-hidden />
+                  </div>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+      {canNext && (
+        <button
+          type="button"
+          onClick={handleNext}
+          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-8 h-8 rounded-full bg-zinc-800 border border-border-custom shadow-md flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:bg-zinc-700 z-10"
+          aria-label="Voir les événements suivants"
+        >
+          <ChevronRight className="w-4 h-4 text-foreground" />
+        </button>
+      )}
+    </div>
+  );
+}
 
 function getPlatformIcon(platform: string) {
   switch (platform) {
@@ -69,12 +137,26 @@ interface DashboardData {
 }
 
 export const DashboardStats: React.FC = () => {
+  const { activeOrg, isLoading: orgLoading } = useOrg();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (orgLoading || !activeOrg) return;
+
+    // Seed commandes démo au premier chargement
+    if (activeOrg.slug === 'demo' && typeof window !== 'undefined') {
+      const stored = localStorage.getItem('orders_demo');
+      if (!stored || stored === '[]') {
+        const orders = getDemoOrders();
+        const lines = getDemoOrderLines(orders);
+        localStorage.setItem('orders_demo', JSON.stringify(orders));
+        localStorage.setItem('order_lines_demo', JSON.stringify(lines));
+      }
+    }
+
     loadDashboardData();
-  }, []);
+  }, [activeOrg, orgLoading]);
 
   const loadDashboardData = async () => {
     setLoading(true);
@@ -392,37 +474,19 @@ export const DashboardStats: React.FC = () => {
             <h2 className="text-base font-semibold text-foreground">Prochain Event</h2>
             {data.events.next ? (
               <>
-                <EventCard event={data.events.next} variant="compact" compactSize="lg" />
-                {/* Autres events à venir — images carrées (desktop uniquement) */}
-                {data.events.upcomingOthers.length > 0 && (
-                  <div className="hidden lg:flex gap-2 mt-3">
-                    {data.events.upcomingOthers.map((ev) => {
-                      const imgUrl = ev.media?.posterShotgun || ev.media?.posterInsta || ev.media?.posterA4;
-                      const hasImg = !!imgUrl;
-                      return (
-                        <Link
-                          key={ev.id}
-                          href={`/dashboard/events/${ev.id}`}
-                          className="w-14 h-14 flex-shrink-0 rounded-md overflow-hidden bg-zinc-800 border border-border-custom hover:border-zinc-500 transition-colors"
-                        >
-                          {hasImg ? (
-                            <Image
-                              src={imgUrl}
-                              alt={ev.name}
-                              width={56}
-                              height={56}
-                              className="object-cover w-full h-full"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <CalendarDays size={20} className="text-zinc-600" aria-hidden />
-                            </div>
-                          )}
-                        </Link>
-                      );
-                    })}
+                {/* Desktop: layout horizontal — main card à gauche, carousel à droite */}
+                <div className="hidden lg:flex lg:gap-4 lg:items-stretch">
+                  <div className="flex-1 min-w-0">
+                    <EventCard event={data.events.next} variant="compact" compactSize="lg" />
                   </div>
-                )}
+                  {data.events.upcomingOthers.length > 0 && (
+                    <UpcomingEventsCarousel events={data.events.upcomingOthers} />
+                  )}
+                </div>
+                {/* Mobile: layout vertical empilé */}
+                <div className="lg:hidden space-y-3">
+                  <EventCard event={data.events.next} variant="compact" compactSize="lg" />
+                </div>
                 <div className="mt-3 space-y-2">
                   <h3 className="text-sm font-medium text-foreground">Campagne</h3>
                   {data.events.next.comWorkflow ? (

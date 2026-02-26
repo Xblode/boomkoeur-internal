@@ -14,6 +14,7 @@ import { useMobileNav } from '@/components/providers/MobileNavProvider';
 import { supabase } from '@/lib/supabase/client';
 import { ROUTES } from '@/lib/constants';
 import { useUser } from '@/hooks';
+import { useOrgOptional } from '@/components/providers/OrgProvider';
 import { siteConfig } from '@/config/site';
 
 export interface HeaderProps {
@@ -34,6 +35,8 @@ export const Header: React.FC<HeaderProps> = ({
   user: userProp,
 }) => {
   const { user: sessionUser } = useUser();
+  const orgContext = useOrgOptional();
+  const isDemo = orgContext?.activeOrg?.slug === 'demo';
   const user = userProp ?? (sessionUser
     ? { name: sessionUser.name, email: sessionUser.email, avatar: sessionUser.avatar }
     : { name: 'Utilisateur', email: '' });
@@ -137,72 +140,98 @@ export const Header: React.FC<HeaderProps> = ({
               <Calendar size={18} />
             </Link>
 
-            {/* User Menu */}
-            <div className="relative">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                aria-label="Menu utilisateur"
-                aria-expanded={isUserMenuOpen}
-                className="relative flex items-center justify-center rounded-full p-0 h-7 w-7 min-w-7 border-0"
-              >
-                <div className="h-7 w-7 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden relative group">
-                   {user.avatar ? (
-                     <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
-                   ) : (
-                     <User size={16} className="text-zinc-500" />
-                   )}
-                   <div className="absolute inset-0 bg-white/0 group-hover:bg-white/20 transition-colors duration-200" />
-                </div>
-              </Button>
-
-              {/* Dropdown */}
-              {isUserMenuOpen && (
+            {/* User Menu — désactivé en mode démo (pas d'accès paramètres/profil) */}
+            <div className="relative flex items-center gap-2">
+              {isDemo ? (
                 <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setIsUserMenuOpen(false)} 
-                  />
-                  <div className="absolute right-0 mt-2 w-56 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-backend z-50 p-1 animate-in fade-in zoom-in-95 duration-200">
-                    <div className="px-2 py-1.5 border-b border-zinc-100 dark:border-zinc-800 mb-1">
-                      <p className="text-sm font-medium">{user.name}</p>
-                      <p className="text-xs text-zinc-500">{user.email}</p>
-                    </div>
-                    <Link 
-                      href="/dashboard/profile" 
-                      className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
-                      onClick={() => setIsUserMenuOpen(false)}
-                    >
-                      <User size={16} />
-                      Profil
-                    </Link>
-                    <Link 
-                      href="/dashboard/settings" 
-                      className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
-                      onClick={() => setIsUserMenuOpen(false)}
-                    >
-                      <Settings size={16} />
-                      Paramètres
-                    </Link>
-                    <Link 
-                      href="/dashboard/admin/general" 
-                      className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
-                      onClick={() => setIsUserMenuOpen(false)}
-                    >
-                      <Shield size={16} />
-                      Administratif
-                    </Link>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 mt-1 justify-start h-auto border-0"
-                      onClick={handleSignOut}
-                    >
-                      <LogOut size={16} />
-                      Déconnexion
-                    </Button>
+                  <div
+                    className="h-7 w-7 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden cursor-default opacity-70"
+                    title="Mode démo — paramètres désactivés"
+                  >
+                    {user.avatar ? (
+                      <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <User size={16} className="text-zinc-500" />
+                    )}
                   </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 h-7 px-2"
+                    onClick={handleSignOut}
+                  >
+                    Quitter la démo
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    aria-label="Menu utilisateur"
+                    aria-expanded={isUserMenuOpen}
+                    className="relative flex items-center justify-center rounded-full p-0 h-7 w-7 min-w-7 border-0"
+                  >
+                    <div className="h-7 w-7 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden relative group">
+                      {user.avatar ? (
+                        <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <User size={16} className="text-zinc-500" />
+                      )}
+                      <div className="absolute inset-0 bg-white/0 group-hover:bg-white/20 transition-colors duration-200" />
+                    </div>
+                  </Button>
+
+                  {/* Dropdown */}
+                  {isUserMenuOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      />
+                      <div className="absolute right-0 mt-2 w-56 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-backend z-50 p-1 animate-in fade-in zoom-in-95 duration-200">
+                        <div className="px-2 py-1.5 border-b border-zinc-100 dark:border-zinc-800 mb-1">
+                          <p className="text-sm font-medium">{user.name}</p>
+                          <p className="text-xs text-zinc-500">{user.email}</p>
+                        </div>
+                        <Link
+                          href="/dashboard/profile"
+                          className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <User size={16} />
+                          Profil
+                        </Link>
+                        <Link
+                          href="/dashboard/settings"
+                          className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <Settings size={16} />
+                          Paramètres
+                        </Link>
+                        <Link
+                          href="/dashboard/admin/general"
+                          className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <Shield size={16} />
+                          Administratif
+                        </Link>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 mt-1 justify-start h-auto border-0"
+                          onClick={handleSignOut}
+                        >
+                          <LogOut size={16} />
+                          Déconnexion
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -224,7 +253,7 @@ export const Header: React.FC<HeaderProps> = ({
       className
     )}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-visible">
-        <div className="flex items-center justify-between h-14">
+        <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 font-bold text-lg tracking-tight">
             <Image
