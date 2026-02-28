@@ -1,7 +1,7 @@
 'use client';
 
 import React, { type ReactNode } from 'react';
-import { X, Trash2 } from 'lucide-react';
+import { X, Trash2, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button, IconButton } from '@/components/ui/atoms';
 import { Card } from './Card';
@@ -16,6 +16,8 @@ export interface EditableCardProps {
   headerPadding?: 'sm' | 'md';
   /** default = Card pleine + actions Éditer/Supprimer | outline = Card transparente + actions dans headerContent */
   variant?: 'default' | 'outline';
+  /** Si false, la carte n'est pas éditable (clic désactivé). Défaut: true */
+  editable?: boolean;
   className?: string;
 }
 
@@ -34,26 +36,28 @@ export function EditableCard({
   editContent,
   headerPadding = 'md',
   variant = 'default',
+  editable = true,
   className,
 }: EditableCardProps) {
   const paddingClass = headerPadding === 'sm' ? 'p-3' : 'p-4';
   const cardVariant = variant === 'outline' ? 'outline' : 'default';
   const showDefaultActions = variant === 'default';
+  const canEdit = showDefaultActions && editable && !isEditing;
 
   return (
     <Card variant={cardVariant} className={cn('group/card overflow-hidden', className)}>
       <div
         className={cn(paddingClass, 'relative')}
-        onClick={showDefaultActions && !isEditing ? onEdit : undefined}
-        onKeyDown={showDefaultActions && !isEditing ? (e) => e.key === 'Enter' && onEdit() : undefined}
-        role={showDefaultActions && !isEditing ? 'button' : undefined}
-        tabIndex={showDefaultActions && !isEditing ? 0 : undefined}
+        onClick={canEdit ? onEdit : undefined}
+        onKeyDown={canEdit ? (e) => e.key === 'Enter' && onEdit() : undefined}
+        role={canEdit ? 'button' : undefined}
+        tabIndex={canEdit ? 0 : undefined}
       >
         <div className={cn('flex items-start w-full', showDefaultActions ? 'gap-3' : 'gap-2')}>
           <div
             className={cn(
               'flex min-w-0 flex-1 overflow-hidden gap-3',
-              showDefaultActions && !isEditing && 'cursor-pointer',
+              canEdit && 'cursor-pointer',
               showDefaultActions && '[&>*:first-child]:!h-10 [&>*:first-child]:!w-10 [&>*:first-child]:!shrink-0',
               !showDefaultActions && 'flex-1'
             )}
@@ -74,8 +78,22 @@ export function EditableCard({
                 <X size={14} />
               </Button>
             ) : (
-              onDelete && (
-                <div className="flex items-center opacity-0 group-hover/card:opacity-100 transition-opacity">
+              <div className="flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity">
+                {editable && (
+                  <IconButton
+                    type="button"
+                    icon={<Pencil size={14} />}
+                    ariaLabel="Modifier"
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit();
+                    }}
+                    className="shrink-0 p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600"
+                  />
+                )}
+                {onDelete && (
                   <IconButton
                     type="button"
                     icon={<Trash2 size={14} />}
@@ -88,8 +106,8 @@ export function EditableCard({
                     }}
                     className="shrink-0 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-zinc-400 hover:text-red-600"
                   />
-                </div>
-              )
+                )}
+              </div>
             )}
           </div>
         )}

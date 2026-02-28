@@ -7,10 +7,12 @@ import { saveEvent, updateEvent, getEventWithMergedArtists } from '@/lib/supabas
 import { getCampaigns } from '@/lib/localStorage/communication';
 import { useOrg } from '@/components/providers/OrgProvider';
 
+type PersistUpdates = Partial<Event> | ((current: Event) => Partial<Event>);
+
 interface EventDetailContextValue {
   event: Event;
   setEvent: React.Dispatch<React.SetStateAction<Event>>;
-  persistField: (updates: Partial<Event>) => Promise<void>;
+  persistField: (updates: PersistUpdates) => Promise<void>;
   reloadEvent: () => Promise<void>;
   linkedCampaigns: Campaign[];
 }
@@ -34,31 +36,40 @@ export function EventDetailProvider({ initialEvent, children }: EventDetailProvi
   const eventRef = useRef(event);
   eventRef.current = event;
 
-  const persistField = useCallback(async (updates: Partial<Event>) => {
-    const current = eventRef.current;
-    const statusChangedToCompleted = updates.status === 'completed' && current.status !== 'completed';
+  const persistQueueRef = useRef<Promise<void>>(Promise.resolve());
 
-    if (current.id) {
-      const saved = await updateEvent(current.id, updates);
-      setEvent(saved);
+  const persistField = useCallback(async (updates: PersistUpdates) => {
+    const run = async () => {
+      const current = eventRef.current;
+      const resolved = typeof updates === 'function' ? updates(current) : updates;
+      const statusChangedToCompleted = resolved.status === 'completed' && current.status !== 'completed';
 
-      // Créer automatiquement une transaction billetterie quand l'event passe à "terminé"
-      if (statusChangedToCompleted && saved.shotgunEventId) {
-        try {
-          const headers: Record<string, string> = {};
-          if (activeOrg?.id) headers['X-Org-Id'] = activeOrg.id;
-          await fetch(`/api/events/${saved.id}/create-billetterie-transaction`, {
-            method: 'POST',
-            headers,
-          });
-        } catch {
-          // Silencieux : la transaction peut être créée manuellement
+      if (current.id) {
+        const saved = await updateEvent(current.id, resolved);
+        setEvent(saved);
+        eventRef.current = saved;
+
+        if (statusChangedToCompleted && saved.shotgunEventId) {
+          try {
+            const headers: Record<string, string> = {};
+            if (activeOrg?.id) headers['X-Org-Id'] = activeOrg.id;
+            await fetch(`/api/events/${saved.id}/create-billetterie-transaction`, {
+              method: 'POST',
+              headers,
+            });
+          } catch {
+            // Silencieux
+          }
         }
+      } else {
+        const saved = await saveEvent({ ...current, ...resolved });
+        setEvent(saved);
+        eventRef.current = saved;
       }
-    } else {
-      const saved = await saveEvent({ ...current, ...updates });
-      setEvent(saved);
-    }
+    };
+
+    persistQueueRef.current = persistQueueRef.current.then(run);
+    return persistQueueRef.current;
   }, [activeOrg?.id]);
 
   const reloadEvent = useCallback(async () => {

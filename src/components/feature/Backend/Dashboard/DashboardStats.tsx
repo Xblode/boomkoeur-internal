@@ -26,6 +26,7 @@ import { DashboardKPIs } from './DashboardKPIs';
 import { EventCard } from '@/components/feature/Backend/Events';
 import MeetingCard from '@/components/feature/Backend/Meetings/MeetingCard';
 import { CampaignWorkflowCard } from './CampaignWorkflowCard';
+import { EventSalesStats } from './EventSalesStats';
 import { DashboardActivityFeed } from './DashboardActivityFeed';
 import { Card, CardContent, CardHeader, CardTitle, EmptyState } from '@/components/ui/molecules';
 import { Badge } from '@/components/ui/atoms';
@@ -532,6 +533,7 @@ export const DashboardStats: React.FC = () => {
                       Démarrer la campagne →
                     </Link>
                   )}
+                  <EventSalesStats event={data.events.next} />
                 </div>
               </>
             ) : (

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Artist, ArtistType } from '@/types/event';
 import { Button, Input, Label, IconButton, Badge } from '@/components/ui/atoms';
-import { EmptyState, KPICard, EditableCard } from '@/components/ui/molecules';
+import { EmptyState, KPICard, EditableCard, TimeRangePicker } from '@/components/ui/molecules';
 import { Modal, ModalFooter, ModalThreeColumnLayout } from '@/components/ui/organisms';
 import { cn } from '@/lib/utils';
 import {
@@ -246,11 +246,11 @@ export function EventArtistsSection() {
                     <>
                       <div>
                         <Label className="text-xs font-medium text-zinc-500 mb-1.5 block uppercase tracking-wide">Horaire (cet événement)</Label>
-                        <Input
-                          placeholder="23:00 – 01:00"
+                        <TimeRangePicker
+                          key={artist.id}
                           value={artist.performanceTime ?? ''}
-                          onChange={(e) => updateArtist(artist.id, { performanceTime: e.target.value || undefined })}
-                          fullWidth
+                          onChange={(v) => updateArtist(artist.id, { performanceTime: v || undefined })}
+                          placeholder="23:00 – 01:00"
                         />
                       </div>
                       <div>

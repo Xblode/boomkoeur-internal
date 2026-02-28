@@ -50,8 +50,12 @@ const TYPE_LABELS: Record<string, string> = { post: 'Post', reel: 'Réel', story
 const NETWORK_LABELS: Record<string, string> = { instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok' };
 
 export function EventCampaignSection() {
-  const { event, persistField, linkedCampaigns } = useEventDetail();
+  const { event, setEvent, persistField, linkedCampaigns } = useEventDetail();
   const { activeOrg } = useOrg();
+
+  // Ref pour éviter les conditions de course : ajouts rapides de posts avant que persistField ait fini
+  const eventRef = useRef(event);
+  eventRef.current = event;
 
   // ── Local state ──
   const [wfSectionTab, setWfSectionTab] = useState<'campagne' | 'shotgun' | 'instagram'>('campagne');
@@ -158,8 +162,8 @@ export function EventCampaignSection() {
     const url = wf.shotgunUrl?.trim();
     if (!url) return;
 
-    // Extraire le slug depuis l'URL : https://shotgun.live/events/mon-event-slug
-    const match = url.match(/shotgun\.live\/events\/([^/?#]+)/);
+    // Extraire le slug depuis l'URL : https://shotgun.live/events/slug ou https://shotgun.live/fr/events/slug
+    const match = url.match(/shotgun\.live\/(?:[a-z]{2}\/)?events\/([^/?#]+)/);
     if (!match) {
       setSyncStatus('error');
       setSyncMessage('URL invalide, format attendu : https://shotgun.live/events/...');
@@ -173,9 +177,10 @@ export function EventCampaignSection() {
     try {
       const headers: Record<string, string> = {};
       if (activeOrg?.id) headers['X-Org-Id'] = activeOrg.id;
+      // Recherche par slug (l'API Shotgun name cherche le titre, pas le slug de l'URL)
       const [futureRes, pastRes] = await Promise.all([
-        fetch(`/api/shotgun/events?name=${encodeURIComponent(slug)}`, { headers }),
-        fetch(`/api/shotgun/events?name=${encodeURIComponent(slug)}&past_events=true&limit=50`, { headers }),
+        fetch(`/api/shotgun/events?slug=${encodeURIComponent(slug)}`, { headers }),
+        fetch(`/api/shotgun/events?slug=${encodeURIComponent(slug)}&past_events=true&limit=100`, { headers }),
       ]);
       const [futureJson, pastJson]: [ShotgunEventsResponse, ShotgunEventsResponse] = await Promise.all([
         futureRes.json(),
@@ -191,8 +196,15 @@ export function EventCampaignSection() {
         return;
       }
 
-      // Lier l'event
-      persistField({ shotgunEventId: found.id, shotgunEventUrl: found.url });
+      // Lier l'event et mettre à jour le visuel Shotgun avec la cover de l'event
+      const mediaUpdate = found.coverUrl
+        ? { ...event.media, posterShotgun: found.coverUrl }
+        : undefined;
+      persistField({
+        shotgunEventId: found.id,
+        shotgunEventUrl: found.url,
+        ...(mediaUpdate && { media: mediaUpdate }),
+      });
       setSyncStatus('success');
       setSyncMessage(`Lié à "${found.name}"`);
       setTimeout(() => setSyncStatus('idle'), 4000);
@@ -282,7 +294,7 @@ export function EventCampaignSection() {
       setVisualUrlInputs(prev => ({ ...prev, [type]: '' }));
     };
     return (
-      <div className="p-4 rounded-lg border border-dashed border-border-custom flex flex-col gap-3">
+      <div className="p-4 rounded-md border border-dashed border-border-custom flex flex-col gap-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-md border border-border-custom">
@@ -349,7 +361,7 @@ export function EventCampaignSection() {
               Liste tous les posts et stories dont tu as besoin pour communiquer sur cet événement. Utilise la section Campagne ci-dessous pour les noter.
             </p>
             <div className={cn(
-              'flex items-start gap-3 p-4 rounded-lg border',
+              'flex items-start gap-3 p-4 rounded-md border',
               postsCount > 0 || autoPlanCom
                 ? 'border-green-200 bg-green-50 dark:border-green-900/50 dark:bg-green-950/20'
                 : 'border-border-custom bg-zinc-50 dark:bg-zinc-900/40'
@@ -494,7 +506,7 @@ export function EventCampaignSection() {
             {postsCount > 0 ? (
               <div className="space-y-2">
                 {wf.posts!.map(post => (
-                  <div key={post.id} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border border-border-custom bg-zinc-50 dark:bg-zinc-900/40">
+                  <div key={post.id} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-md border border-border-custom bg-zinc-50 dark:bg-zinc-900/40">
                     <div className="flex items-center gap-2 min-w-0">
                       {post.type && (
                         <Badge variant="secondary" className="text-[10px] shrink-0">
@@ -520,7 +532,7 @@ export function EventCampaignSection() {
                 ))}
               </div>
             ) : (
-              <div className="flex items-start gap-3 p-4 rounded-lg border border-border-custom bg-zinc-50 dark:bg-zinc-900/40">
+              <div className="flex items-start gap-3 p-4 rounded-md border border-border-custom bg-zinc-50 dark:bg-zinc-900/40">
                 <div className="w-4 h-4 rounded-full border-2 border-zinc-300 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium">Aucun post créé pour le moment</p>
@@ -556,7 +568,7 @@ export function EventCampaignSection() {
                   const isComplete = missing.length === 0;
                   return (
                     <div key={post.id} className={cn(
-                      'p-3 rounded-lg border transition-colors',
+                      'p-3 rounded-md border transition-colors',
                       isComplete
                         ? 'border-green-200 bg-green-50 dark:border-green-900/50 dark:bg-green-950/20'
                         : 'border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/20'
@@ -592,7 +604,7 @@ export function EventCampaignSection() {
                 })}
               </div>
             ) : (
-              <div className="flex items-start gap-3 p-4 rounded-lg border border-border-custom bg-zinc-50 dark:bg-zinc-900/40">
+              <div className="flex items-start gap-3 p-4 rounded-md border border-border-custom bg-zinc-50 dark:bg-zinc-900/40">
                 <div className="w-4 h-4 rounded-full border-2 border-zinc-300 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium">Aucun post créé pour le moment</p>
@@ -622,7 +634,7 @@ export function EventCampaignSection() {
               <div className="space-y-2">
                 {wf.posts!.map(post => (
                   <div key={post.id} className={cn(
-                    'p-3 rounded-lg border transition-colors',
+                    'p-3 rounded-md border transition-colors',
                     post.verified
                       ? 'border-green-200 bg-green-50 dark:border-green-900/50 dark:bg-green-950/20'
                       : 'border-border-custom bg-zinc-50 dark:bg-zinc-900/40'
@@ -632,10 +644,18 @@ export function EventCampaignSection() {
                         id={`verify-${post.id}`}
                         checked={!!post.verified}
                         onChange={(e) => {
-                          const updated = (wf.posts ?? []).map(p =>
-                            p.id === post.id ? { ...p, verified: e.target.checked } : p
+                          const checked = e.target.checked;
+                          const postId = post.id;
+                          const currentPosts = eventRef.current.comWorkflow?.posts ?? [];
+                          const updated = currentPosts.map(p =>
+                            p.id === postId ? { ...p, verified: checked } : p
                           );
-                          updateWorkflow({ posts: updated });
+                          setEvent((prev) => ({ ...prev, comWorkflow: buildWfWithPosts(prev.comWorkflow, updated) }));
+                          persistField((current) => ({
+                            comWorkflow: buildWfWithPosts(current.comWorkflow, (current.comWorkflow?.posts ?? []).map(p =>
+                              p.id === postId ? { ...p, verified: checked } : p
+                            )),
+                          }));
                         }}
                       />
                       <div className="flex-1 min-w-0">
@@ -665,7 +685,7 @@ export function EventCampaignSection() {
                 ))}
               </div>
             ) : (
-              <div className="flex items-start gap-3 p-4 rounded-lg border border-border-custom bg-zinc-50 dark:bg-zinc-900/40">
+              <div className="flex items-start gap-3 p-4 rounded-md border border-border-custom bg-zinc-50 dark:bg-zinc-900/40">
                 <div className="w-4 h-4 rounded-full border-2 border-zinc-300 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium">Aucun post créé pour le moment</p>
@@ -682,7 +702,7 @@ export function EventCampaignSection() {
               Lance l&apos;annonce officielle de l&apos;événement. Le premier post doit être publié et le Linktree mis à jour avec le lien de billetterie.
             </p>
             <div className="space-y-3">
-              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-border-custom hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-md border border-border-custom hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
                 <Checkbox
                   id="firstPost"
                   checked={!!wf.manual.firstPostPublished}
@@ -693,7 +713,7 @@ export function EventCampaignSection() {
                   <p className="text-xs text-zinc-500">Post d&apos;annonce de l&apos;événement sur les réseaux</p>
                 </div>
               </label>
-              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-border-custom hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-md border border-border-custom hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
                 <Checkbox
                   id="linktree"
                   checked={!!wf.manual.linktreeUpdated}
@@ -704,7 +724,7 @@ export function EventCampaignSection() {
                   <p className="text-xs text-zinc-500">Lien Shotgun ajouté dans le Linktree</p>
                 </div>
               </label>
-              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-border-custom hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-md border border-border-custom hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
                 <Checkbox
                   id="facebookEvent"
                   checked={!!wf.manual.facebookEventCreated}
@@ -736,12 +756,12 @@ export function EventCampaignSection() {
             </p>
             {eventDate && (
               <div className={cn(
-                'flex items-center gap-4 p-4 rounded-lg border',
+                'flex items-center gap-4 p-4 rounded-md border',
                 isEventPast || !!wf.manual.eventDayPassed
                   ? 'border-green-200 bg-green-50 dark:border-green-900/50 dark:bg-green-950/20'
                   : 'border-border-custom bg-zinc-50 dark:bg-zinc-900/40'
               )}>
-                <div className="w-12 h-12 rounded-lg bg-zinc-900 dark:bg-white flex flex-col items-center justify-center shrink-0">
+                <div className="w-12 h-12 rounded-md bg-zinc-900 dark:bg-white flex flex-col items-center justify-center shrink-0">
                   <span className="text-[10px] font-bold uppercase text-white dark:text-zinc-900 tracking-wider">
                     {eventDate.toLocaleDateString('fr-FR', { month: 'short' })}
                   </span>
@@ -788,7 +808,7 @@ export function EventCampaignSection() {
               Publie ce post selon le calendrier prévu et coche-le une fois mis en ligne.
             </p>
             <div className={cn(
-              'p-4 rounded-lg border transition-colors',
+              'p-4 rounded-md border transition-colors',
               post.published
                 ? 'border-green-200 bg-green-50 dark:border-green-900/50 dark:bg-green-950/20'
                 : 'border-border-custom bg-zinc-50 dark:bg-zinc-900/40'
@@ -798,10 +818,18 @@ export function EventCampaignSection() {
                   id={`pub-${post.id}`}
                   checked={!!post.published}
                   onChange={(e) => {
-                    const updated = (wf.posts ?? []).map(p =>
-                      p.id === post.id ? { ...p, published: e.target.checked } : p
+                    const checked = e.target.checked;
+                    const postId = post.id;
+                    const currentPosts = eventRef.current.comWorkflow?.posts ?? [];
+                    const updated = currentPosts.map(p =>
+                      p.id === postId ? { ...p, published: checked } : p
                     );
-                    updateWorkflow({ posts: updated });
+                    setEvent((prev) => ({ ...prev, comWorkflow: buildWfWithPosts(prev.comWorkflow, updated) }));
+                    persistField((current) => ({
+                      comWorkflow: buildWfWithPosts(current.comWorkflow, (current.comWorkflow?.posts ?? []).map(p =>
+                        p.id === postId ? { ...p, published: checked } : p
+                      )),
+                    }));
                   }}
                 />
                 <div className="flex-1 min-w-0">
@@ -845,7 +873,7 @@ export function EventCampaignSection() {
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             Publie chaque post selon le calendrier prévu et coche-le une fois mis en ligne.
           </p>
-          <div className="flex items-start gap-3 p-4 rounded-lg border border-border-custom bg-zinc-50 dark:bg-zinc-900/40">
+          <div className="flex items-start gap-3 p-4 rounded-md border border-border-custom bg-zinc-50 dark:bg-zinc-900/40">
             <div className="w-4 h-4 rounded-full border-2 border-zinc-300 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium">Aucun post planifié</p>
@@ -863,7 +891,7 @@ export function EventCampaignSection() {
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               Publie les photos et vidéos de l&apos;événement sur les réseaux sociaux.
             </p>
-            <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-border-custom hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+            <label className="flex items-center gap-3 cursor-pointer p-3 rounded-md border border-border-custom hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
               <Checkbox
                 id="photosPublished"
                 checked={!!wf.manual.photosPublished}
@@ -882,7 +910,7 @@ export function EventCampaignSection() {
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               Analyse les performances de la campagne de communication et note les enseignements pour les prochains événements.
             </p>
-            <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-border-custom hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+            <label className="flex items-center gap-3 cursor-pointer p-3 rounded-md border border-border-custom hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
               <Checkbox
                 id="statsAnalyzed"
                 checked={!!wf.manual.statsAnalyzed}
@@ -928,15 +956,35 @@ export function EventCampaignSection() {
     setNewPostType(undefined);
   };
 
+  const buildWfWithPosts = (base: ComWorkflow | undefined, posts: ComWorkflowPost[]): ComWorkflow => ({
+    activePhase: (base?.activePhase && VALID_PHASES.includes(base.activePhase)) ? base.activePhase : 'preparation',
+    activeStep: base?.activeStep ?? 0,
+    manual: { ...base?.manual },
+    overrides: { ...base?.overrides },
+    shotgunUrl: base?.shotgunUrl ?? '',
+    posts,
+  });
+
   const updatePost = (postId: string, updates: Partial<ComWorkflowPost>) => {
-    const updatedPosts = (wf.posts ?? []).map(p =>
+    const currentPosts = eventRef.current.comWorkflow?.posts ?? [];
+    const updatedPosts = currentPosts.map(p =>
       p.id === postId ? { ...p, ...updates } : p
     );
-    updateWorkflow({ posts: updatedPosts });
+    setEvent((prev) => ({ ...prev, comWorkflow: buildWfWithPosts(prev.comWorkflow, updatedPosts) }));
+    persistField((current) => ({
+      comWorkflow: buildWfWithPosts(current.comWorkflow, (current.comWorkflow?.posts ?? []).map(p =>
+        p.id === postId ? { ...p, ...updates } : p
+      )),
+    }));
   };
 
   const deletePost = (postId: string) => {
-    updateWorkflow({ posts: (wf.posts ?? []).filter(p => p.id !== postId) });
+    const currentPosts = eventRef.current.comWorkflow?.posts ?? [];
+    const updatedPosts = currentPosts.filter(p => p.id !== postId);
+    setEvent((prev) => ({ ...prev, comWorkflow: buildWfWithPosts(prev.comWorkflow, updatedPosts) }));
+    persistField((current) => ({
+      comWorkflow: buildWfWithPosts(current.comWorkflow, (current.comWorkflow?.posts ?? []).filter(p => p.id !== postId)),
+    }));
     if (editingPostId === postId) {
       setEditingPostId(null);
     }
@@ -1006,7 +1054,8 @@ export function EventCampaignSection() {
 
   const addVisual = (postId: string, url: string) => {
     if (!url.trim()) return;
-    const post = (wf.posts ?? []).find(p => p.id === postId);
+    const currentPosts = eventRef.current.comWorkflow?.posts ?? [];
+    const post = currentPosts.find(p => p.id === postId);
     if (!post) return;
     const newVisual: PostVisual = {
       id: Date.now().toString(),
@@ -1018,14 +1067,16 @@ export function EventCampaignSection() {
   };
 
   const removeVisual = (postId: string, visualId: string) => {
-    const post = (wf.posts ?? []).find(p => p.id === postId);
+    const currentPosts = eventRef.current.comWorkflow?.posts ?? [];
+    const post = currentPosts.find(p => p.id === postId);
     if (!post) return;
     updatePost(postId, { visuals: (post.visuals ?? []).filter(v => v.id !== visualId) });
   };
 
   const saveVisualUrl = (postId: string, visualId: string, url: string) => {
     if (!url.trim()) return;
-    const post = (wf.posts ?? []).find(p => p.id === postId);
+    const currentPosts = eventRef.current.comWorkflow?.posts ?? [];
+    const post = currentPosts.find(p => p.id === postId);
     if (!post) return;
     updatePost(postId, {
       visuals: (post.visuals ?? []).map(v =>
@@ -1138,10 +1189,11 @@ export function EventCampaignSection() {
                 onEdit={() => toggleEditPost(post.id)}
                 onCloseEdit={() => toggleEditPost(post.id)}
                 onDelete={() => deletePost(post.id)}
+                editable
                 headerPadding="sm"
                 headerContent={
                   <>
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 self-start">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-zinc-100 dark:bg-zinc-800 self-start">
                       <FileText size={20} className="text-zinc-600 dark:text-zinc-400" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -1230,12 +1282,12 @@ export function EventCampaignSection() {
                         </div>
                       </div>
                       <div>
-                        <Label className="text-xs font-medium text-zinc-500 mb-1.5 block uppercase tracking-wide">Description</Label>
+                        <Label className="text-xs font-medium text-zinc-500 mb-1.5 block uppercase tracking-wide">Brief / Idée</Label>
                         <Input
                           key={`desc-${post.id}`}
                           defaultValue={post.description ?? ''}
                           onBlur={(e) => { if (e.target.value !== (post.description ?? '')) updatePost(post.id, { description: e.target.value }); }}
-                          placeholder="Notes ou description du post..."
+                          placeholder="Notes, idée ou description du post..."
                           fullWidth
                           size="sm"
                         />
@@ -1278,7 +1330,7 @@ export function EventCampaignSection() {
                           const isEditingThis = editingVisualId === v.id;
                           const isVideo = isVideoVisual(v);
                           return (
-                            <div key={v.id} className="flex-none rounded-lg overflow-hidden border border-border-custom bg-zinc-100 dark:bg-zinc-800 relative group"
+                            <div key={v.id} className="flex-none rounded-md overflow-hidden border border-border-custom bg-zinc-100 dark:bg-zinc-800 relative group"
                               style={{ width: 'calc((100% - 2rem) / 5)', scrollSnapAlign: 'start' }}>
                               <div className={cn('w-full relative', getVisualAspect(post.type))}>
                                 {renderMedia(v)}
@@ -1352,7 +1404,7 @@ export function EventCampaignSection() {
                         {/* Add visual card */}
                         <div className="flex-none" style={{ width: 'calc((100% - 2rem) / 5)', scrollSnapAlign: 'start' }}>
                           <div className={cn(
-                            'w-full rounded-lg border-2 border-dashed border-zinc-200 dark:border-zinc-700 flex flex-col items-center justify-center gap-2 p-2 bg-zinc-50 dark:bg-zinc-800/40',
+                            'w-full rounded-md border-2 border-dashed border-zinc-200 dark:border-zinc-700 flex flex-col items-center justify-center gap-2 p-2 bg-zinc-50 dark:bg-zinc-800/40',
                             getVisualAspect(post.type)
                           )}>
                             <div className="flex items-center gap-1 text-zinc-300 dark:text-zinc-600">
@@ -1404,7 +1456,7 @@ export function EventCampaignSection() {
 
             {/* Add post form */}
             {showAddPost && (
-              <div className="p-4 rounded-lg border border-border-custom bg-zinc-50 dark:bg-zinc-900/40 space-y-4">
+              <div className="p-4 rounded-md border border-border-custom bg-zinc-50 dark:bg-zinc-900/40 space-y-4">
 
                 <div className="flex items-center gap-2.5">
                   <Popover>
@@ -1488,7 +1540,12 @@ export function EventCampaignSection() {
                         type: newPostType,
                         createdAt: new Date().toISOString(),
                       };
-                      updateWorkflow({ posts: [...(wf.posts ?? []), newPost] });
+                      const currentPosts = eventRef.current.comWorkflow?.posts ?? [];
+                      const newPosts = [...currentPosts, newPost];
+                      setEvent((prev) => ({ ...prev, comWorkflow: buildWfWithPosts(prev.comWorkflow, newPosts) }));
+                      persistField((current) => ({
+                        comWorkflow: buildWfWithPosts(current.comWorkflow, [...(current.comWorkflow?.posts ?? []), newPost]),
+                      }));
                       resetForm();
                     }}>
                     Ajouter

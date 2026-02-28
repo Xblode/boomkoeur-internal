@@ -34,7 +34,13 @@ export async function GET(request: NextRequest) {
   url.searchParams.set('key', apiToken);
 
   const name = searchParams.get('name');
-  if (name) url.searchParams.set('name', name);
+  const slug = searchParams.get('slug');
+  // Quand slug est fourni, on ne filtre pas par name (l'API Shotgun cherche par titre, pas par slug)
+  if (name && !slug) url.searchParams.set('name', name);
+  if (slug) {
+    // Pour la recherche par slug, on récupère plus d'events et on filtre côté serveur
+    url.searchParams.set('limit', '100');
+  }
 
   const pastEvents = searchParams.get('past_events');
   if (pastEvents) url.searchParams.set('past_events', pastEvents);
@@ -58,12 +64,20 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await res.json();
-    const events = data?.data ?? [];
-    console.log(`[Shotgun] Fetched ${events.length} events (params: ${url.searchParams.toString().replace(/key=[^&]+/, 'key=***')})`);
-    events.forEach((e: any) => {
-      console.log(`  → ${e.name} | id:${e.id} | published:${e.publishedAt ?? 'null'} | start:${e.startTime}`);
-    });
-    return NextResponse.json(data);
+    let events = data?.data ?? [];
+    // Filtrage par slug si demandé (l'API Shotgun ne supporte pas la recherche par slug)
+    if (slug) {
+      const slugLower = slug.toLowerCase().trim();
+      events = events.filter(
+        (e: { slug?: string; url?: string }) =>
+          (e.slug && e.slug.toLowerCase() === slugLower) ||
+          (e.url && e.url.toLowerCase().includes(slugLower))
+      );
+      console.log(`[Shotgun] Filtered by slug "${slug}": ${events.length} match(es)`);
+    } else {
+      console.log(`[Shotgun] Fetched ${events.length} events (params: ${url.searchParams.toString().replace(/key=[^&]+/, 'key=***')})`);
+    }
+    return NextResponse.json({ ...data, data: events });
   } catch (err) {
     console.error('Shotgun events fetch error:', err);
     return NextResponse.json(

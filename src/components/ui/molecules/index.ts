@@ -19,8 +19,8 @@ export type { FormFieldProps } from './FormField';
 export { SearchInput } from './SearchInput';
 export type { SearchInputProps } from './SearchInput';
 
-export { DatePicker, TimePicker } from './DatePicker';
-export type { DatePickerProps, TimePickerProps } from './DatePicker';
+export { DatePicker, TimePicker, TimeRangePicker } from './DatePicker';
+export type { DatePickerProps, TimePickerProps, TimeRangePickerProps } from './DatePicker';
 
 export { SelectPicker } from './SelectPicker';
 export type { SelectPickerProps, SelectPickerOption } from './SelectPicker';

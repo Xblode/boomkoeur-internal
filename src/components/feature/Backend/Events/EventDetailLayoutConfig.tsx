@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Event } from '@/types/event';
 import { EventDetailProvider, useEventDetail } from './EventDetailProvider';
@@ -67,15 +67,19 @@ function EventDetailLayoutConfigInner({ children }: { children: React.ReactNode 
     [event.id, setEvent]
   );
 
+  const sidebarConfigRef = useRef({ event, allEvents, router, basePath, activeSection });
+  sidebarConfigRef.current = { event, allEvents, router, basePath, activeSection };
+
   useEffect(() => {
+    const { event: ev, allEvents: evs, router: r, basePath: bp, activeSection: sec } = sidebarConfigRef.current;
     setMaxWidth('5xl');
     setPageSidebarConfig({
       backLink: { href: '/dashboard/events', label: 'Retour aux événements' },
       entitySelector: (
         <EntitySelectorDropdown<Event>
-          value={event}
-          options={allEvents}
-          onSelect={(e) => router.push(`/dashboard/events/${e.id}`)}
+          value={ev}
+          options={evs}
+          onSelect={(e) => r.push(`/dashboard/events/${e.id}`)}
           renderValue={(e) => e.name}
           renderOption={(e) => (
             <>
@@ -87,11 +91,11 @@ function EventDetailLayoutConfigInner({ children }: { children: React.ReactNode 
         />
       ),
       sections: SIDEBAR_SECTIONS,
-      activeSectionId: activeSection,
-      basePath,
+      activeSectionId: sec,
+      basePath: bp,
     });
     return () => setPageSidebarConfig(null);
-  }, [activeSection, basePath, event, allEvents, router, setPageSidebarConfig, setMaxWidth]);
+  }, [activeSection, basePath, setPageSidebarConfig, setMaxWidth]);
 
   useEffect(() => {
     setChatPanelConfig({

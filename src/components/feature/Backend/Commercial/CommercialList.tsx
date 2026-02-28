@@ -53,7 +53,7 @@ const STATUS_OPTIONS = [
   { value: 'inactive' as ContactStatus, label: 'Inactif' },
 ];
 
-type SortColumn = 'name' | 'type' | 'status' | 'email' | 'phone';
+type SortColumn = 'name' | 'company' | 'type' | 'status' | 'email' | 'phone';
 
 type EditableDetailProps = {
   icon: React.ReactNode;
@@ -345,6 +345,7 @@ export default function CommercialList({ contacts, isLoading, onRefetch, onConta
     const getValue = (c: CommercialContact) => {
       switch (sortBy) {
         case 'name': return (c.name || '').toLowerCase();
+        case 'company': return (c.company || '').toLowerCase();
         case 'type': return TYPE_OPTIONS.find((o) => o.value === c.type)?.label ?? '';
         case 'status': return STATUS_OPTIONS.find((o) => o.value === c.status)?.label ?? '';
         case 'email': return (c.email || '').toLowerCase();
@@ -862,6 +863,14 @@ export default function CommercialList({ contacts, isLoading, onRefetch, onConta
                 Nom
               </TableHead>
               <TableHead
+                minWidth={120}
+                defaultWidth={160}
+                sortable
+                onSortClick={() => handleSort('company')}
+              >
+                Société / Lieu
+              </TableHead>
+              <TableHead
                 minWidth={100}
                 defaultWidth={120}
                 sortable
@@ -961,11 +970,20 @@ export default function CommercialList({ contacts, isLoading, onRefetch, onConta
                   />
                   <TableCell noHoverBorder>
                     {isPending ? (
+                      <span className="text-zinc-400 italic text-sm">—</span>
+                    ) : (
+                      <span className="text-sm text-zinc-700 dark:text-zinc-300 truncate block">
+                        {contact.company || '—'}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell noHoverBorder>
+                    {isPending ? (
                       <div className="flex items-center min-h-8 px-2 py-1">
                         <Badge variant={TYPE_BADGE_VARIANT[contact.type]} className="text-xs">
                           {getTypeLabel(contact.type)}
                         </Badge>
-    </div>
+                      </div>
                     ) : (
                       <Popover
                         open={popoverOpen === `${contact.id}-type`}
@@ -1185,7 +1203,7 @@ export default function CommercialList({ contacts, isLoading, onRefetch, onConta
               className="border-t border-dashed border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer transition-colors"
               onClick={handleAddContact}
             >
-              <td colSpan={7} className="p-0">
+              <td colSpan={8} className="p-0">
                 <div className="flex items-center gap-2 min-h-8 px-3 py-2 text-zinc-400">
                   <Plus size={16} />
                   <span className="text-sm font-semibold">Ajouter un contact</span>
@@ -1231,6 +1249,9 @@ export default function CommercialList({ contacts, isLoading, onRefetch, onConta
                         {contact.name || (isPending ? 'Nouveau contact' : '—')}
                       </p>
                     </div>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+                      {contact.company || '—'}
+                    </p>
                     <div className="flex items-center gap-3 flex-wrap mt-1.5">
                       <Badge variant={TYPE_BADGE_VARIANT[contact.type]} className="text-[10px] shrink-0">
                         {getTypeLabel(contact.type)}

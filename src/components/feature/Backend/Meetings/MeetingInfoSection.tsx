@@ -344,17 +344,27 @@ export function MeetingInfoSection() {
     ],
     [
       { icon: MapPin, label: 'Lieu', value: (
-        <InlineEdit
-          ref={locationInputRef}
-          value={locationValue}
-          onChange={(e) => setLocationValue(e.target.value)}
-          onBlur={saveLocation}
-          onKeyDown={handleLocationKeyDown}
-          onFocus={() => setEditingField('location')}
-          placeholder="Lieu"
-          variant="default"
-          className="w-full min-w-0"
-        />
+        <div
+          className="group flex items-center justify-between w-full px-3 py-2 rounded-md hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50 cursor-pointer transition-colors"
+          onClick={() => {
+            setEditingField('location');
+            setTimeout(() => locationInputRef.current?.focus(), 0);
+          }}
+        >
+          <InlineEdit
+            ref={locationInputRef}
+            value={locationValue}
+            onChange={(e) => setLocationValue(e.target.value)}
+            onBlur={saveLocation}
+            onKeyDown={handleLocationKeyDown}
+            onFocus={() => setEditingField('location')}
+            placeholder="Lieu"
+            variant="default"
+            showEditIcon={false}
+            className="flex-1 min-w-0"
+          />
+          <Pencil size={11} className="text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2" />
+        </div>
       )},
       { icon: Users, label: 'Participants', value: (
         <div
