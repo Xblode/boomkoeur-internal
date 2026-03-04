@@ -78,18 +78,26 @@ export async function GET(request: NextRequest) {
   const token = creds.access_token ?? creds.page_access_token;
   const igUserId = creds.ig_user_id;
 
-  if (!token || !igUserId) {
+  if (!token) {
     return NextResponse.json({
       ok: false,
       step: 'credentials',
-      error: 'Token ou ig_user_id manquant dans les credentials',
-      hasToken: !!token,
-      hasIgUserId: !!igUserId,
+      error: 'Token manquant dans les credentials',
     });
   }
 
-  // Appel direct à l'API Instagram
-  const url = `https://graph.instagram.com/v21.0/${igUserId}?fields=username,followers_count,media_count&access_token=${token}`;
+  // Instagram API with Instagram Login : utiliser /me (identifie l'utilisateur via le token)
+  // L'endpoint /{ig_user_id} peut échouer avec "Object does not exist" (subcode 33)
+  const userIdOrMe = creds.access_token ? 'me' : igUserId ?? 'me';
+  if (userIdOrMe !== 'me' && !igUserId) {
+    return NextResponse.json({
+      ok: false,
+      step: 'credentials',
+      error: 'ig_user_id manquant (flux Facebook Login)',
+    });
+  }
+
+  const url = `https://graph.instagram.com/v21.0/${userIdOrMe}?fields=username,followers_count,media_count&access_token=${encodeURIComponent(token)}`;
   const res = await fetch(url);
   const text = await res.text();
   let json: unknown;

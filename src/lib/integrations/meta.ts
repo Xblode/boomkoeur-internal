@@ -55,6 +55,17 @@ function getAccessToken(creds: MetaCredentials): string | null {
   return creds.access_token ?? creds.page_access_token ?? null;
 }
 
+/**
+ * Chemin utilisateur pour les appels API.
+ * Instagram Login (access_token) : utiliser /me (évite l'erreur "Object does not exist" subcode 33).
+ * Facebook Login (page_access_token) : utiliser /{ig_user_id}.
+ */
+function getUserPath(creds: MetaCredentials): string | null {
+  if (creds.access_token) return 'me';
+  if (creds.page_access_token && creds.ig_user_id) return creds.ig_user_id;
+  return null;
+}
+
 /** Parse une erreur Meta depuis le corps de la réponse (JSON ou texte brut) */
 function parseMetaErrorResponse(
   responseText: string
@@ -111,7 +122,8 @@ export async function getInstagramAccountInfo(
 ): Promise<InstagramAccountInfo | MetaErrorResult> {
   const creds = await getCredentialsForOrg(orgId);
   const token = creds ? getAccessToken(creds) : null;
-  if (!creds || !token || !creds.ig_user_id) {
+  const userPath = creds ? getUserPath(creds) : null;
+  if (!creds || !token || !userPath) {
     return { success: false, reason: 'no_credentials' };
   }
 
@@ -121,7 +133,7 @@ export async function getInstagramAccountInfo(
   });
 
   for (let attempt = 1; attempt <= TRANSIENT_RETRY_ATTEMPTS; attempt++) {
-    const res = await fetch(`${GRAPH_IG_API}/${creds.ig_user_id}?${params.toString()}`);
+    const res = await fetch(`${GRAPH_IG_API}/${userPath}?${params.toString()}`);
     const responseText = await res.text();
     const json = JSON.parse(responseText) as {
       username?: string;
@@ -202,7 +214,8 @@ export async function getAccountInsights(
 ): Promise<InstagramAccountInsights | MetaErrorResult> {
   const creds = await getCredentialsForOrg(orgId);
   const token = creds ? getAccessToken(creds) : null;
-  if (!creds || !token || !creds.ig_user_id) {
+  const userPath = creds ? getUserPath(creds) : null;
+  if (!creds || !token || !userPath) {
     return { success: false, reason: 'no_credentials' };
   }
 
@@ -220,7 +233,7 @@ export async function getAccountInsights(
 
   for (let attempt = 1; attempt <= TRANSIENT_RETRY_ATTEMPTS; attempt++) {
     const res = await fetch(
-      `${GRAPH_IG_API}/${creds.ig_user_id}/insights?${params.toString()}`
+      `${GRAPH_IG_API}/${userPath}/insights?${params.toString()}`
     );
     const responseText = await res.text();
     const json = JSON.parse(responseText) as {
@@ -310,7 +323,8 @@ export async function getInstagramMedia(
 ): Promise<GetInstagramMediaResult> {
   const creds = await getCredentialsForOrg(orgId);
   const token = creds ? getAccessToken(creds) : null;
-  if (!creds || !token || !creds.ig_user_id) {
+  const userPath = creds ? getUserPath(creds) : null;
+  if (!creds || !token || !userPath) {
     return { success: false, reason: 'no_credentials' };
   }
 
@@ -323,7 +337,7 @@ export async function getInstagramMedia(
 
   for (let attempt = 1; attempt <= TRANSIENT_RETRY_ATTEMPTS; attempt++) {
     const res = await fetch(
-      `${GRAPH_IG_API}/${creds.ig_user_id}/media?${params.toString()}`
+      `${GRAPH_IG_API}/${userPath}/media?${params.toString()}`
     );
     const responseText = await res.text();
     const json = JSON.parse(responseText) as {
@@ -444,7 +458,8 @@ export async function publishInstagramImage(
 ): Promise<{ id: string } | { error: string }> {
   const creds = await getCredentialsForOrg(orgId);
   const token = creds ? getAccessToken(creds) : null;
-  if (!creds || !token) return { error: 'Meta non connecté' };
+  const userPath = creds ? getUserPath(creds) : null;
+  if (!creds || !token || !userPath) return { error: 'Meta non connecté' };
 
   // 1. Créer le container media
   const createParams = new URLSearchParams({
@@ -454,7 +469,7 @@ export async function publishInstagramImage(
   if (caption) createParams.set('caption', caption);
 
   const createRes = await fetch(
-    `${GRAPH_IG_API}/${creds.ig_user_id}/media?${createParams.toString()}`,
+    `${GRAPH_IG_API}/${userPath}/media?${createParams.toString()}`,
     { method: 'POST' }
   );
 
@@ -475,7 +490,7 @@ export async function publishInstagramImage(
   });
 
   const publishRes = await fetch(
-    `${GRAPH_IG_API}/${creds.ig_user_id}/media_publish?${publishParams.toString()}`,
+    `${GRAPH_IG_API}/${userPath}/media_publish?${publishParams.toString()}`,
     { method: 'POST' }
   );
 

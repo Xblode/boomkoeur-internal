@@ -156,16 +156,23 @@ export async function GET(request: NextRequest) {
 
     const accessToken = longLivedData.access_token ?? shortLivedToken;
 
-    // 3. Récupérer le username Instagram
+    // 3. Récupérer le username via /me (évite "Object does not exist" avec Instagram Login)
     const userRes = await fetch(
-      `${GRAPH_IG_API}/${igUserId}?fields=username&access_token=${encodeURIComponent(accessToken)}`
+      `${GRAPH_IG_API}/me?fields=username,user_id&access_token=${encodeURIComponent(accessToken)}`
     );
-    const userData = (await userRes.json()) as { username?: string; error?: { message: string } };
-    const igUsername = userData.username;
+    const userData = (await userRes.json()) as {
+      username?: string;
+      user_id?: string;
+      data?: Array<{ username?: string; user_id?: string }>;
+      error?: { message: string };
+    };
+    // Réponse peut être { username, user_id } ou { data: [{ username, user_id }] }
+    const igUsername = userData.username ?? userData.data?.[0]?.username;
+    const resolvedIgUserId = userData.user_id ?? userData.data?.[0]?.user_id ?? igUserId;
 
     const credentials: MetaCredentials = {
       access_token: accessToken,
-      ig_user_id: igUserId,
+      ig_user_id: resolvedIgUserId,
       ig_username: igUsername,
     };
 
