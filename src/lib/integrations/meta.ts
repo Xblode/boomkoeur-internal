@@ -352,9 +352,151 @@ export async function getAccountInsights(
   };
 }
 
+export interface AccountInsightsDailyPoint {
+  date: string;
+  label: string;
+  reach: number;
+  impressions: number;
+}
+
+export type GetAccountInsightsDailyResult =
+  | { success: true; data: AccountInsightsDailyPoint[] }
+  | MetaErrorResult;
+
+/**
+ * Récupère les insights du compte par jour (reach, impressions) pour les graphiques.
+ */
+export async function getAccountInsightsDaily(
+  orgId: string,
+  periodDays: number = 28
+): Promise<GetAccountInsightsDailyResult> {
+  const creds = await getCredentialsForOrg(orgId);
+  const token = creds ? getAccessToken(creds) : null;
+  const userPath = creds ? getUserPath(creds) : null;
+  if (!creds || !token || !userPath) {
+    return { success: false, reason: 'no_credentials' };
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const since = now - periodDays * 24 * 60 * 60;
+
+  const params = new URLSearchParams({
+    access_token: token,
+    metric: 'reach,impressions',
+    period: 'day',
+    metric_type: 'time_series',
+    since: String(since),
+    until: String(now),
+  });
+
+  for (let attempt = 1; attempt <= TRANSIENT_RETRY_ATTEMPTS; attempt++) {
+    const res = await fetch(
+      `${GRAPH_IG_API}/${userPath}/insights?${params.toString()}`
+    );
+    const responseText = await res.text();
+    const json = JSON.parse(responseText) as {
+      data?: Array<{
+        name: string;
+        values?: Array<{ value: string; end_time?: string }>;
+      }>;
+      error?: { message: string; code?: number; is_transient?: boolean };
+    };
+
+    if (!res.ok) {
+      const parsed = parseMetaErrorResponse(responseText);
+      if (parsed.isTransient && attempt < TRANSIENT_RETRY_ATTEMPTS) {
+        console.warn(`[Meta] Instagram account insights daily transient error, retry ${attempt}/${TRANSIENT_RETRY_ATTEMPTS}`);
+        await sleep(TRANSIENT_RETRY_DELAY_MS);
+        continue;
+      }
+      return { success: false, reason: 'api_error', details: parsed.details, isTransient: parsed.isTransient };
+    }
+
+    if (json.error) {
+      const msg = json.error?.message ?? JSON.stringify(json.error);
+      const isTransient = json.error?.code === 2 || json.error?.is_transient === true;
+      if (isTransient && attempt < TRANSIENT_RETRY_ATTEMPTS) {
+        await sleep(TRANSIENT_RETRY_DELAY_MS);
+        continue;
+      }
+      const isTokenExpired = msg.toLowerCase().includes('token') || msg.toLowerCase().includes('expired') || json.error?.code === 190;
+      return {
+        success: false,
+        reason: 'api_error',
+        details: isTokenExpired ? 'Token expiré. Reconnectez Meta.' : msg,
+        isTransient: false,
+      };
+    }
+
+    if (!json.data) return { success: false, reason: 'api_error', details: 'Pas de données' };
+
+    const byDate = new Map<string, { reach: number; impressions: number }>();
+
+    for (const m of json.data) {
+      const values = m.values ?? [];
+      for (const v of values) {
+        const endTime = v.end_time ?? '';
+        const dateStr = endTime.split('T')[0] ?? '';
+        if (!dateStr) continue;
+
+        const val = parseInt(v.value || '0', 10);
+        const entry = byDate.get(dateStr) ?? { reach: 0, impressions: 0 };
+        if (m.name === 'reach') entry.reach = val;
+        else if (m.name === 'impressions') entry.impressions = val;
+        byDate.set(dateStr, entry);
+      }
+    }
+
+    const sortedDates = Array.from(byDate.keys()).sort();
+    const data: AccountInsightsDailyPoint[] = sortedDates.map((date) => {
+      const entry = byDate.get(date)!;
+      const d = new Date(date + 'T12:00:00Z');
+      const label = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+      return { date, label, reach: entry.reach, impressions: entry.impressions };
+    });
+
+    return { success: true, data };
+  }
+
+  return {
+    success: false,
+    reason: 'api_error',
+    details: 'Erreur temporaire côté Instagram. Réessayez dans quelques minutes.',
+    isTransient: true,
+  };
+}
+
 export type GetInstagramMediaResult =
   | { success: true; data: InstagramMedia[]; paging?: { cursors?: { after?: string }; next?: string } }
   | MetaErrorResult;
+
+/**
+ * Récupère un média Instagram par ID (pour les posts campagne avec ig_media_id).
+ */
+export async function getInstagramMediaById(
+  orgId: string,
+  mediaId: string
+): Promise<InstagramMedia | null> {
+  const creds = await getCredentialsForOrg(orgId);
+  const token = creds ? getAccessToken(creds) : null;
+  if (!creds || !token) return null;
+
+  const params = new URLSearchParams({
+    access_token: token,
+    fields: 'id,media_type,media_url,permalink,caption,timestamp,like_count,comments_count',
+  });
+
+  const res = await fetch(`${GRAPH_IG_API}/${mediaId}?${params.toString()}`);
+  if (!res.ok) {
+    const text = await res.text();
+    console.error('[Meta] Instagram media by id error:', res.status, text);
+    return null;
+  }
+
+  const json = (await res.json()) as InstagramMedia & { error?: { message: string } };
+  if (json.error) return null;
+  return json;
+}
 
 /**
  * Liste les médias (posts) du compte Instagram.
@@ -519,6 +661,11 @@ export async function publishInstagramImage(
     return { error: createData.error?.message ?? 'Échec de la création du média' };
   }
 
+  const status = await waitForContainerReady(createData.id, token);
+  if (status !== 'FINISHED') {
+    return { error: 'L\'image n\'a pas pu être traitée par Instagram. Réessayez ou utilisez une URL publique.' };
+  }
+
   return publishContainer(userPath, createData.id, token);
 }
 
@@ -556,11 +703,14 @@ export async function publishInstagramStory(
     return { error: createData.error?.message ?? 'Échec de la création de la Story' };
   }
 
-  if (isVideo) {
-    const status = await waitForContainerReady(createData.id, token);
-    if (status !== 'FINISHED') {
-      return { error: 'La vidéo n\'a pas pu être traitée par Instagram. Réessayez ou utilisez une URL publique.' };
-    }
+  // Attendre que le container soit prêt (images et vidéos) avant de publier
+  const status = await waitForContainerReady(createData.id, token);
+  if (status !== 'FINISHED') {
+    return {
+      error: isVideo
+        ? 'La vidéo n\'a pas pu être traitée par Instagram. Réessayez ou utilisez une URL publique.'
+        : 'L\'image n\'a pas pu être traitée par Instagram. Réessayez ou utilisez une URL publique.',
+    };
   }
 
   return publishContainer(userPath, createData.id, token);
@@ -657,6 +807,11 @@ export async function publishInstagramCarousel(
 
   if (carouselData.error || !carouselData.id) {
     return { error: carouselData.error?.message ?? 'Échec de la création du carrousel' };
+  }
+
+  const status = await waitForContainerReady(carouselData.id, token);
+  if (status !== 'FINISHED') {
+    return { error: 'Le carrousel n\'a pas pu être traité par Instagram. Réessayez.' };
   }
 
   return publishContainer(userPath, carouselData.id, token);

@@ -6,6 +6,7 @@ import {
   publishInstagramReel,
   publishInstagramCarousel,
 } from '@/lib/integrations/meta';
+import { resolveDriveUrlForInstagram } from '@/lib/integrations/instagram-media-proxy';
 
 async function ensureOrgAdmin(orgId: string) {
   const supabase = await createClient();
@@ -62,51 +63,80 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'media_type invalide (feed, story, reel, carousel)' }, { status: 400 });
   }
 
+  const resolveUrl = async (url: string, isVideo: boolean): Promise<string> => {
+    const resolved = await resolveDriveUrlForInstagram(orgId, url, isVideo);
+    if (!resolved) {
+      throw new Error(
+        'Impossible de récupérer le fichier Google Drive. Vérifiez que Drive est connecté et que le fichier est accessible.'
+      );
+    }
+    return resolved;
+  };
+
   let result: { id: string } | { error: string };
 
-  switch (media_type) {
-    case 'feed':
-      if (!image_url?.trim()) {
-        return NextResponse.json({ error: 'image_url requis pour feed' }, { status: 400 });
-      }
-      result = await publishInstagramImage(orgId, image_url.trim(), caption?.trim());
-      break;
+  try {
+    switch (media_type) {
+      case 'feed':
+        if (!image_url?.trim()) {
+          return NextResponse.json({ error: 'image_url requis pour feed' }, { status: 400 });
+        }
+        result = await publishInstagramImage(
+          orgId,
+          await resolveUrl(image_url.trim(), false),
+          caption?.trim()
+        );
+        break;
 
-    case 'story':
-      if (image_url?.trim()) {
-        result = await publishInstagramStory(orgId, image_url.trim(), false);
-      } else if (video_url?.trim()) {
-        result = await publishInstagramStory(orgId, video_url.trim(), true);
-      } else {
-        return NextResponse.json({ error: 'image_url ou video_url requis pour story' }, { status: 400 });
-      }
-      break;
+      case 'story':
+        if (image_url?.trim()) {
+          result = await publishInstagramStory(
+            orgId,
+            await resolveUrl(image_url.trim(), false),
+            false
+          );
+        } else if (video_url?.trim()) {
+          result = await publishInstagramStory(
+            orgId,
+            await resolveUrl(video_url.trim(), true),
+            true
+          );
+        } else {
+          return NextResponse.json({ error: 'image_url ou video_url requis pour story' }, { status: 400 });
+        }
+        break;
 
-    case 'reel':
-      if (!video_url?.trim()) {
-        return NextResponse.json({ error: 'video_url requis pour reel' }, { status: 400 });
-      }
-      result = await publishInstagramReel(
-        orgId,
-        video_url.trim(),
-        caption?.trim(),
-        cover_url?.trim() || undefined
-      );
-      break;
+      case 'reel':
+        if (!video_url?.trim()) {
+          return NextResponse.json({ error: 'video_url requis pour reel' }, { status: 400 });
+        }
+        result = await publishInstagramReel(
+          orgId,
+          await resolveUrl(video_url.trim(), true),
+          caption?.trim(),
+          cover_url?.trim() || undefined
+        );
+        break;
 
-    case 'carousel':
-      if (!images?.length || images.length < 2 || images.length > 10) {
-        return NextResponse.json({ error: 'images requis (2 à 10) pour carousel' }, { status: 400 });
-      }
-      result = await publishInstagramCarousel(
-        orgId,
-        images.map((u) => u.trim()).filter(Boolean),
-        caption?.trim()
-      );
-      break;
+      case 'carousel':
+        if (!images?.length || images.length < 2 || images.length > 10) {
+          return NextResponse.json({ error: 'images requis (2 à 10) pour carousel' }, { status: 400 });
+        }
+        result = await publishInstagramCarousel(
+          orgId,
+          await Promise.all(
+            images.map((u) => u.trim()).filter(Boolean).map((u) => resolveUrl(u, false))
+          ),
+          caption?.trim()
+        );
+        break;
 
-    default:
-      return NextResponse.json({ error: 'media_type non géré' }, { status: 400 });
+      default:
+        return NextResponse.json({ error: 'media_type non géré' }, { status: 400 });
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Erreur lors de la résolution du média';
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
 
   if ('error' in result) {

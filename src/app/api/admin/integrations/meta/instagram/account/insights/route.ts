@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import {
   getInstagramAccountInfo,
   getAccountInsights,
+  getAccountInsightsDaily,
 } from '@/lib/integrations/meta';
 
 async function ensureOrgAdmin(orgId: string) {
@@ -27,6 +28,7 @@ async function ensureOrgAdmin(orgId: string) {
 export async function GET(request: NextRequest) {
   const orgId = request.nextUrl.searchParams.get('org_id');
   const period = request.nextUrl.searchParams.get('period');
+  const format = request.nextUrl.searchParams.get('format');
 
   if (!orgId) {
     return NextResponse.json({ error: 'org_id requis' }, { status: 400 });
@@ -37,7 +39,31 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: authError.error }, { status: authError.status });
   }
 
-  const periodDays = period ? parseInt(period, 10) : 7;
+  const periodDays = period ? parseInt(period, 10) : format === 'daily' ? 28 : 7;
+
+  if (format === 'daily') {
+    const insightsDailyResult = await getAccountInsightsDaily(orgId, periodDays);
+    const isError = (r: unknown): r is { success: false; reason: string; details?: string; isTransient?: boolean } =>
+      typeof r === 'object' && r !== null && 'success' in r && (r as { success: boolean }).success === false;
+
+    if (isError(insightsDailyResult)) {
+      const err = insightsDailyResult;
+      const message =
+        err.reason === 'no_credentials'
+          ? 'Meta non connecté pour cette organisation'
+          : err.details ?? 'Erreur lors du chargement Instagram';
+      return NextResponse.json(
+        { error: message, reason: err.reason, details: err.details, isTransient: err.isTransient },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({
+      data: insightsDailyResult.data,
+      period_days: periodDays,
+    });
+  }
+
   const [accountInfoResult, insightsResult] = await Promise.all([
     getInstagramAccountInfo(orgId),
     getAccountInsights(orgId, periodDays),

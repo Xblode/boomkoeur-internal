@@ -56,6 +56,8 @@ export interface ComWorkflowPost {
   visuals?: PostVisual[];
   verified?: boolean;
   published?: boolean;
+  /** ID du média Instagram après publication via le site */
+  ig_media_id?: string;
   createdAt: string;
 }
 
@@ -75,6 +77,10 @@ export interface ComWorkflow {
   };
   shotgunUrl?: string;
   posts?: ComWorkflowPost[];
+  /** Nombre d'abonnés au démarrage de la campagne (premier post publié) */
+  followers_count_at_campaign_start?: number;
+  /** Date ISO du premier post publié (début campagne) */
+  campaign_started_at?: string;
   overrides: {
     campaignStartDate?: Date | null;
     planComDone?: boolean;

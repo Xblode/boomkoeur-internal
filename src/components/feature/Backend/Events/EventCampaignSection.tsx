@@ -1174,13 +1174,18 @@ export function EventCampaignSection() {
     setNewPostType(undefined);
   };
 
-  const buildWfWithPosts = (base: ComWorkflow | undefined, posts: ComWorkflowPost[]): ComWorkflow => ({
+  const buildWfWithPosts = (
+    base: ComWorkflow | undefined,
+    posts: ComWorkflowPost[],
+    wfOverrides?: Partial<ComWorkflow>
+  ): ComWorkflow => ({
     activePhase: (base?.activePhase && VALID_PHASES.includes(base.activePhase)) ? base.activePhase : 'preparation',
     activeStep: base?.activeStep ?? 0,
     manual: { ...base?.manual },
     overrides: { ...base?.overrides },
     shotgunUrl: base?.shotgunUrl ?? '',
     posts,
+    ...wfOverrides,
   });
 
   const updatePost = (postId: string, updates: Partial<ComWorkflowPost>) => {
@@ -1215,10 +1220,18 @@ export function EventCampaignSection() {
     return m ? `https://drive.google.com/file/d/${m[1]}/preview` : null;
   };
 
-  /** URL Drive pour affichage img (export=view) */
+  /** URL Drive pour affichage img (export=view) - utilisé pour les liens hors site */
   const getGoogleDriveViewUrl = (url: string): string => {
     const m = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/);
     return m ? `https://drive.google.com/uc?export=view&id=${m[1]}` : url;
+  };
+
+  /** URL proxy pour prévisualisation des images Drive (évite CORS / blocage img) */
+  const getDrivePreviewProxyUrl = (url: string): string | null => {
+    if (!url.includes('drive.google.com')) return null;
+    const orgId = event.orgId ?? activeOrg?.id;
+    if (!orgId) return null;
+    return `/api/admin/integrations/google/drive/proxy?org_id=${orgId}&url=${encodeURIComponent(url)}`;
   };
 
   /** URL de téléchargement direct (Drive → export, autres → URL d'origine) */
@@ -1243,13 +1256,16 @@ export function EventCampaignSection() {
 
   const renderMedia = (v: PostVisual) => {
     const u = v.url;
+    const isDriveUrl = u.includes('drive.google.com');
     const driveEmbed = getGoogleDriveEmbed(u);
     const dropboxDirect = getDropboxDirect(u);
     const isVideoType = v.mediaType === 'video' || (!v.mediaType && detectMediaType(u) === 'video');
 
-    // Images Google Drive : utiliser img avec export=view (pas d'iframe = pas de demande de cookies)
-    if (driveEmbed && !isVideoType) {
-      return <img src={getGoogleDriveViewUrl(u)} alt="Visuel" className="w-full h-full object-cover" />;
+    // Images Google Drive : utiliser le proxy pour éviter CORS / blocage par Drive dans <img>
+    if (isDriveUrl && !isVideoType) {
+      const proxyUrl = getDrivePreviewProxyUrl(u);
+      const src = proxyUrl ?? getGoogleDriveViewUrl(u);
+      return <img src={src} alt="Visuel" className="w-full h-full object-cover" referrerPolicy="no-referrer" />;
     }
     // Vidéos Google Drive : iframe (peut demander les cookies)
     if (driveEmbed && isVideoType) {
@@ -1973,16 +1989,41 @@ export function EventCampaignSection() {
                           throw new Error(data.error ?? 'Erreur lors de la publication');
                         }
                         const postId = postInstagramModal!.id;
+                        const igMediaId = data.id as string;
                         const currentPosts = eventRef.current.comWorkflow?.posts ?? [];
+                        const wasFirstPublished = currentPosts.filter(p => p.published).length === 0;
+                        let followersAtStart: number | undefined;
+                        if (wasFirstPublished) {
+                          try {
+                            const accRes = await fetch(
+                              `/api/admin/integrations/meta/instagram/account/insights?org_id=${activeOrg.id}&period=7`
+                            );
+                            const accData = await accRes.json();
+                            followersAtStart = accData.account?.followers_count;
+                          } catch {
+                            // Ignore, on n'a pas les abonnés
+                          }
+                        }
                         const updated = currentPosts.map(p =>
-                          p.id === postId ? { ...p, published: true } : p
+                          p.id === postId ? { ...p, published: true, ig_media_id: igMediaId } : p
                         );
-                        setEvent((prev) => ({ ...prev, comWorkflow: buildWfWithPosts(prev.comWorkflow, updated) }));
-                        persistField((current) => ({
-                          comWorkflow: buildWfWithPosts(current.comWorkflow, (current.comWorkflow?.posts ?? []).map(p =>
-                            p.id === postId ? { ...p, published: true } : p
-                          )),
+                        const wfUpdates: Partial<ComWorkflow> = { posts: updated };
+                        if (wasFirstPublished && followersAtStart != null) {
+                          wfUpdates.followers_count_at_campaign_start = followersAtStart;
+                          wfUpdates.campaign_started_at = new Date().toISOString();
+                        }
+                        setEvent((prev) => ({
+                          ...prev,
+                          comWorkflow: buildWfWithPosts(prev.comWorkflow, updated, wfUpdates),
                         }));
+                        persistField((current) => {
+                          const baseWf = current.comWorkflow;
+                          const newPosts = (baseWf?.posts ?? []).map(p =>
+                            p.id === postId ? { ...p, published: true, ig_media_id: igMediaId } : p
+                          );
+                          const newWf = buildWfWithPosts(baseWf, newPosts, wfUpdates);
+                          return { comWorkflow: newWf };
+                        });
                         setPostInstagramModal(null);
                         toast.success('Post publié sur Instagram');
                       } catch (err) {

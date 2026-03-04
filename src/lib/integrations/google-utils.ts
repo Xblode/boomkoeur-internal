@@ -23,8 +23,18 @@ export function parseGoogleSheetId(url: string): string | null {
 /** Extrait l'ID d'un fichier Drive depuis une URL drive.google.com */
 export function parseDriveFileId(url: string): string | null {
   if (!url?.trim()) return null;
+  // drive.google.com/file/d/XXX
   const m = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/);
-  return m ? m[1] : null;
+  if (m) return m[1];
+  // drive.google.com/uc?export=view&id=XXX ou ...&id=XXX
+  const m2 = url.match(/drive\.google\.com\/uc\?[^&]*[&?]id=([^&?#]+)/);
+  if (m2) return m2[1];
+  // drive.google.com/open?id=XXX
+  const m3 = url.match(/drive\.google\.com\/open\?[^&]*[&?]id=([^&?#]+)/);
+  if (m3) return m3[1];
+  const m4 = url.match(/drive\.google\.com\/[^?]*\?[^&]*[&?]id=([^&?#]+)/);
+  if (m4) return m4[1];
+  return null;
 }
 
 /** Détecte si l'URL pointe vers un Google Doc */
