@@ -685,6 +685,13 @@ export async function getMediaInsights(
   return null;
 }
 
+/** Options Instagram : collaborateurs, mentions, audio (Reels). */
+export interface InstagramPublishOptions {
+  collaborators?: string[];
+  user_tags?: { username: string; x?: number; y?: number }[];
+  audio_name?: string;
+}
+
 /**
  * Publie une image sur Instagram (Feed).
  * imageUrl doit être une URL publique accessible.
@@ -692,7 +699,8 @@ export async function getMediaInsights(
 export async function publishInstagramImage(
   orgId: string,
   imageUrl: string,
-  caption?: string
+  caption?: string,
+  options?: InstagramPublishOptions
 ): Promise<{ id: string } | { error: string }> {
   const creds = await getCredentialsForOrg(orgId);
   const token = creds ? getAccessToken(creds) : null;
@@ -704,6 +712,12 @@ export async function publishInstagramImage(
     image_url: imageUrl,
   });
   if (caption) createParams.set('caption', caption);
+  if (options?.collaborators?.length) {
+    createParams.set('collaborators', JSON.stringify(options.collaborators.slice(0, 3)));
+  }
+  if (options?.user_tags?.length) {
+    createParams.set('user_tags', JSON.stringify(options.user_tags));
+  }
 
   const createRes = await fetch(
     `${GRAPH_IG_API}/${userPath}/media?${createParams.toString()}`,
@@ -725,12 +739,13 @@ export async function publishInstagramImage(
 
 /**
  * Publie une Story Instagram (image ou vidéo).
- * Stories : pas de caption (ignoré par l'API).
+ * Stories : pas de caption (ignoré par l'API). user_tags supportés.
  */
 export async function publishInstagramStory(
   orgId: string,
   mediaUrl: string,
-  isVideo: boolean
+  isVideo: boolean,
+  options?: { user_tags?: { username: string; x?: number; y?: number }[] }
 ): Promise<{ id: string } | { error: string }> {
   const creds = await getCredentialsForOrg(orgId);
   const token = creds ? getAccessToken(creds) : null;
@@ -745,6 +760,9 @@ export async function publishInstagramStory(
     createParams.set('video_url', mediaUrl);
   } else {
     createParams.set('image_url', mediaUrl);
+  }
+  if (options?.user_tags?.length) {
+    createParams.set('user_tags', JSON.stringify(options.user_tags));
   }
 
   const createRes = await fetch(
@@ -777,7 +795,8 @@ export async function publishInstagramReel(
   orgId: string,
   videoUrl: string,
   caption?: string,
-  coverUrl?: string
+  coverUrl?: string,
+  options?: InstagramPublishOptions
 ): Promise<{ id: string } | { error: string }> {
   const creds = await getCredentialsForOrg(orgId);
   const token = creds ? getAccessToken(creds) : null;
@@ -791,6 +810,15 @@ export async function publishInstagramReel(
   });
   if (caption) createParams.set('caption', caption);
   if (coverUrl) createParams.set('cover_url', coverUrl);
+  if (options?.collaborators?.length) {
+    createParams.set('collaborators', JSON.stringify(options.collaborators.slice(0, 3)));
+  }
+  if (options?.user_tags?.length) {
+    createParams.set('user_tags', JSON.stringify(options.user_tags));
+  }
+  if (options?.audio_name?.trim()) {
+    createParams.set('audio_name', options.audio_name.trim());
+  }
 
   const createRes = await fetch(
     `${GRAPH_IG_API}/${userPath}/media?${createParams.toString()}`,
@@ -816,7 +844,8 @@ export async function publishInstagramReel(
 export async function publishInstagramCarousel(
   orgId: string,
   imageUrls: string[],
-  caption?: string
+  caption?: string,
+  options?: InstagramPublishOptions
 ): Promise<{ id: string } | { error: string }> {
   const creds = await getCredentialsForOrg(orgId);
   const token = creds ? getAccessToken(creds) : null;
@@ -852,6 +881,12 @@ export async function publishInstagramCarousel(
     children: itemIds.join(','),
   });
   if (caption) carouselParams.set('caption', caption);
+  if (options?.collaborators?.length) {
+    carouselParams.set('collaborators', JSON.stringify(options.collaborators.slice(0, 3)));
+  }
+  if (options?.user_tags?.length) {
+    carouselParams.set('user_tags', JSON.stringify(options.user_tags));
+  }
 
   const carouselRes = await fetch(
     `${GRAPH_IG_API}/${userPath}/media?${carouselParams.toString()}`,

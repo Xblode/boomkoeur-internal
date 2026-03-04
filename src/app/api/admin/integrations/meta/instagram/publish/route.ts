@@ -29,6 +29,12 @@ async function ensureOrgAdmin(orgId: string) {
 
 type MediaType = 'feed' | 'story' | 'reel' | 'carousel';
 
+interface IgUserTag {
+  username: string;
+  x?: number;
+  y?: number;
+}
+
 interface PublishBody {
   media_type: MediaType;
   image_url?: string;
@@ -36,6 +42,9 @@ interface PublishBody {
   images?: string[];
   caption?: string;
   cover_url?: string;
+  collaborators?: string[];
+  user_tags?: IgUserTag[];
+  audio_name?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -57,7 +66,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Body JSON invalide' }, { status: 400 });
   }
 
-  const { media_type, image_url, video_url, images, caption, cover_url } = body;
+  const { media_type, image_url, video_url, images, caption, cover_url, collaborators, user_tags, audio_name } = body;
+  const igOptions = {
+    collaborators: collaborators?.length ? collaborators.slice(0, 3) : undefined,
+    user_tags: user_tags?.length ? user_tags : undefined,
+    audio_name: audio_name?.trim() || undefined,
+  };
 
   if (!media_type || !['feed', 'story', 'reel', 'carousel'].includes(media_type)) {
     return NextResponse.json({ error: 'media_type invalide (feed, story, reel, carousel)' }, { status: 400 });
@@ -84,7 +98,8 @@ export async function POST(request: NextRequest) {
         result = await publishInstagramImage(
           orgId,
           await resolveUrl(image_url.trim(), false),
-          caption?.trim()
+          caption?.trim(),
+          igOptions
         );
         break;
 
@@ -93,13 +108,15 @@ export async function POST(request: NextRequest) {
           result = await publishInstagramStory(
             orgId,
             await resolveUrl(image_url.trim(), false),
-            false
+            false,
+            { user_tags: igOptions.user_tags }
           );
         } else if (video_url?.trim()) {
           result = await publishInstagramStory(
             orgId,
             await resolveUrl(video_url.trim(), true),
-            true
+            true,
+            { user_tags: igOptions.user_tags }
           );
         } else {
           return NextResponse.json({ error: 'image_url ou video_url requis pour story' }, { status: 400 });
@@ -114,7 +131,8 @@ export async function POST(request: NextRequest) {
           orgId,
           await resolveUrl(video_url.trim(), true),
           caption?.trim(),
-          cover_url?.trim() || undefined
+          cover_url?.trim() || undefined,
+          igOptions
         );
         break;
 
@@ -127,7 +145,8 @@ export async function POST(request: NextRequest) {
           await Promise.all(
             images.map((u) => u.trim()).filter(Boolean).map((u) => resolveUrl(u, false))
           ),
-          caption?.trim()
+          caption?.trim(),
+          igOptions
         );
         break;
 

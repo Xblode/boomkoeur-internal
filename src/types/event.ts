@@ -45,6 +45,12 @@ export interface PostVisual {
   createdAt: string;
 }
 
+export interface IgUserTag {
+  username: string;
+  x?: number;
+  y?: number;
+}
+
 export interface ComWorkflowPost {
   id: string;
   name: string;
@@ -58,6 +64,12 @@ export interface ComWorkflowPost {
   published?: boolean;
   /** ID du média Instagram après publication via le site */
   ig_media_id?: string;
+  /** Comptes Instagram en collaboration (Feed, Reel, Carousel — max 3) */
+  ig_collaborators?: string[];
+  /** Mentions @ (user_tags) — Feed, Reel, Story, Carousel */
+  ig_user_tags?: IgUserTag[];
+  /** Nom de l'audio original pour Reels (renommage uniquement, pas d'ajout musique) */
+  ig_audio_name?: string;
   createdAt: string;
 }
 

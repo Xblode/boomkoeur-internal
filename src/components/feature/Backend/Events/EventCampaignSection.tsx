@@ -31,11 +31,13 @@ import {
   Loader2,
   CheckCircle2,
   Share2,
+  Copy,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEventDetail } from './EventDetailProvider';
 import { useOrg } from '@/hooks';
 import { EventInstagramStats } from './EventInstagramStats';
+import { EventCampaignChart } from './EventCampaignChart';
 import { ShotgunEventsResponse } from '@/types/shotgun';
 import { DrivePickerModal } from './DrivePickerModal';
 
@@ -325,7 +327,7 @@ export function EventCampaignSection() {
           {fileUrl ? (
             <>
               <Button variant="outline" size="sm" className="flex-1 text-xs h-8"
-                onClick={() => handleDownload(fileUrl, `${type}.png`)}>
+                onClick={() => handleDownload(getDownloadUrl(fileUrl), `${type}.png`)}>
                 <Download className="h-3 w-3 mr-1.5" /> Télécharger
               </Button>
               <Button variant="outline" size="sm" className="text-xs h-8 shrink-0"
@@ -508,15 +510,42 @@ export function EventCampaignSection() {
 
                 <div className="mt-auto pt-2 flex flex-col gap-1.5">
                   {metaConnected && (post.networks?.includes('instagram') ?? false) && (post.visuals?.length ?? 0) > 0 && post.type !== 'newsletter' && (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      className="w-full justify-center text-xs"
-                      onClick={() => setPostInstagramModal(post)}
-                    >
-                      <Share2 size={14} className="mr-1.5" />
-                      Poster sur Instagram
-                    </Button>
+                    post.published && post.ig_media_id ? (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        className="w-full justify-center text-xs"
+                        onClick={async () => {
+                          if (!activeOrg?.id) return;
+                          try {
+                            const res = await fetch(
+                              `/api/admin/integrations/meta/instagram/media/${post.ig_media_id}?org_id=${activeOrg.id}`
+                            );
+                            const data = await res.json();
+                            if (data.permalink) {
+                              window.open(data.permalink, '_blank');
+                            } else {
+                              toast.error('Impossible de récupérer le lien du post');
+                            }
+                          } catch {
+                            toast.error('Impossible d\'ouvrir le post');
+                          }
+                        }}
+                      >
+                        <ExternalLink size={14} className="mr-1.5" />
+                        Voir le post
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        className="w-full justify-center text-xs"
+                        onClick={() => setPostInstagramModal(post)}
+                      >
+                        <Share2 size={14} className="mr-1.5" />
+                        Poster sur Instagram
+                      </Button>
+                    )
                   )}
                   {(post.visuals?.length ?? 0) > 0 ? (
                     <Button
@@ -531,6 +560,25 @@ export function EventCampaignSection() {
                   ) : (
                     <p className="text-xs text-zinc-400 text-center py-1">Aucun visuel</p>
                   )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-center text-xs"
+                    disabled={!post.bio?.trim()}
+                    onClick={async () => {
+                      const bio = post.bio?.trim();
+                      if (!bio) return;
+                      try {
+                        await navigator.clipboard.writeText(bio);
+                        toast.success('Bio copiée dans le presse-papier');
+                      } catch {
+                        toast.error('Impossible de copier');
+                      }
+                    }}
+                  >
+                    <Copy size={14} className="mr-1.5" />
+                    Copiez la bio
+                  </Button>
                 </div>
               </div>
             );
@@ -1238,6 +1286,8 @@ export function EventCampaignSection() {
   const getDownloadUrl = (url: string): string => {
     const m = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/);
     if (m) return `https://drive.google.com/uc?export=download&id=${m[1]}`;
+    const m2 = url.match(/[?&]id=([^&]+)/);
+    if (m2) return `https://drive.google.com/uc?export=download&id=${m2[1]}`;
     const dropbox = getDropboxDirect(url);
     return dropbox ?? url;
   };
@@ -1400,6 +1450,11 @@ export function EventCampaignSection() {
       </div>
       )}
 
+      {/* Charts Campagne - Suivi ventes vs posts */}
+      {event.shotgunEventId && (
+        <EventCampaignChart />
+      )}
+
       {/* Campaign section */}
       <div className="border-t-2 border-dashed border-zinc-200 dark:border-zinc-800 pt-8">
 
@@ -1417,7 +1472,16 @@ export function EventCampaignSection() {
         />
 
         {wfSectionTab === 'campagne' && (
-          <div className="space-y-3">
+          <div className="space-y-6">
+            {/* Visuels principaux — synchro avec le stepper (A4, Insta, Shotgun) */}
+            <div>
+              <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-3">Visuels principaux</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {renderVisualCard('Affiche A4', 'Format impression', event.media?.posterA4, posterA4InputRef, 'posterA4')}
+                {renderVisualCard('Format Insta', 'Story (1080×1440)', event.media?.posterInsta, posterInstaInputRef, 'posterInsta')}
+                {renderVisualCard('Format Shotgun', 'Bannière (1920×1080)', event.media?.posterShotgun, posterShotgunInputRef, 'posterShotgun')}
+              </div>
+            </div>
 
             {/* Post list */}
             {postsToRender.map((post) => (
@@ -1551,6 +1615,68 @@ export function EventCampaignSection() {
                         placeholder="Caption, texte du post, hashtags..."
                         className="resize-none"
                       />
+                    </div>
+
+                    {/* Instagram : musique, collaborateurs, mentions */}
+                    <div className="space-y-3 pt-3 border-t border-border-custom">
+                      <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Instagram</p>
+                      {(post.type === 'reel' || post.type === 'post' || post.type === 'story' || post.type === undefined) && post.networks?.includes('instagram') && (
+                        <>
+                          {post.type === 'reel' && (
+                            <div>
+                              <Label className="text-xs font-medium text-zinc-500 mb-1 block">Musique / Audio</Label>
+                              <Input
+                                key={`ig_audio-${post.id}`}
+                                defaultValue={post.ig_audio_name ?? ''}
+                                onBlur={(e) => {
+                                  const v = e.target.value.trim();
+                                  if (v !== (post.ig_audio_name ?? '')) updatePost(post.id, { ig_audio_name: v || undefined });
+                                }}
+                                placeholder="Nom de l'audio (si ajouté à la vidéo avant upload)"
+                                fullWidth
+                                size="sm"
+                              />
+                              <p className="text-[10px] text-zinc-400 mt-0.5">
+                                Ajoutez la musique à la vidéo avant l'upload. Ce champ permet de renommer l'audio original.
+                              </p>
+                            </div>
+                          )}
+                          {(post.type === 'post' || post.type === 'reel') && (
+                            <div>
+                              <Label className="text-xs font-medium text-zinc-500 mb-1 block">Collaborateurs</Label>
+                              <Input
+                                key={`ig_collab-${post.id}`}
+                                defaultValue={(post.ig_collaborators ?? []).join(', ')}
+                                onBlur={(e) => {
+                                  const raw = e.target.value.trim();
+                                  const list = raw ? raw.split(/[,;]/).map(s => s.replace(/^@/, '').trim()).filter(Boolean).slice(0, 3) : [];
+                                  const prev = (post.ig_collaborators ?? []).join(', ');
+                                  if (list.join(', ') !== prev) updatePost(post.id, { ig_collaborators: list.length ? list : undefined });
+                                }}
+                                placeholder="user1, user2 (max 3 comptes)"
+                                fullWidth
+                                size="sm"
+                              />
+                            </div>
+                          )}
+                          <div>
+                            <Label className="text-xs font-medium text-zinc-500 mb-1 block">Mentions / Tags</Label>
+                            <Input
+                              key={`ig_tags-${post.id}`}
+                              defaultValue={(post.ig_user_tags ?? []).map(t => `@${t.username}`).join(', ')}
+                              onBlur={(e) => {
+                                const raw = e.target.value.trim();
+                                const list = raw ? raw.split(/[,;]/).map(s => ({ username: s.replace(/^@/, '').trim() })).filter(t => t.username) : [];
+                                const prev = (post.ig_user_tags ?? []).map(t => t.username).join(', ');
+                                if (list.map(t => t.username).join(', ') !== prev) updatePost(post.id, { ig_user_tags: list.length ? list : undefined });
+                              }}
+                              placeholder="@user1, @user2"
+                              fullWidth
+                              size="sm"
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     {/* Visuals slider */}
@@ -1945,18 +2071,25 @@ export function EventCampaignSection() {
                       setPostingToInstagram(true);
                       try {
                         let body: Record<string, unknown>;
+                        const igOpts = {
+                          collaborators: postInstagramModal!.ig_collaborators?.length ? postInstagramModal!.ig_collaborators : undefined,
+                          user_tags: postInstagramModal!.ig_user_tags?.length ? postInstagramModal!.ig_user_tags : undefined,
+                          audio_name: postInstagramModal!.ig_audio_name?.trim() || undefined,
+                        };
                         if (canFeed) {
                           const url = resolvePublicUrl(imageVisuals[0]!.url, false);
                           body = {
                             media_type: 'feed',
                             image_url: url,
                             caption: postInstagramModal!.bio?.trim() || undefined,
+                            ...igOpts,
                           };
                         } else if (canCarousel) {
                           body = {
                             media_type: 'carousel',
                             images: imageVisuals.map(v => resolvePublicUrl(v.url, false)),
                             caption: postInstagramModal!.bio?.trim() || undefined,
+                            ...igOpts,
                           };
                         } else if (canStory) {
                           const v = visuals[0]!;
@@ -1966,12 +2099,14 @@ export function EventCampaignSection() {
                             ...(isVideo
                               ? { video_url: resolvePublicUrl(v.url, true) }
                               : { image_url: resolvePublicUrl(v.url, false) }),
+                            user_tags: igOpts.user_tags,
                           };
                         } else if (canReel) {
                           body = {
                             media_type: 'reel',
                             video_url: resolvePublicUrl(videoVisuals[0]!.url, true),
                             caption: postInstagramModal!.bio?.trim() || undefined,
+                            ...igOpts,
                           };
                         } else {
                           return;
