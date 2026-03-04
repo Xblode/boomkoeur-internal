@@ -8,7 +8,7 @@ import { WorkflowStepper } from './WorkflowStepper';
 import { EventShotgunStats } from './EventShotgunStats';
 import { EmptyState } from '@/components/ui/molecules';
 import { cn } from '@/lib/utils';
-import { SectionHeader } from '@/components/ui';
+import { SectionHeader, Modal, ModalContent, ModalFooter } from '@/components/ui';
 import {
   ArrowLeft,
   Check,
@@ -30,7 +30,9 @@ import {
   RefreshCw,
   Loader2,
   CheckCircle2,
+  Share2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useEventDetail } from './EventDetailProvider';
 import { useOrg } from '@/hooks';
 import { EventInstagramStats } from './EventInstagramStats';
@@ -72,6 +74,8 @@ export function EventCampaignSection() {
   const [editingVisualUrl, setEditingVisualUrl] = useState('');
   const [drivePickerPostId, setDrivePickerPostId] = useState<string | null>(null);
   const [drivePickerPosterType, setDrivePickerPosterType] = useState<'posterA4' | 'posterInsta' | 'posterShotgun' | null>(null);
+  const [postInstagramModal, setPostInstagramModal] = useState<ComWorkflowPost | null>(null);
+  const [postingToInstagram, setPostingToInstagram] = useState(false);
   const [visualUrlInputs, setVisualUrlInputs] = useState<Record<string, string>>({
     posterA4: '', posterInsta: '', posterShotgun: '',
   });
@@ -502,7 +506,18 @@ export function EventCampaignSection() {
                   <span className="text-xs font-medium">Publié</span>
                 </label>
 
-                <div className="mt-auto pt-2">
+                <div className="mt-auto pt-2 flex flex-col gap-1.5">
+                  {metaConnected && (post.networks?.includes('instagram') ?? false) && (post.visuals?.length ?? 0) > 0 && post.type !== 'newsletter' && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      className="w-full justify-center text-xs"
+                      onClick={() => setPostInstagramModal(post)}
+                    >
+                      <Share2 size={14} className="mr-1.5" />
+                      Poster sur Instagram
+                    </Button>
+                  )}
                   {(post.visuals?.length ?? 0) > 0 ? (
                     <Button
                       variant="outline"
@@ -1791,6 +1806,211 @@ export function EventCampaignSection() {
           orgId={activeOrg.id}
         />
       )}
+
+      {/* Modal Poster sur Instagram */}
+      <Modal
+        isOpen={!!postInstagramModal}
+        onClose={() => { setPostInstagramModal(null); setPostingToInstagram(false); }}
+        title="Poster sur Instagram"
+        size="md"
+        scrollable
+      >
+        {postInstagramModal && (
+          <>
+            <ModalContent noPadding className="space-y-4 px-4 py-4">
+              <div className="space-y-2">
+                <p className="text-sm font-medium">{postInstagramModal.name}</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {postInstagramModal.type && (
+                    <Badge variant="secondary" className="text-xs">
+                      {TYPE_LABELS[postInstagramModal.type]}
+                    </Badge>
+                  )}
+                  {postInstagramModal.networks?.map(n => (
+                    <Chip key={n} label={NETWORK_LABELS[n]} variant="outline" className="text-xs" />
+                  ))}
+                </div>
+              </div>
+              {postInstagramModal.bio && (
+                <div>
+                  <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-1">Caption</p>
+                  <p className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">{postInstagramModal.bio}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2">Aperçu du visuel</p>
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {(postInstagramModal.visuals ?? []).slice(0, 3).map((v) => {
+                    const isVideo = isVideoVisual(v);
+                    return (
+                      <div
+                        key={v.id}
+                        className={cn(
+                          'flex-none relative rounded-lg overflow-hidden border border-border-custom bg-zinc-100 dark:bg-zinc-800',
+                          getVisualAspect(postInstagramModal.type)
+                        )}
+                        style={{ width: 120 }}
+                      >
+                        {renderMedia(v)}
+                        {isVideo && (
+                          <div className="absolute bottom-1 left-1 flex items-center gap-0.5 bg-black/60 rounded px-1 py-0.5">
+                            <Play size={8} className="text-white fill-white" />
+                            <span className="text-[8px] text-white">Vidéo</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              {(() => {
+                const visuals = postInstagramModal.visuals ?? [];
+                if (visuals.length === 0) {
+                  return (
+                    <p className="text-sm text-zinc-500">Aucun visuel à publier.</p>
+                  );
+                }
+                if (postInstagramModal.type === 'newsletter') {
+                  return (
+                    <p className="text-sm text-zinc-500">La newsletter n&apos;est pas publiée sur Instagram.</p>
+                  );
+                }
+                const imageVisuals = visuals.filter(v => !isVideoVisual(v));
+                const videoVisuals = visuals.filter(v => isVideoVisual(v));
+                const canFeed = postInstagramModal.type === 'post' && imageVisuals.length === 1;
+                const canCarousel = postInstagramModal.type === 'post' && imageVisuals.length >= 2 && imageVisuals.length <= 10;
+                const canStory = postInstagramModal.type === 'story' && visuals.length === 1;
+                const canReel = postInstagramModal.type === 'reel' && videoVisuals.length === 1 && visuals.length === 1;
+                const canPublish = canFeed || canCarousel || canStory || canReel;
+                if (!canPublish) {
+                  return (
+                    <p className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                      <AlertTriangle size={16} />
+                      {postInstagramModal.type === 'post'
+                        ? 'Post : 1 image (feed) ou 2–10 images (carrousel) requis.'
+                        : postInstagramModal.type === 'story'
+                          ? 'Story : 1 image ou 1 vidéo requis.'
+                          : postInstagramModal.type === 'reel'
+                            ? 'Réel : 1 vidéo requise.'
+                            : 'Format non supporté pour Instagram.'}
+                    </p>
+                  );
+                }
+                return null;
+              })()}
+            </ModalContent>
+            <ModalFooter className="p-0">
+              <Button variant="ghost" size="sm" onClick={() => { setPostInstagramModal(null); setPostingToInstagram(false); }}>
+                Annuler
+              </Button>
+              {(() => {
+                const visuals = postInstagramModal.visuals ?? [];
+                const imageVisuals = visuals.filter(v => !isVideoVisual(v));
+                const videoVisuals = visuals.filter(v => isVideoVisual(v));
+                const canFeed = postInstagramModal.type === 'post' && imageVisuals.length === 1;
+                const canCarousel = postInstagramModal.type === 'post' && imageVisuals.length >= 2 && imageVisuals.length <= 10;
+                const canStory = postInstagramModal.type === 'story' && visuals.length === 1;
+                const canReel = postInstagramModal.type === 'reel' && videoVisuals.length === 1 && visuals.length === 1;
+                const canPublish = canFeed || canCarousel || canStory || canReel;
+
+                const resolvePublicUrl = (url: string, isVideo: boolean) =>
+                  url.includes('drive.google.com')
+                    ? (isVideo ? getDownloadUrl(url) : getGoogleDriveViewUrl(url))
+                    : getDownloadUrl(url);
+
+                if (!canPublish) return null;
+                return (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={postingToInstagram}
+                    onClick={async () => {
+                      if (!activeOrg?.id) return;
+                      setPostingToInstagram(true);
+                      try {
+                        let body: Record<string, unknown>;
+                        if (canFeed) {
+                          const url = resolvePublicUrl(imageVisuals[0]!.url, false);
+                          body = {
+                            media_type: 'feed',
+                            image_url: url,
+                            caption: postInstagramModal!.bio?.trim() || undefined,
+                          };
+                        } else if (canCarousel) {
+                          body = {
+                            media_type: 'carousel',
+                            images: imageVisuals.map(v => resolvePublicUrl(v.url, false)),
+                            caption: postInstagramModal!.bio?.trim() || undefined,
+                          };
+                        } else if (canStory) {
+                          const v = visuals[0]!;
+                          const isVideo = isVideoVisual(v);
+                          body = {
+                            media_type: 'story',
+                            ...(isVideo
+                              ? { video_url: resolvePublicUrl(v.url, true) }
+                              : { image_url: resolvePublicUrl(v.url, false) }),
+                          };
+                        } else if (canReel) {
+                          body = {
+                            media_type: 'reel',
+                            video_url: resolvePublicUrl(videoVisuals[0]!.url, true),
+                            caption: postInstagramModal!.bio?.trim() || undefined,
+                          };
+                        } else {
+                          return;
+                        }
+                        const res = await fetch(
+                          `/api/admin/integrations/meta/instagram/publish?org_id=${activeOrg.id}`,
+                          {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(body),
+                          }
+                        );
+                        const data = await res.json();
+                        if (!res.ok) {
+                          throw new Error(data.error ?? 'Erreur lors de la publication');
+                        }
+                        const postId = postInstagramModal!.id;
+                        const currentPosts = eventRef.current.comWorkflow?.posts ?? [];
+                        const updated = currentPosts.map(p =>
+                          p.id === postId ? { ...p, published: true } : p
+                        );
+                        setEvent((prev) => ({ ...prev, comWorkflow: buildWfWithPosts(prev.comWorkflow, updated) }));
+                        persistField((current) => ({
+                          comWorkflow: buildWfWithPosts(current.comWorkflow, (current.comWorkflow?.posts ?? []).map(p =>
+                            p.id === postId ? { ...p, published: true } : p
+                          )),
+                        }));
+                        setPostInstagramModal(null);
+                        toast.success('Post publié sur Instagram');
+                      } catch (err) {
+                        console.error('Instagram publish error:', err);
+                        toast.error(err instanceof Error ? err.message : 'Erreur lors de la publication sur Instagram');
+                      } finally {
+                        setPostingToInstagram(false);
+                      }
+                    }}
+                  >
+                    {postingToInstagram ? (
+                      <>
+                        <Loader2 size={14} className="mr-1.5 animate-spin" />
+                        Publication...
+                      </>
+                    ) : (
+                      <>
+                        <Share2 size={14} className="mr-1.5" />
+                        Poster
+                      </>
+                    )}
+                  </Button>
+                );
+              })()}
+            </ModalFooter>
+          </>
+        )}
+      </Modal>
 
     </div>
   );

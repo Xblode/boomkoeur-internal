@@ -201,7 +201,10 @@ export function Modal({
               
               {/* Footer */}
               {extractFooter && footerElement && (
-                <ModalFooter scrollable={!!scrollable || !!isFullBleed}>
+                <ModalFooter
+                  scrollable={!!scrollable || !!isFullBleed}
+                  className={isValidElement(footerElement) ? (footerElement as ReactElement<{ className?: string }>).props?.className : undefined}
+                >
                   {isValidElement(footerElement) ? (footerElement as ReactElement<{ children?: ReactNode }>).props.children : null}
                 </ModalFooter>
               )}

@@ -12,9 +12,51 @@ const GRAPH_IG_API = 'https://graph.instagram.com/v21.0';
 
 const TRANSIENT_RETRY_ATTEMPTS = 2;
 const TRANSIENT_RETRY_DELAY_MS = 1500;
+const CONTAINER_POLL_INTERVAL_MS = 2000;
+const CONTAINER_POLL_MAX_ATTEMPTS = 60; // 2 min max
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Publie un container créé (feed, story, reel, carousel). */
+async function publishContainer(
+  userPath: string,
+  containerId: string,
+  token: string
+): Promise<{ id: string } | { error: string }> {
+  const params = new URLSearchParams({
+    access_token: token,
+    creation_id: containerId,
+  });
+  const res = await fetch(
+    `${GRAPH_IG_API}/${userPath}/media_publish?${params.toString()}`,
+    { method: 'POST' }
+  );
+  const data = (await res.json()) as { id?: string; error?: { message: string } };
+  if (data.error || !data.id) {
+    return { error: data.error?.message ?? 'Échec de la publication' };
+  }
+  return { id: data.id };
+}
+
+/** Attend que le container vidéo soit prêt (status_code FINISHED). */
+async function waitForContainerReady(
+  containerId: string,
+  token: string
+): Promise<'FINISHED' | 'ERROR'> {
+  for (let i = 0; i < CONTAINER_POLL_MAX_ATTEMPTS; i++) {
+    await sleep(CONTAINER_POLL_INTERVAL_MS);
+    const res = await fetch(
+      `${GRAPH_IG_API}/${containerId}?fields=status_code&access_token=${encodeURIComponent(token)}`
+    );
+    const data = (await res.json()) as { status_code?: string; error?: { message: string } };
+    if (data.error) return 'ERROR';
+    const status = data.status_code;
+    if (status === 'FINISHED') return 'FINISHED';
+    if (status === 'ERROR' || status === 'EXPIRED') return 'ERROR';
+  }
+  return 'ERROR';
 }
 
 export type MetaErrorReason = 'no_credentials' | 'api_error';
@@ -448,7 +490,7 @@ export async function getMediaInsights(
 }
 
 /**
- * Publie une image sur Instagram.
+ * Publie une image sur Instagram (Feed).
  * imageUrl doit être une URL publique accessible.
  */
 export async function publishInstagramImage(
@@ -461,7 +503,6 @@ export async function publishInstagramImage(
   const userPath = creds ? getUserPath(creds) : null;
   if (!creds || !token || !userPath) return { error: 'Meta non connecté' };
 
-  // 1. Créer le container media
   const createParams = new URLSearchParams({
     access_token: token,
     image_url: imageUrl,
@@ -472,35 +513,151 @@ export async function publishInstagramImage(
     `${GRAPH_IG_API}/${userPath}/media?${createParams.toString()}`,
     { method: 'POST' }
   );
-
   const createData = (await createRes.json()) as { id?: string; error?: { message: string } };
 
   if (createData.error || !createData.id) {
-    return {
-      error: createData.error?.message ?? 'Échec de la création du média',
-    };
+    return { error: createData.error?.message ?? 'Échec de la création du média' };
   }
 
-  const containerId = createData.id;
+  return publishContainer(userPath, createData.id, token);
+}
 
-  // 2. Publier le container
-  const publishParams = new URLSearchParams({
+/**
+ * Publie une Story Instagram (image ou vidéo).
+ * Stories : pas de caption (ignoré par l'API).
+ */
+export async function publishInstagramStory(
+  orgId: string,
+  mediaUrl: string,
+  isVideo: boolean
+): Promise<{ id: string } | { error: string }> {
+  const creds = await getCredentialsForOrg(orgId);
+  const token = creds ? getAccessToken(creds) : null;
+  const userPath = creds ? getUserPath(creds) : null;
+  if (!creds || !token || !userPath) return { error: 'Meta non connecté' };
+
+  const createParams = new URLSearchParams({
     access_token: token,
-    creation_id: containerId,
+    media_type: 'STORIES',
   });
+  if (isVideo) {
+    createParams.set('video_url', mediaUrl);
+  } else {
+    createParams.set('image_url', mediaUrl);
+  }
 
-  const publishRes = await fetch(
-    `${GRAPH_IG_API}/${userPath}/media_publish?${publishParams.toString()}`,
+  const createRes = await fetch(
+    `${GRAPH_IG_API}/${userPath}/media?${createParams.toString()}`,
     { method: 'POST' }
   );
+  const createData = (await createRes.json()) as { id?: string; error?: { message: string } };
 
-  const publishData = (await publishRes.json()) as { id?: string; error?: { message: string } };
-
-  if (publishData.error || !publishData.id) {
-    return {
-      error: publishData.error?.message ?? 'Échec de la publication',
-    };
+  if (createData.error || !createData.id) {
+    return { error: createData.error?.message ?? 'Échec de la création de la Story' };
   }
 
-  return { id: publishData.id };
+  if (isVideo) {
+    const status = await waitForContainerReady(createData.id, token);
+    if (status !== 'FINISHED') {
+      return { error: 'La vidéo n\'a pas pu être traitée par Instagram. Réessayez ou utilisez une URL publique.' };
+    }
+  }
+
+  return publishContainer(userPath, createData.id, token);
+}
+
+/**
+ * Publie un Reel Instagram (vidéo).
+ */
+export async function publishInstagramReel(
+  orgId: string,
+  videoUrl: string,
+  caption?: string,
+  coverUrl?: string
+): Promise<{ id: string } | { error: string }> {
+  const creds = await getCredentialsForOrg(orgId);
+  const token = creds ? getAccessToken(creds) : null;
+  const userPath = creds ? getUserPath(creds) : null;
+  if (!creds || !token || !userPath) return { error: 'Meta non connecté' };
+
+  const createParams = new URLSearchParams({
+    access_token: token,
+    media_type: 'REELS',
+    video_url: videoUrl,
+  });
+  if (caption) createParams.set('caption', caption);
+  if (coverUrl) createParams.set('cover_url', coverUrl);
+
+  const createRes = await fetch(
+    `${GRAPH_IG_API}/${userPath}/media?${createParams.toString()}`,
+    { method: 'POST' }
+  );
+  const createData = (await createRes.json()) as { id?: string; error?: { message: string } };
+
+  if (createData.error || !createData.id) {
+    return { error: createData.error?.message ?? 'Échec de la création du Réel' };
+  }
+
+  const status = await waitForContainerReady(createData.id, token);
+  if (status !== 'FINISHED') {
+    return { error: 'La vidéo n\'a pas pu être traitée par Instagram. Réessayez ou utilisez une URL publique.' };
+  }
+
+  return publishContainer(userPath, createData.id, token);
+}
+
+/**
+ * Publie un carrousel Instagram (2 à 10 images).
+ */
+export async function publishInstagramCarousel(
+  orgId: string,
+  imageUrls: string[],
+  caption?: string
+): Promise<{ id: string } | { error: string }> {
+  const creds = await getCredentialsForOrg(orgId);
+  const token = creds ? getAccessToken(creds) : null;
+  const userPath = creds ? getUserPath(creds) : null;
+  if (!creds || !token || !userPath) return { error: 'Meta non connecté' };
+
+  if (imageUrls.length < 2 || imageUrls.length > 10) {
+    return { error: 'Le carrousel doit contenir entre 2 et 10 images' };
+  }
+
+  const itemIds: string[] = [];
+  for (const imageUrl of imageUrls) {
+    const createParams = new URLSearchParams({
+      access_token: token,
+      image_url: imageUrl,
+      is_carousel_item: 'true',
+    });
+    const createRes = await fetch(
+      `${GRAPH_IG_API}/${userPath}/media?${createParams.toString()}`,
+      { method: 'POST' }
+    );
+    const createData = (await createRes.json()) as { id?: string; error?: { message: string } };
+
+    if (createData.error || !createData.id) {
+      return { error: createData.error?.message ?? `Échec de la création de l'image ${itemIds.length + 1}` };
+    }
+    itemIds.push(createData.id);
+  }
+
+  const carouselParams = new URLSearchParams({
+    access_token: token,
+    media_type: 'CAROUSEL',
+    children: itemIds.join(','),
+  });
+  if (caption) carouselParams.set('caption', caption);
+
+  const carouselRes = await fetch(
+    `${GRAPH_IG_API}/${userPath}/media?${carouselParams.toString()}`,
+    { method: 'POST' }
+  );
+  const carouselData = (await carouselRes.json()) as { id?: string; error?: { message: string } };
+
+  if (carouselData.error || !carouselData.id) {
+    return { error: carouselData.error?.message ?? 'Échec de la création du carrousel' };
+  }
+
+  return publishContainer(userPath, carouselData.id, token);
 }
