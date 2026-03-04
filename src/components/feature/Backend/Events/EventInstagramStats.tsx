@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useEventDetail } from './EventDetailProvider';
 import { useOrg } from '@/hooks';
-import type { ComWorkflowPost } from '@/types/event';
+import type { ComWorkflowPost, Event } from '@/types/event';
 import { Button } from '@/components/ui/atoms';
 import { EmptyState, Card, CardContent } from '@/components/ui/molecules';
 import { cn } from '@/lib/utils';
@@ -14,12 +14,21 @@ import {
   Instagram,
   Users,
   Eye,
-  ExternalLink,
   TrendingUp,
   Image,
-  Heart,
+  Link2,
 } from 'lucide-react';
 import Link from 'next/link';
+import { Modal, ModalContent, ModalFooter, ModalTwoColumnLayout } from '@/components/ui';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/atoms';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -36,6 +45,11 @@ interface MediaInsights {
   reach?: number;
   impressions?: number;
   engagement?: number;
+  likes?: number;
+  comments?: number;
+  saved?: number;
+  shares?: number;
+  views?: number;
 }
 
 interface CampaignPostWithStats extends ComWorkflowPost {
@@ -83,8 +97,19 @@ function KpiCard({
   );
 }
 
+interface InstagramMediaItem {
+  id: string;
+  media_type: string;
+  media_url?: string;
+  permalink?: string;
+  caption?: string;
+  timestamp?: string;
+  like_count?: number;
+  comments_count?: number;
+}
+
 export function EventInstagramStats({ metaConnected = false }: EventInstagramStatsProps) {
-  const { event } = useEventDetail();
+  const { event, persistField } = useEventDetail();
   const { activeOrg } = useOrg();
   const orgId = event.orgId ?? activeOrg?.id;
 
@@ -104,11 +129,54 @@ export function EventInstagramStats({ metaConnected = false }: EventInstagramSta
   const [error, setError] = useState<
     string | { message: string; reason?: string; details?: string; isTransient?: boolean } | null
   >(null);
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
+  const [igMediaList, setIgMediaList] = useState<InstagramMediaItem[]>([]);
+  const [linkModalLoading, setLinkModalLoading] = useState(false);
+  const [linkSelectedCampaign, setLinkSelectedCampaign] = useState<string | null>(null);
+  const [linkSelectedIg, setLinkSelectedIg] = useState<string | null>(null);
+  const [linkLinking, setLinkLinking] = useState(false);
 
   const campaignPosts = (event.comWorkflow?.posts ?? []).filter(
     (p): p is ComWorkflowPost & { ig_media_id: string } =>
       !!p.ig_media_id
   );
+
+  const campaignPostsUnlinked = (event.comWorkflow?.posts ?? []).filter(
+    (p) => !p.ig_media_id
+  );
+
+  const linkedIgIds = new Set(
+    (event.comWorkflow?.posts ?? [])
+      .map((p) => p.ig_media_id)
+      .filter(Boolean) as string[]
+  );
+
+  const fetchIgMediaForLink = useCallback(async () => {
+    if (!orgId) return;
+    setLinkModalLoading(true);
+    try {
+      const res = await fetch(
+        `/api/admin/integrations/meta/instagram/media?org_id=${orgId}&limit=50`
+      );
+      const data = await res.json();
+      if (res.ok && data.data) {
+        setIgMediaList(data.data);
+      } else {
+        setIgMediaList([]);
+      }
+    } catch {
+      setIgMediaList([]);
+    } finally {
+      setLinkModalLoading(false);
+    }
+  }, [orgId]);
+
+  const handleOpenLinkModal = useCallback(() => {
+    setLinkModalOpen(true);
+    setLinkSelectedCampaign(null);
+    setLinkSelectedIg(null);
+    fetchIgMediaForLink();
+  }, [fetchIgMediaForLink]);
 
   const fetchData = useCallback(
     async () => {
@@ -159,16 +227,14 @@ export function EventInstagramStats({ metaConnected = false }: EventInstagramSta
         if (postsToFetch.length > 0) {
           const postsWithStats = await Promise.all(
             postsToFetch.map(async (post) => {
-              const [mediaRes, insightsRes] = await Promise.all([
-                fetch(
-                  `/api/admin/integrations/meta/instagram/media/${post.ig_media_id}?org_id=${orgId}`
-                ),
-                fetch(
-                  `/api/admin/integrations/meta/instagram/media/${post.ig_media_id}/insights?org_id=${orgId}`
-                ),
-              ]);
-
+              const mediaRes = await fetch(
+                `/api/admin/integrations/meta/instagram/media/${post.ig_media_id}?org_id=${orgId}`
+              );
               const media = mediaRes.ok ? await mediaRes.json() : null;
+              const mediaType = media?.media_product_type ?? media?.media_type ?? undefined;
+              const insightsRes = await fetch(
+                `/api/admin/integrations/meta/instagram/media/${post.ig_media_id}/insights?org_id=${orgId}${mediaType ? `&media_type=${encodeURIComponent(mediaType)}` : ''}`
+              );
               const insights = insightsRes.ok ? await insightsRes.json() : null;
 
               return {
@@ -178,7 +244,7 @@ export function EventInstagramStats({ metaConnected = false }: EventInstagramSta
                       like_count: media.like_count,
                       comments_count: media.comments_count,
                       permalink: media.permalink,
-                      media_type: media.media_type,
+                      media_type: media.media_product_type ?? media.media_type,
                     }
                   : undefined,
                 insights: insights ?? undefined,
@@ -209,6 +275,49 @@ export function EventInstagramStats({ metaConnected = false }: EventInstagramSta
     [orgId, metaConnected, event.comWorkflow?.posts]
   );
 
+  const handleLinkPost = useCallback(async () => {
+    if (!linkSelectedCampaign || !linkSelectedIg || !orgId) return;
+    setLinkLinking(true);
+    try {
+      const currentPosts = event.comWorkflow?.posts ?? [];
+      const isFirstLink = !currentPosts.some((p) => p.ig_media_id);
+      let followersAtStart: number | undefined;
+      if (isFirstLink) {
+        try {
+          const accRes = await fetch(
+            `/api/admin/integrations/meta/instagram/account/insights?org_id=${orgId}&period=7`
+          );
+          const accData = await accRes.json();
+          followersAtStart = accData.account?.followers_count;
+        } catch {
+          // Ignore
+        }
+      }
+
+      await persistField((current) => {
+        const posts = (current.comWorkflow?.posts ?? []).map((p) =>
+          p.id === linkSelectedCampaign ? { ...p, ig_media_id: linkSelectedIg } : p
+        );
+        const wf: NonNullable<Event['comWorkflow']> = {
+          ...current.comWorkflow!,
+          posts,
+        };
+        if (isFirstLink && followersAtStart != null) {
+          wf.followers_count_at_campaign_start = followersAtStart;
+          wf.campaign_started_at = new Date().toISOString();
+        }
+        return { comWorkflow: wf };
+      });
+      toast.success('Post lié avec succès');
+      setLinkModalOpen(false);
+      fetchData();
+    } catch {
+      toast.error('Erreur lors de la liaison');
+    } finally {
+      setLinkLinking(false);
+    }
+  }, [linkSelectedCampaign, linkSelectedIg, orgId, event.comWorkflow?.posts, persistField, fetchData]);
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
@@ -221,6 +330,16 @@ export function EventInstagramStats({ metaConnected = false }: EventInstagramSta
     followersAtStart != null && currentFollowers > 0
       ? currentFollowers - followersAtStart
       : null;
+
+  const accountReach = accountStats?.insights?.reach ?? 0;
+  const campaignReachSum = campaignPostsWithStats.reduce(
+    (acc, p) => acc + (p.insights?.reach ?? p.insights?.impressions ?? 0),
+    0
+  );
+  const displayReach =
+    accountReach > 0 ? accountReach : campaignReachSum > 0 ? campaignReachSum : 0;
+  const reachLabel =
+    accountReach > 0 ? 'Portée 7j' : campaignReachSum > 0 ? 'Portée campagne' : 'Portée 7j';
 
   if (loading && !accountStats) {
     return (
@@ -304,16 +423,149 @@ export function EventInstagramStats({ metaConnected = false }: EventInstagramSta
             <>Dernière synchro : {format(lastSync, "d MMM 'à' HH:mm", { locale: fr })}</>
           )}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => fetchData()}
-          disabled={loading}
-        >
-          <RefreshCw size={14} className={cn(loading && 'animate-spin')} />
-          Rafraîchir
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleOpenLinkModal}
+            disabled={!metaConnected || campaignPostsUnlinked.length === 0}
+            title={
+              campaignPostsUnlinked.length === 0
+                ? 'Tous les posts sont déjà liés'
+                : 'Lier un post Instagram à un post de campagne'
+            }
+          >
+            <Link2 size={14} />
+            Lier un post
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchData()}
+            disabled={loading}
+          >
+            <RefreshCw size={14} className={cn(loading && 'animate-spin')} />
+            Rafraîchir
+          </Button>
+        </div>
       </div>
+
+      {/* Modal Lier un post */}
+      <Modal
+        isOpen={linkModalOpen}
+        onClose={() => setLinkModalOpen(false)}
+        title="Lier un post Instagram à la campagne"
+        size="lg"
+        variant="fullBleed"
+      >
+        <ModalTwoColumnLayout
+          leftWidth="14rem"
+          minHeight="360px"
+          left={
+            <div className="p-3 space-y-1">
+              <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2">
+                Post campagne (sans lien)
+              </p>
+              {campaignPostsUnlinked.length === 0 ? (
+                <p className="text-xs text-zinc-500">Aucun post à lier</p>
+              ) : (
+                campaignPostsUnlinked.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setLinkSelectedCampaign(p.id)}
+                    className={cn(
+                      'w-full text-left px-3 py-2 rounded-md text-sm transition-colors',
+                      linkSelectedCampaign === p.id
+                        ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100'
+                        : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
+                    )}
+                  >
+                    <span className="truncate block">{p.name}</span>
+                    <span className="text-[10px] text-zinc-500">
+                      {p.type === 'reel' ? 'Reel' : p.type === 'story' ? 'Story' : 'Post'}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          }
+          right={
+            <div className="p-3">
+              <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2">
+                Post Instagram (compte)
+              </p>
+              {linkModalLoading ? (
+                <div className="flex items-center justify-center py-12 gap-2 text-sm text-zinc-500">
+                  <Loader2 size={16} className="animate-spin" />
+                  Chargement...
+                </div>
+              ) : igMediaList.length === 0 ? (
+                <p className="text-sm text-zinc-500 py-4">Aucun post Instagram trouvé</p>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-[320px] overflow-y-auto">
+                  {igMediaList.map((m) => {
+                    const alreadyLinked = linkedIgIds.has(m.id);
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => !alreadyLinked && setLinkSelectedIg(m.id)}
+                        disabled={alreadyLinked}
+                        className={cn(
+                          'relative rounded-lg overflow-hidden border-2 transition-all aspect-square',
+                          linkSelectedIg === m.id
+                            ? 'border-pink-500 ring-2 ring-pink-500/30'
+                            : alreadyLinked
+                              ? 'border-zinc-200 dark:border-zinc-700 opacity-50 cursor-not-allowed'
+                              : 'border-transparent hover:border-zinc-300 dark:hover:border-zinc-600'
+                        )}
+                      >
+                        {m.media_url ? (
+                          <img
+                            src={m.media_url}
+                            alt={m.caption ?? ''}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center">
+                            <Image size={24} className="text-zinc-400" />
+                          </div>
+                        )}
+                        {alreadyLinked && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <span className="text-[10px] text-white font-medium">Lié</span>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          }
+        />
+        <ModalFooter>
+          <Button variant="ghost" size="sm" onClick={() => setLinkModalOpen(false)}>
+            Annuler
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleLinkPost}
+            disabled={!linkSelectedCampaign || !linkSelectedIg || linkLinking}
+          >
+            {linkLinking ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <>
+                <Link2 size={14} />
+                Lier
+              </>
+            )}
+          </Button>
+        </ModalFooter>
+      </Modal>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -329,24 +581,29 @@ export function EventInstagramStats({ metaConnected = false }: EventInstagramSta
           value={
             impactDelta != null
               ? `${impactDelta >= 0 ? '+' : ''}${impactDelta}`
-              : '—'
+              : campaignPosts.length > 0
+                ? '—'
+                : '—'
           }
           sub={
-            campaignStartedAt
-              ? `Depuis ${format(new Date(campaignStartedAt), 'd MMM', { locale: fr })}`
+            campaignPosts.length > 0
+              ? campaignStartedAt
+                ? `Depuis ${format(new Date(campaignStartedAt), 'd MMM', { locale: fr })}`
+                : 'Campagne en cours'
               : 'Aucune campagne en cours'
           }
         />
         <KpiCard
           icon={<Eye size={18} />}
-          label="Portée 7j"
-          value={formatNumber(accountStats?.insights?.reach ?? 0)}
+          label={reachLabel}
+          value={formatNumber(displayReach)}
+          sub={campaignReachSum > 0 && accountReach === 0 ? 'Somme des posts campagne' : undefined}
         />
         <KpiCard
           icon={<Image size={18} />}
           label="Posts campagne"
           value={String(campaignPosts.length)}
-          sub={`publiés via le site`}
+          sub={campaignPosts.length > 0 ? 'liés ou publiés' : undefined}
         />
       </div>
 
@@ -456,63 +713,132 @@ export function EventInstagramStats({ metaConnected = false }: EventInstagramSta
       <Card variant="outline">
         <CardContent className="p-4">
           <h4 className="text-sm font-semibold mb-3">Stats par post de campagne</h4>
+          <p className="text-xs text-zinc-500 mb-4">
+            Suivi et analyse des performances par post (reach, vues, engagement, sauvegardes, partages).
+          </p>
           {campaignPostsWithStats.length === 0 ? (
             <p className="text-sm text-zinc-500">
-              Aucun post de campagne publié via le site. Les posts publiés depuis ici apparaîtront
-              avec leurs statistiques.
+              Aucun post de campagne lié. Liez des posts Instagram ou publiez depuis le site pour
+              afficher les statistiques.
             </p>
           ) : (
-            <div className="space-y-3">
-              {campaignPostsWithStats.map((post) => (
-                <div
-                  key={post.id}
-                  className="flex flex-wrap items-center gap-4 py-3 border-b border-zinc-100 dark:border-zinc-800 last:border-0"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{post.name}</p>
-                    <p className="text-xs text-zinc-500">
-                      {post.type === 'reel' ? 'Reel' : post.type === 'story' ? 'Story' : 'Post'}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-4 text-xs tabular-nums text-zinc-600 dark:text-zinc-400">
-                    {post.insights?.impressions != null && (
-                      <span title="Vues">
-                        <Eye size={12} className="inline mr-1" />
-                        {formatNumber(post.insights.impressions)} vues
-                      </span>
-                    )}
-                    {post.insights?.reach != null && (
-                      <span title="Portée">
-                        <TrendingUp size={12} className="inline mr-1" />
-                        {formatNumber(post.insights.reach)} portée
-                      </span>
-                    )}
-                    {post.media?.like_count != null && (
-                      <span title="Likes">
-                        <Heart size={12} className="inline mr-1" />
-                        {formatNumber(post.media.like_count)}
-                      </span>
-                    )}
-                    {post.media?.comments_count != null && (
-                      <span title="Commentaires">{formatNumber(post.media.comments_count)} com.</span>
-                    )}
-                    {post.insights?.engagement != null && (
-                      <span title="Engagement">{formatNumber(post.insights.engagement)} eng.</span>
-                    )}
-                  </div>
-                  {post.media?.permalink && (
-                    <a
-                      href={post.media.permalink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-pink-600 dark:text-pink-400 hover:underline shrink-0"
-                    >
-                      <ExternalLink size={12} />
-                      Instagram
-                    </a>
-                  )}
-                </div>
-              ))}
+            <div className="overflow-x-auto">
+              <Table
+                variant="default"
+                resizable={false}
+                statusColumn={false}
+                fillColumn={false}
+              >
+                <TableHeader>
+                  <TableRow hoverCellOnly>
+                    <TableHead minWidth={140} defaultWidth={200}>
+                      Post
+                    </TableHead>
+                    <TableHead align="right" minWidth={80} defaultWidth={100}>
+                      Vues
+                    </TableHead>
+                    <TableHead align="right" minWidth={80} defaultWidth={100}>
+                      Portée
+                    </TableHead>
+                    <TableHead align="right" minWidth={70} defaultWidth={90}>
+                      Likes
+                    </TableHead>
+                    <TableHead align="right" minWidth={70} defaultWidth={90}>
+                      Com.
+                    </TableHead>
+                    <TableHead align="right" minWidth={70} defaultWidth={90}>
+                      Eng.
+                    </TableHead>
+                    <TableHead align="right" minWidth={60} defaultWidth={80}>
+                      Sauv.
+                    </TableHead>
+                    <TableHead align="right" minWidth={60} defaultWidth={80}>
+                      Part.
+                    </TableHead>
+                    <TableHead align="right" minWidth={80} defaultWidth={100} className="text-right">
+                      Taux eng.
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {campaignPostsWithStats.map((post) => {
+                    const impressions =
+                      post.insights?.impressions ?? post.insights?.views ?? 0;
+                    const reach = post.insights?.reach ?? 0;
+                    const likes = post.insights?.likes ?? post.media?.like_count ?? 0;
+                    const comments =
+                      post.insights?.comments ?? post.media?.comments_count ?? 0;
+                    const engagement = post.insights?.engagement ?? 0;
+                    const saved = post.insights?.saved ?? 0;
+                    const shares = post.insights?.shares ?? 0;
+                    const totalInteractions = likes + comments + saved + shares;
+                    const engagementRate =
+                      reach > 0
+                        ? ((totalInteractions / reach) * 100).toFixed(1)
+                        : impressions > 0
+                          ? ((totalInteractions / impressions) * 100).toFixed(1)
+                          : '—';
+                    const postLabel =
+                      post.type === 'reel'
+                        ? 'Reel'
+                        : post.type === 'story'
+                          ? 'Story'
+                          : 'Post';
+                    return (
+                      <TableRow key={post.id} hoverCellOnly>
+                        <TableCell noHoverBorder>
+                          <div>
+                            {post.media?.permalink ? (
+                              <a
+                                href={post.media.permalink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm font-medium text-pink-600 dark:text-pink-400 hover:underline truncate block"
+                              >
+                                {post.name}
+                              </a>
+                            ) : (
+                              <p className="text-sm font-medium truncate">
+                                {post.name}
+                              </p>
+                            )}
+                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                              {postLabel}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell noHoverBorder align="right" className="tabular-nums text-sm text-zinc-700 dark:text-zinc-300">
+                          {impressions > 0 ? formatNumber(impressions) : '—'}
+                        </TableCell>
+                        <TableCell noHoverBorder align="right" className="tabular-nums text-sm text-zinc-700 dark:text-zinc-300">
+                          {reach > 0 ? formatNumber(reach) : '—'}
+                        </TableCell>
+                        <TableCell noHoverBorder align="right" className="tabular-nums text-sm text-zinc-700 dark:text-zinc-300">
+                          {likes > 0 ? formatNumber(likes) : '—'}
+                        </TableCell>
+                        <TableCell noHoverBorder align="right" className="tabular-nums text-sm text-zinc-700 dark:text-zinc-300">
+                          {comments > 0 ? formatNumber(comments) : '—'}
+                        </TableCell>
+                        <TableCell noHoverBorder align="right" className="tabular-nums text-sm text-zinc-700 dark:text-zinc-300">
+                          {engagement > 0 ? formatNumber(engagement) : '—'}
+                        </TableCell>
+                        <TableCell noHoverBorder align="right" className="tabular-nums text-sm text-zinc-700 dark:text-zinc-300">
+                          {saved > 0 ? formatNumber(saved) : '—'}
+                        </TableCell>
+                        <TableCell noHoverBorder align="right" className="tabular-nums text-sm text-zinc-700 dark:text-zinc-300">
+                          {shares > 0 ? formatNumber(shares) : '—'}
+                        </TableCell>
+                        <TableCell noHoverBorder align="right" className="tabular-nums text-sm text-zinc-700 dark:text-zinc-300">
+                          <span className="block w-full text-right">
+                            {engagementRate}
+                            {engagementRate !== '—' ? '%' : ''}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>

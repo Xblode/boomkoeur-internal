@@ -483,7 +483,7 @@ export async function getInstagramMediaById(
 
   const params = new URLSearchParams({
     access_token: token,
-    fields: 'id,media_type,media_url,permalink,caption,timestamp,like_count,comments_count',
+    fields: 'id,media_type,media_product_type,media_url,permalink,caption,timestamp,like_count,comments_count',
   });
 
   const res = await fetch(`${GRAPH_IG_API}/${mediaId}?${params.toString()}`);
@@ -585,50 +585,104 @@ export async function getInstagramMedia(
   };
 }
 
+export interface MediaInsightsResult {
+  reach?: number;
+  impressions?: number;
+  engagement?: number;
+  likes?: number;
+  comments?: number;
+  saved?: number;
+  shares?: number;
+  views?: number;
+}
+
+/** Métriques supportées par type de média (doc Meta). STORY/STORIES n'a pas likes, comments, saved, impressions. */
+function getMetricsForMediaType(mediaType?: string): string[] {
+  const upper = (mediaType ?? '').toUpperCase();
+  if (upper === 'STORY' || upper === 'STORIES') {
+    return ['reach', 'total_interactions', 'shares', 'views'];
+  }
+  if (upper === 'IMAGE' || upper === 'VIDEO' || upper === 'CAROUSEL_ALBUM' || upper === 'REELS' || upper === 'CAROUSEL') {
+    return ['reach', 'impressions', 'views', 'total_interactions', 'likes', 'comments', 'saved', 'shares'];
+  }
+  return ['reach', 'total_interactions', 'shares', 'views'];
+}
+
 /**
- * Récupère les insights d'un média (reach, impressions, engagement).
+ * Récupère les insights d'un média (reach, impressions, engagement, likes, etc.).
+ * Les métriques disponibles varient selon le type (FEED, REELS, STORY).
  */
 export async function getMediaInsights(
   orgId: string,
   mediaId: string,
-  metrics: string[] = ['reach', 'impressions', 'engagement']
-): Promise<{ reach?: number; impressions?: number; engagement?: number } | null> {
+  options?: { mediaType?: string }
+): Promise<MediaInsightsResult | null> {
   const creds = await getCredentialsForOrg(orgId);
   const token = creds ? getAccessToken(creds) : null;
   if (!creds || !token) return null;
 
-  const params = new URLSearchParams({
-    access_token: token,
-    metric: metrics.join(','),
-  });
+  let metrics = getMetricsForMediaType(options?.mediaType);
 
-  const res = await fetch(
-    `${GRAPH_IG_API}/${mediaId}/insights?${params.toString()}`
-  );
-  if (!res.ok) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const params = new URLSearchParams({
+      access_token: token,
+      metric: metrics.join(','),
+      period: 'lifetime',
+    });
+
+    const res = await fetch(
+      `${GRAPH_IG_API}/${mediaId}/insights?${params.toString()}`
+    );
     const text = await res.text();
+    const json = (JSON.parse(text || '{}') || {}) as {
+      data?: Array<{
+        name: string;
+        values?: Array<{ value: string | number }>;
+        total_value?: { value: number };
+      }>;
+      error?: { message: string };
+    };
+
+    if (res.ok && !json.error && json.data) {
+      const result: MediaInsightsResult = {};
+      for (const m of json.data) {
+        const rawVal = m.total_value?.value ?? m.values?.[0]?.value;
+        const val = typeof rawVal === 'number' ? String(rawVal) : rawVal;
+        if (val != null && val !== '') {
+          const num = typeof rawVal === 'number' ? rawVal : parseInt(String(val), 10);
+          if (!Number.isNaN(num)) {
+            if (m.name === 'reach') result.reach = num;
+            else if (m.name === 'impressions') result.impressions = num;
+            else if (m.name === 'engagement' || m.name === 'total_interactions') result.engagement = num;
+            else if (m.name === 'likes') result.likes = num;
+            else if (m.name === 'comments') result.comments = num;
+            else if (m.name === 'saved') result.saved = num;
+            else if (m.name === 'shares') result.shares = num;
+            else if (m.name === 'views') result.views = num;
+          }
+        }
+      }
+      return result;
+    }
+
+    const errMsg = json.error?.message ?? '';
+    const isUnsupportedMetric = res.status === 400 && errMsg.includes('does not support');
+    if (isUnsupportedMetric && attempt === 0) {
+      if (errMsg.includes('likes') || errMsg.includes('comments') || errMsg.includes('saved')) {
+        metrics = ['reach', 'total_interactions', 'shares', 'views'];
+      } else if (metrics.includes('impressions')) {
+        metrics = metrics.filter((m) => m !== 'impressions');
+      } else {
+        break;
+      }
+      continue;
+    }
+
     console.error('[Meta] Instagram media insights API error:', res.status, text);
     return null;
   }
 
-  const json = (await res.json()) as {
-    data?: Array<{ name: string; values: Array<{ value: string }> }>;
-    error?: { message: string };
-  };
-
-  if (json.error || !json.data) return null;
-
-  const result: { reach?: number; impressions?: number; engagement?: number } = {};
-  for (const m of json.data) {
-    const val = m.values?.[0]?.value;
-    if (val) {
-      const num = parseInt(val, 10);
-      if (m.name === 'reach') result.reach = num;
-      else if (m.name === 'impressions') result.impressions = num;
-      else if (m.name === 'engagement') result.engagement = num;
-    }
-  }
-  return result;
+  return null;
 }
 
 /**

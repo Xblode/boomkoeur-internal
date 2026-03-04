@@ -27,6 +27,7 @@ export async function GET(
 ) {
   const { id: mediaId } = await params;
   const orgId = request.nextUrl.searchParams.get('org_id');
+  const mediaType = request.nextUrl.searchParams.get('media_type') ?? undefined;
 
   if (!orgId || !mediaId) {
     return NextResponse.json({ error: 'org_id et id du média requis' }, { status: 400 });
@@ -37,7 +38,7 @@ export async function GET(
     return NextResponse.json({ error: authError.error }, { status: authError.status });
   }
 
-  const result = await getMediaInsights(orgId, mediaId);
+  const result = await getMediaInsights(orgId, mediaId, { mediaType });
 
   if (!result) {
     return NextResponse.json(
