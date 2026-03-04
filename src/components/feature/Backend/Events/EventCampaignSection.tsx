@@ -38,6 +38,7 @@ import { useEventDetail } from './EventDetailProvider';
 import { useOrg } from '@/hooks';
 import { EventInstagramStats } from './EventInstagramStats';
 import { EventCampaignChart } from './EventCampaignChart';
+import { EventBilanSection } from './EventBilanSection';
 import { ShotgunEventsResponse } from '@/types/shotgun';
 import { DrivePickerModal } from './DrivePickerModal';
 
@@ -62,7 +63,7 @@ export function EventCampaignSection() {
   eventRef.current = event;
 
   // ── Local state ──
-  const [wfSectionTab, setWfSectionTab] = useState<'campagne' | 'shotgun' | 'instagram'>('campagne');
+  const [wfSectionTab, setWfSectionTab] = useState<'campagne' | 'shotgun' | 'instagram' | 'bilan'>('campagne');
   const [metaConnected, setMetaConnected] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [syncMessage, setSyncMessage] = useState('');
@@ -76,6 +77,7 @@ export function EventCampaignSection() {
   const [editingVisualUrl, setEditingVisualUrl] = useState('');
   const [drivePickerPostId, setDrivePickerPostId] = useState<string | null>(null);
   const [drivePickerPosterType, setDrivePickerPosterType] = useState<'posterA4' | 'posterInsta' | 'posterShotgun' | null>(null);
+  const [drivePickerCoverFor, setDrivePickerCoverFor] = useState<{ postId: string; visualId: string } | null>(null);
   const [postInstagramModal, setPostInstagramModal] = useState<ComWorkflowPost | null>(null);
   const [postingToInstagram, setPostingToInstagram] = useState(false);
   const [visualUrlInputs, setVisualUrlInputs] = useState<Record<string, string>>({
@@ -1233,6 +1235,9 @@ export function EventCampaignSection() {
     overrides: { ...base?.overrides },
     shotgunUrl: base?.shotgunUrl ?? '',
     posts,
+    bilanNotes: base?.bilanNotes,
+    followers_count_at_campaign_start: base?.followers_count_at_campaign_start,
+    campaign_started_at: base?.campaign_started_at,
     ...wfOverrides,
   });
 
@@ -1307,7 +1312,6 @@ export function EventCampaignSection() {
   const renderMedia = (v: PostVisual) => {
     const u = v.url;
     const isDriveUrl = u.includes('drive.google.com');
-    const driveEmbed = getGoogleDriveEmbed(u);
     const dropboxDirect = getDropboxDirect(u);
     const isVideoType = v.mediaType === 'video' || (!v.mediaType && detectMediaType(u) === 'video');
 
@@ -1317,15 +1321,25 @@ export function EventCampaignSection() {
       const src = proxyUrl ?? getGoogleDriveViewUrl(u);
       return <img src={src} alt="Visuel" className="w-full h-full object-cover" referrerPolicy="no-referrer" />;
     }
-    // Vidéos Google Drive : iframe (peut demander les cookies)
-    if (driveEmbed && isVideoType) {
-      return <iframe src={driveEmbed} className="w-full h-full border-0" allow="autoplay" allowFullScreen title="Visuel Google Drive" />;
-    }
+    // Vidéos : utiliser le proxy Drive pour une vraie prévisualisation (au lieu d'iframe)
     if (isVideoType) {
-      const src = dropboxDirect ?? u;
+      const src = isDriveUrl
+        ? getDrivePreviewProxyUrl(u) ?? getGoogleDriveEmbed(u) ?? u
+        : (dropboxDirect ?? u);
+      const posterSrc = v.posterUrl
+        ? (v.posterUrl.includes('drive.google.com') ? getDrivePreviewProxyUrl(v.posterUrl) ?? getGoogleDriveViewUrl(v.posterUrl) : v.posterUrl)
+        : undefined;
       return (
-        <video src={src} className="w-full h-full object-cover" muted loop playsInline
-          onMouseEnter={e => (e.currentTarget as HTMLVideoElement).play()}
+        <video
+          src={src}
+          poster={posterSrc}
+          className="w-full h-full object-cover"
+          muted
+          loop
+          playsInline
+          controls
+          preload="metadata"
+          onMouseEnter={e => { (e.currentTarget as HTMLVideoElement).play().catch(() => {}); }}
           onMouseLeave={e => { (e.currentTarget as HTMLVideoElement).pause(); (e.currentTarget as HTMLVideoElement).currentTime = 0; }}
         />
       );
@@ -1458,13 +1472,14 @@ export function EventCampaignSection() {
       {/* Campaign section */}
       <div className="border-t-2 border-dashed border-zinc-200 dark:border-zinc-800 pt-8">
 
-        <TabSwitcher<'campagne' | 'shotgun' | 'instagram'>
+        <TabSwitcher<'campagne' | 'shotgun' | 'instagram' | 'bilan'>
           options={[
             { value: 'campagne', label: 'Campagne' },
             ...(event.shotgunEventId
               ? [{ value: 'shotgun' as const, label: 'Shotgun' }]
               : []),
             ...(metaConnected ? [{ value: 'instagram' as const, label: 'Instagram' }] : []),
+            { value: 'bilan', label: 'Bilan' },
           ]}
           value={wfSectionTab}
           onChange={setWfSectionTab}
@@ -1483,8 +1498,8 @@ export function EventCampaignSection() {
               </div>
             </div>
 
-            {/* Post list */}
-            {postsToRender.map((post) => (
+            {/* Post list — triés par date */}
+            {sortedComPosts.map((post) => (
               <EditableCard
                 key={post.id}
                 isEditing={editingPostId === post.id}
@@ -1499,13 +1514,30 @@ export function EventCampaignSection() {
                       <FileText size={20} className="text-zinc-600 dark:text-zinc-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {post.type && (
-                          <Badge variant="default" className="text-[10px] shrink-0">
-                            {TYPE_LABELS[post.type]}
-                          </Badge>
-                        )}
-                        <p className="text-sm font-medium leading-snug">{post.name}</p>
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
+                          {post.type && (
+                            <Badge variant="default" className="text-[10px] shrink-0">
+                              {TYPE_LABELS[post.type]}
+                            </Badge>
+                          )}
+                          <p className="text-sm font-medium leading-snug">{post.name}</p>
+                        </div>
+                        {(() => {
+                          const missing: string[] = [];
+                          if (!post.scheduledDate) missing.push('Date');
+                          if (!post.bio?.trim()) missing.push('Bio');
+                          if ((post.visuals?.length ?? 0) === 0) missing.push('Visuel');
+                          return missing.length > 0 ? (
+                            <div className="flex items-center gap-1 flex-wrap shrink-0">
+                              {missing.map(m => (
+                                <Badge key={m} variant="warning" className="text-[10px]">
+                                  {m}
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : null;
+                        })()}
                       </div>
                       {post.networks?.length > 0 && (
                         <div className="flex flex-wrap items-center gap-1 mt-1.5">
@@ -1622,24 +1654,64 @@ export function EventCampaignSection() {
                       <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Instagram</p>
                       {(post.type === 'reel' || post.type === 'post' || post.type === 'story' || post.type === undefined) && post.networks?.includes('instagram') && (
                         <>
-                          {post.type === 'reel' && (
-                            <div>
-                              <Label className="text-xs font-medium text-zinc-500 mb-1 block">Musique / Audio</Label>
-                              <Input
-                                key={`ig_audio-${post.id}`}
-                                defaultValue={post.ig_audio_name ?? ''}
-                                onBlur={(e) => {
-                                  const v = e.target.value.trim();
-                                  if (v !== (post.ig_audio_name ?? '')) updatePost(post.id, { ig_audio_name: v || undefined });
-                                }}
-                                placeholder="Nom de l'audio (si ajouté à la vidéo avant upload)"
-                                fullWidth
-                                size="sm"
-                              />
-                              <p className="text-[10px] text-zinc-400 mt-0.5">
-                                Ajoutez la musique à la vidéo avant l'upload. Ce champ permet de renommer l'audio original.
-                              </p>
-                            </div>
+                          {post.type === 'reel' && (post.visuals ?? []).some(x => isVideoVisual(x)) && (
+                            <>
+                              <div>
+                                <Label className="text-xs font-medium text-zinc-500 mb-1 block">Image de couverture</Label>
+                                <div className="flex gap-2">
+                                  <Input
+                                    key={`poster-${post.id}`}
+                                    defaultValue={(post.visuals?.[0] && isVideoVisual(post.visuals[0]) ? post.visuals[0].posterUrl : undefined) ?? ''}
+                                    onBlur={(e) => {
+                                      const v = e.target.value.trim();
+                                      const videoVisual = (post.visuals ?? []).find(x => isVideoVisual(x));
+                                      if (!videoVisual) return;
+                                      const prev = videoVisual.posterUrl ?? '';
+                                      if (v !== prev) {
+                                        const updated = (post.visuals ?? []).map(x =>
+                                          x.id === videoVisual.id ? { ...x, posterUrl: v || undefined } : x
+                                        );
+                                        updatePost(post.id, { visuals: updated });
+                                      }
+                                    }}
+                                    placeholder="URL de l'image de couverture du Reel"
+                                    fullWidth
+                                    size="sm"
+                                  />
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="shrink-0"
+                                    onClick={() => {
+                                      const videoVisual = (post.visuals ?? []).find(x => isVideoVisual(x));
+                                      if (videoVisual) setDrivePickerCoverFor({ postId: post.id, visualId: videoVisual.id });
+                                    }}
+                                  >
+                                    <ImageIcon className="h-3 w-3 mr-1.5" /> Drive
+                                  </Button>
+                                </div>
+                                <p className="text-[10px] text-zinc-400 mt-0.5">
+                                  Image affichée en couverture du Reel sur Instagram (recommandé 1080×1920).
+                                </p>
+                              </div>
+                              <div>
+                                <Label className="text-xs font-medium text-zinc-500 mb-1 block">Musique / Audio</Label>
+                                <Input
+                                  key={`ig_audio-${post.id}`}
+                                  defaultValue={post.ig_audio_name ?? ''}
+                                  onBlur={(e) => {
+                                    const v = e.target.value.trim();
+                                    if (v !== (post.ig_audio_name ?? '')) updatePost(post.id, { ig_audio_name: v || undefined });
+                                  }}
+                                  placeholder="Nom de l'audio (si ajouté à la vidéo avant upload)"
+                                  fullWidth
+                                  size="sm"
+                                />
+                                <p className="text-[10px] text-zinc-400 mt-0.5">
+                                  Ajoutez la musique à la vidéo avant l'upload. Ce champ permet de renommer l'audio original.
+                                </p>
+                              </div>
+                            </>
                           )}
                           {(post.type === 'post' || post.type === 'reel') && (
                             <div>
@@ -1928,12 +2000,16 @@ export function EventCampaignSection() {
           <EventInstagramStats metaConnected={metaConnected} />
         )}
 
+        {wfSectionTab === 'bilan' && (
+          <EventBilanSection />
+        )}
+
       </div>
 
       {activeOrg && (
         <DrivePickerModal
-          isOpen={!!drivePickerPostId || !!drivePickerPosterType}
-          onClose={() => { setDrivePickerPostId(null); setDrivePickerPosterType(null); }}
+          isOpen={!!drivePickerPostId || !!drivePickerPosterType || !!drivePickerCoverFor}
+          onClose={() => { setDrivePickerPostId(null); setDrivePickerPosterType(null); setDrivePickerCoverFor(null); }}
           onSelect={(url) => {
             if (drivePickerPostId) {
               addVisual(drivePickerPostId, url);
@@ -1943,6 +2019,18 @@ export function EventCampaignSection() {
               const imgUrl = url.includes('drive.google.com') ? getGoogleDriveViewUrl(url) : url;
               persistField({ media: { ...event.media, [drivePickerPosterType]: imgUrl } });
               setDrivePickerPosterType(null);
+            }
+            if (drivePickerCoverFor) {
+              const imgUrl = url.includes('drive.google.com') ? getGoogleDriveViewUrl(url) : url;
+              const currentPosts = eventRef.current.comWorkflow?.posts ?? [];
+              const post = currentPosts.find(p => p.id === drivePickerCoverFor.postId);
+              if (post) {
+                const updated = (post.visuals ?? []).map(v =>
+                  v.id === drivePickerCoverFor.visualId ? { ...v, posterUrl: imgUrl } : v
+                );
+                updatePost(drivePickerCoverFor.postId, { visuals: updated });
+              }
+              setDrivePickerCoverFor(null);
             }
           }}
           orgId={activeOrg.id}
@@ -2102,10 +2190,13 @@ export function EventCampaignSection() {
                             user_tags: igOpts.user_tags,
                           };
                         } else if (canReel) {
+                          const reelVisual = videoVisuals[0]!;
+                          const coverUrl = reelVisual.posterUrl?.trim();
                           body = {
                             media_type: 'reel',
-                            video_url: resolvePublicUrl(videoVisuals[0]!.url, true),
+                            video_url: resolvePublicUrl(reelVisual.url, true),
                             caption: postInstagramModal!.bio?.trim() || undefined,
+                            ...(coverUrl ? { cover_url: coverUrl } : {}),
                             ...igOpts,
                           };
                         } else {

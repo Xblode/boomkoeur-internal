@@ -127,11 +127,14 @@ export async function POST(request: NextRequest) {
         if (!video_url?.trim()) {
           return NextResponse.json({ error: 'video_url requis pour reel' }, { status: 400 });
         }
+        const resolvedCover = cover_url?.trim()
+          ? await resolveUrl(cover_url.trim(), false)
+          : undefined;
         result = await publishInstagramReel(
           orgId,
           await resolveUrl(video_url.trim(), true),
           caption?.trim(),
-          cover_url?.trim() || undefined,
+          resolvedCover,
           igOptions
         );
         break;

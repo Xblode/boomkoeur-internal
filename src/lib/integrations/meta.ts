@@ -500,10 +500,11 @@ export async function getInstagramMediaById(
 
 /**
  * Liste les médias (posts) du compte Instagram.
+ * @param includeArchived - Inclure les posts archivés (paramètre supporté par l'API Meta)
  */
 export async function getInstagramMedia(
   orgId: string,
-  options?: { limit?: number; after?: string }
+  options?: { limit?: number; after?: string; includeArchived?: boolean }
 ): Promise<GetInstagramMediaResult> {
   const creds = await getCredentialsForOrg(orgId);
   const token = creds ? getAccessToken(creds) : null;
@@ -518,6 +519,7 @@ export async function getInstagramMedia(
     limit: String(options?.limit ?? 25),
   });
   if (options?.after) params.set('after', options.after);
+  if (options?.includeArchived) params.set('include_archived', 'true');
 
   for (let attempt = 1; attempt <= TRANSIENT_RETRY_ATTEMPTS; attempt++) {
     const res = await fetch(

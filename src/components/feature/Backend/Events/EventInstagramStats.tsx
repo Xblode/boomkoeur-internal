@@ -156,7 +156,7 @@ export function EventInstagramStats({ metaConnected = false }: EventInstagramSta
     setLinkModalLoading(true);
     try {
       const res = await fetch(
-        `/api/admin/integrations/meta/instagram/media?org_id=${orgId}&limit=50`
+        `/api/admin/integrations/meta/instagram/media?org_id=${orgId}&limit=50&include_archived=true`
       );
       const data = await res.json();
       if (res.ok && data.data) {

@@ -42,6 +42,8 @@ export interface PostVisual {
   id: string;
   url: string;
   mediaType: 'image' | 'video';
+  /** URL de l'image de couverture pour les vidéos (Reels, Stories) */
+  posterUrl?: string;
   createdAt: string;
 }
 
@@ -89,6 +91,8 @@ export interface ComWorkflow {
   };
   shotgunUrl?: string;
   posts?: ComWorkflowPost[];
+  /** Notes / enseignements du bilan marketing (optionnel) */
+  bilanNotes?: string;
   /** Nombre d'abonnés au démarrage de la campagne (premier post publié) */
   followers_count_at_campaign_start?: number;
   /** Date ISO du premier post publié (début campagne) */

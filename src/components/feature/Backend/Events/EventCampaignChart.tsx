@@ -31,6 +31,7 @@ import {
   Tooltip,
   CartesianGrid,
   ReferenceLine,
+  ReferenceDot,
   Legend,
 } from 'recharts';
 import { format } from 'date-fns';
@@ -60,8 +61,12 @@ interface PostWithDate {
 
 function getPostDate(post: ComWorkflowPost): string | null {
   if (post.scheduledDate) {
-    const d = post.scheduledDate.substring(0, 10);
-    if (d.length === 10) return d;
+    const d = new Date(post.scheduledDate);
+    if (isNaN(d.getTime())) return null;
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   }
   return null;
 }
@@ -107,7 +112,8 @@ function buildChartData(
 
     let label: string;
     try {
-      label = format(new Date(date), 'd MMM', { locale: fr });
+      // T12:00:00 évite le décalage fuseau : new Date("YYYY-MM-DD") = minuit UTC → jour précédent en local
+      label = format(new Date(date + 'T12:00:00'), 'd MMM', { locale: fr });
     } catch {
       label = date;
     }
@@ -226,8 +232,9 @@ export function EventCampaignChart() {
   const postReferenceDates = useMemo(() => {
     const seen = new Set<string>();
     return posts
-      .map((p) => getPostDate(p))
-      .filter((d): d is string => d != null && !seen.has(d) && (seen.add(d), true));
+      .filter((p) => (p.published || p.ig_media_id) && getPostDate(p))
+      .map((p) => getPostDate(p)!)
+      .filter((d) => !seen.has(d) && (seen.add(d), true));
   }, [posts]);
 
   if (loading && tickets.length === 0) {
@@ -381,20 +388,31 @@ export function EventCampaignChart() {
                 {postReferenceDates.map((date) => {
                   const point = chartData.find((d) => d.date === date);
                   if (!point) return null;
+                  const maxTickets = Math.max(...chartData.map((d) => d.tickets), 1);
                   return (
-                    <ReferenceLine
-                      key={date}
-                      x={point.label}
-                      stroke="#ec4899"
-                      strokeDasharray="4 4"
-                      strokeWidth={1.5}
-                      label={{
-                        value: point.posts.join(' · ') || 'Post',
-                        position: 'top',
-                        fill: '#ec4899',
-                        fontSize: 10,
-                      }}
-                    />
+                    <React.Fragment key={date}>
+                      <ReferenceLine
+                        x={point.label}
+                        stroke="#ec4899"
+                        strokeDasharray="4 4"
+                        strokeWidth={1.5}
+                        label={{
+                          value: point.posts.join(' · ') || 'Post',
+                          position: 'top',
+                          fill: '#ec4899',
+                          fontSize: 10,
+                        }}
+                      />
+                      <ReferenceDot
+                        x={point.label}
+                        y={maxTickets}
+                        yAxisId="left"
+                        r={5}
+                        fill="#ec4899"
+                        stroke="#ec4899"
+                        strokeWidth={2}
+                      />
+                    </React.Fragment>
                   );
                 })}
                 <Area

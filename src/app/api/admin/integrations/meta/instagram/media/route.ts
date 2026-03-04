@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
   const orgId = request.nextUrl.searchParams.get('org_id');
   const limit = request.nextUrl.searchParams.get('limit');
   const after = request.nextUrl.searchParams.get('after');
+  const includeArchived = request.nextUrl.searchParams.get('include_archived') === 'true';
 
   if (!orgId) {
     return NextResponse.json({ error: 'org_id requis' }, { status: 400 });
@@ -38,6 +39,7 @@ export async function GET(request: NextRequest) {
   const result = await getInstagramMedia(orgId, {
     limit: limit ? parseInt(limit, 10) : 25,
     after: after ?? undefined,
+    includeArchived,
   });
 
   if (!result.success) {
