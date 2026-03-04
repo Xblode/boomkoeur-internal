@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createMetaOAuthState } from '@/lib/integrations/meta-oauth';
+import { getOrgIntegration } from '@/lib/supabase/integrations';
+import type { MetaConfigCredentials } from '@/lib/supabase/integrations';
 
 // Instagram API with Instagram Login (Business Login)
 // Meta for Developers > Instagram > API setup with Instagram login > Business login settings
@@ -23,7 +25,7 @@ async function ensureOrgAdmin(orgId: string) {
   if (!data) {
     return { error: "Accès réservé aux administrateurs de l'organisation", status: 403 };
   }
-  return null;
+  return { supabase };
 }
 
 export async function GET(request: NextRequest) {
@@ -34,25 +36,43 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const authError = await ensureOrgAdmin(orgId);
-  if (authError) {
+  const auth = await ensureOrgAdmin(orgId);
+  if ('error' in auth) {
     const url = new URL(OAUTH_CLOSE, process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000');
-    url.searchParams.set('error', authError.error ?? 'Accès refusé');
+    url.searchParams.set('error', auth.error ?? 'Accès refusé');
     return NextResponse.redirect(url);
   }
 
-  const clientId = process.env.INSTA_CLIENT_ID;
-  const redirectUri =
-    process.env.INSTA_REDIRECT_URI ??
-    `${process.env.NEXT_PUBLIC_APP_URL ?? `http://localhost:${process.env.PORT ?? 3000}`}/api/admin/integrations/meta/callback`;
+  const baseUrl = (
+    process.env.NEXT_PUBLIC_APP_URL ?? `http://localhost:${process.env.PORT ?? 3000}`
+  ).replace(/\/+$/, '');
+  const defaultRedirectUri = `${baseUrl}/api/admin/integrations/meta/callback`;
 
-  if (!clientId) {
+  const orgConfig = await getOrgIntegration<MetaConfigCredentials>(
+    auth.supabase,
+    orgId,
+    'meta_config'
+  );
+  const clientId =
+    orgConfig?.insta_client_id?.trim() || process.env.INSTA_CLIENT_ID;
+  const clientSecret =
+    orgConfig?.insta_client_secret?.trim() || process.env.INSTA_CLIENT_SECRET;
+  const rawRedirect =
+    orgConfig?.insta_redirect_uri?.trim() ||
+    process.env.INSTA_REDIRECT_URI ||
+    defaultRedirectUri;
+  const redirectUri = rawRedirect.replace(/\/+$/, '');
+
+  if (!clientId || !clientSecret) {
     const url = new URL(OAUTH_CLOSE, process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000');
-    url.searchParams.set('error', 'Configuration Instagram manquante (INSTA_CLIENT_ID)');
+    url.searchParams.set(
+      'error',
+      'Configuration Instagram manquante. Configurez App ID et Secret dans Paramètres, ou définissez INSTA_CLIENT_ID et INSTA_CLIENT_SECRET.'
+    );
     return NextResponse.redirect(url);
   }
 
-  const state = createMetaOAuthState(orgId);
+  const state = createMetaOAuthState(orgId, clientSecret);
   // Permissions pour Instagram API with Instagram Login (Business Login)
   const scopes = [
     'instagram_business_basic',

@@ -39,7 +39,7 @@ export function CampaignWorkflowCard({ event }: CampaignWorkflowCardProps) {
     <Link href={`/dashboard/events/${event.id}/campagne`} className="block">
       <Card
         variant="none"
-        className="group flex items-center gap-3 py-2 text-sm transition-colors hover:bg-surface-subtle rounded-md -mx-1 px-2"
+        className="group flex items-center gap-3 py-2 text-sm transition-colors hover:bg-surface-subtle rounded-md px-2"
       >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-zinc-800/80 text-zinc-400 group-hover:text-zinc-300">
           <Layers size={16} />

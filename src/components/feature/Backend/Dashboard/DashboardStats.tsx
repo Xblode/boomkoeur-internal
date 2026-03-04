@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { ArrowRight, Instagram, Facebook, MessageCircle, Inbox, CalendarDays, Clock, ChevronRight } from 'lucide-react';
+import { ArrowRight, Instagram, Facebook, MessageCircle, Inbox, CalendarDays, Clock, ChevronRight, ChevronLeft } from 'lucide-react';
 
 // Services & Constants
 import { CHART_SERIES_COLORS } from '@/lib/constants/chart-colors';
@@ -31,6 +31,7 @@ import { DashboardActivityFeed } from './DashboardActivityFeed';
 import { Card, CardContent, CardHeader, CardTitle, EmptyState } from '@/components/ui/molecules';
 import { Badge } from '@/components/ui/atoms';
 import { fadeInUp } from '@/lib/animations';
+import { cn } from '@/lib/utils';
 import { useOrg } from '@/components/providers/OrgProvider';
 import { getDemoOrders, getDemoOrderLines } from '@/lib/demo/seed-orders';
 
@@ -42,7 +43,14 @@ function UpcomingEventsCarousel({ events }: { events: Event[] }) {
   const [index, setIndex] = React.useState(0);
   const maxIndex = Math.max(0, events.length - VISIBLE_COUNT);
   const step = VISIBLE_COUNT;
+  const canPrev = index > 0;
   const canNext = index < maxIndex;
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIndex((i) => Math.max(0, i - step));
+  };
 
   const handleNext = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -51,6 +59,7 @@ function UpcomingEventsCarousel({ events }: { events: Event[] }) {
   };
 
   const itemWidth = ITEM_SIZE + GAP;
+  const btnClass = 'absolute top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-zinc-800 border border-border-custom shadow-md flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:bg-zinc-700 z-10';
 
   return (
     <div className="relative w-[calc(2*(128px+8px))] h-full min-h-[128px] flex-shrink-0 group/carousel self-stretch">
@@ -86,11 +95,21 @@ function UpcomingEventsCarousel({ events }: { events: Event[] }) {
           })}
         </div>
       </div>
+      {canPrev && (
+        <button
+          type="button"
+          onClick={handlePrev}
+          className={cn(btnClass, 'left-0 -translate-x-1/2')}
+          aria-label="Voir les événements précédents"
+        >
+          <ChevronLeft className="w-4 h-4 text-foreground" />
+        </button>
+      )}
       {canNext && (
         <button
           type="button"
           onClick={handleNext}
-          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-8 h-8 rounded-full bg-zinc-800 border border-border-custom shadow-md flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:bg-zinc-700 z-10"
+          className={cn(btnClass, 'right-0 translate-x-1/2')}
           aria-label="Voir les événements suivants"
         >
           <ChevronRight className="w-4 h-4 text-foreground" />
@@ -100,7 +119,7 @@ function UpcomingEventsCarousel({ events }: { events: Event[] }) {
   );
 }
 
-function getPlatformIcon(platform: string) {
+function getPlatformIcon(platform?: string) {
   switch (platform) {
     case 'instagram': return <Instagram className="w-3.5 h-3.5" />;
     case 'facebook': return <Facebook className="w-3.5 h-3.5" />;
@@ -119,8 +138,31 @@ function getStatusBadgeVariant(status: string) {
   }
 }
 
-interface ScheduledPostWithEvent extends SocialPost {
+function getScheduledDateLabel(scheduledDate: string | undefined, published?: boolean): { label: string; variant: 'success' | 'info' | 'secondary' | 'outline' | 'error' } {
+  if (!scheduledDate) return { label: '—', variant: 'outline' };
+  const scheduled = new Date(scheduledDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  scheduled.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((scheduled.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+  if (diffDays < 0 && !published) return { label: 'En retard', variant: 'error' };
+  if (diffDays === 0) return { label: 'Aujourd\'hui', variant: 'info' };
+  if (diffDays === 1) return { label: 'Demain', variant: 'info' };
+  if (diffDays === 2) return { label: 'Dans 2 jours', variant: 'secondary' };
+  return {
+    label: new Date(scheduledDate).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }),
+    variant: 'outline',
+  };
+}
+
+interface ScheduledPostWithEvent {
+  id: string;
   eventId: string;
+  name?: string;
+  type: string;
+  platform?: string;
+  scheduledDate?: string;
+  published?: boolean;
 }
 
 interface DashboardData {
@@ -218,20 +260,73 @@ export const DashboardStats: React.FC = () => {
     const campaigns = getCampaigns();
     const postsToValidate: unknown[] = [];
     const scheduledPosts: ScheduledPostWithEvent[] = [];
-    for (const campaign of campaigns) {
-      if (!campaign.eventIds?.length) continue;
-      const eventId = campaign.eventIds[0];
-      for (const post of campaign.posts || []) {
-        if (post.status === 'brainstorming' || post.status === 'created' || post.status === 'review') {
-          postsToValidate.push(post);
-        }
-        if (post.scheduledDate) {
-          scheduledPosts.push({ ...post, eventId });
+
+    const cutoffDate = new Date();
+    cutoffDate.setHours(23, 59, 59, 999);
+
+    // Source principale : posts des événements (Supabase) — persiste en prod
+    for (const e of events) {
+      const posts = e.comWorkflow?.posts ?? [];
+      for (const p of posts) {
+        if (p.scheduledDate) {
+          const postDate = new Date(p.scheduledDate);
+          const isOverdue = postDate < cutoffDate && !p.published;
+          if (postDate >= cutoffDate || isOverdue) {
+            scheduledPosts.push({
+              id: p.id,
+              eventId: e.id,
+              name: p.name,
+              type: p.type ?? 'post',
+              platform: p.networks?.[0],
+              scheduledDate: p.scheduledDate,
+              published: p.published,
+            });
+          }
         }
       }
     }
+
+    // Fallback : campagnes localStorage (si pas de posts dans les events)
+    if (scheduledPosts.length === 0) {
+      for (const campaign of campaigns) {
+        if (!campaign.eventIds?.length) continue;
+        const eventId = campaign.eventIds[0];
+        for (const post of campaign.posts || []) {
+          if (post.status === 'brainstorming' || post.status === 'created' || post.status === 'review') {
+            postsToValidate.push(post);
+          }
+          if (post.scheduledDate) {
+            const d = post.scheduledDate instanceof Date ? post.scheduledDate.toISOString() : String(post.scheduledDate);
+            const postDate = new Date(d);
+            const pub = (post as { published?: boolean }).published ?? false;
+            const isOverdue = postDate < cutoffDate && !pub;
+            if (postDate >= cutoffDate || isOverdue) {
+              scheduledPosts.push({
+                id: (post as { id?: string }).id ?? crypto.randomUUID(),
+                eventId,
+                name: (post as { name?: string }).name,
+                type: (post as { type?: string }).type ?? 'post',
+                platform: (post as { platform?: string }).platform,
+                scheduledDate: d,
+                published: pub,
+              });
+            }
+          }
+        }
+      }
+    } else {
+      for (const campaign of campaigns) {
+        if (!campaign.eventIds?.length) continue;
+        for (const post of campaign.posts || []) {
+          if (post.status === 'brainstorming' || post.status === 'created' || post.status === 'review') {
+            postsToValidate.push(post);
+          }
+        }
+      }
+    }
+
     scheduledPosts.sort(
-      (a, b) => new Date(a.scheduledDate!).getTime() - new Date(b.scheduledDate!).getTime()
+      (a, b) => new Date(a.scheduledDate ?? 0).getTime() - new Date(b.scheduledDate ?? 0).getTime()
     );
 
     const upcomingMeetings = meetings.filter((m) => m.status === 'upcoming' && m.date >= new Date());
@@ -452,41 +547,46 @@ export const DashboardStats: React.FC = () => {
               <CardContent className="p-2 pt-0">
                 {data.communication.scheduledPosts.length > 0 ? (
                   <ul className="space-y-2">
-                    {data.communication.scheduledPosts.slice(0, 3).map((post) => (
-                      <li key={post.id}>
-                        <Link href={`/dashboard/events/${post.eventId}/campagne`}>
-                          <motion.div
-                            className="flex items-center justify-between p-3 rounded-lg transition-colors group bg-surface-elevated border border-border-custom hover:bg-surface-subtle hover:border-border-custom/80 cursor-pointer"
-                            whileHover={{ y: -2 }}
-                            transition={{ duration: 0.2 }}
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0">
-                                {getPlatformIcon(post.platform)}
-                              </span>
-                              <div className="flex flex-col min-w-0">
-                                <span className="text-sm font-medium capitalize group-hover:underline truncate">
-                                  {post.type}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {post.scheduledDate &&
-                                    new Date(post.scheduledDate).toLocaleDateString('fr-FR', {
-                                      weekday: 'short',
-                                      day: 'numeric',
-                                    })}
-                                </span>
-                              </div>
-                            </div>
-                            <Badge
-                              variant={getStatusBadgeVariant(post.status)}
-                              className="text-xs flex-shrink-0"
+                    {data.communication.scheduledPosts.slice(0, 3).map((post) => {
+                      const dateInfo = getScheduledDateLabel(post.scheduledDate, post.published);
+                      const isOverdue = dateInfo.variant === 'error';
+                      const isToday = dateInfo.variant === 'info' && dateInfo.label === 'Aujourd\'hui';
+                      return (
+                        <li key={post.id}>
+                          <Link href={`/dashboard/events/${post.eventId}/campagne`}>
+                            <motion.div
+                              className={cn(
+                                'flex items-center justify-between p-3 rounded-lg transition-colors group cursor-pointer',
+                                isOverdue
+                                  ? 'bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 hover:bg-red-100 dark:hover:bg-red-950/30'
+                                  : isToday
+                                    ? 'bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 hover:bg-blue-100 dark:hover:bg-blue-950/30'
+                                    : 'bg-surface-elevated border border-border-custom hover:bg-surface-subtle hover:border-border-custom/80'
+                              )}
+                              whileHover={{ y: -2 }}
+                              transition={{ duration: 0.2 }}
                             >
-                              {post.status}
-                            </Badge>
-                          </motion.div>
-                        </Link>
-                      </li>
-                    ))}
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0">
+                                  {getPlatformIcon(post.platform)}
+                                </span>
+                                <div className="flex flex-col min-w-0">
+                                  <span className="text-sm font-medium capitalize group-hover:underline truncate">
+                                    {post.name || post.type}
+                                  </span>
+                                </div>
+                              </div>
+                              <Badge
+                                variant={dateInfo.variant}
+                                className="text-xs flex-shrink-0"
+                              >
+                                {dateInfo.label}
+                              </Badge>
+                            </motion.div>
+                          </Link>
+                        </li>
+                      );
+                    })}
                   </ul>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-8 text-center">

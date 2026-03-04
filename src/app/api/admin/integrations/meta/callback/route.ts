@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { verifyAndParseMetaOAuthState } from '@/lib/integrations/meta-oauth';
-import { upsertOrgIntegration } from '@/lib/supabase/integrations';
-import type { MetaCredentials } from '@/lib/supabase/integrations';
+import { verifyAndParseMetaOAuthStateWithOrgSecret } from '@/lib/integrations/meta-oauth';
+import {
+  getOrgIntegrationWithAdmin,
+  upsertOrgIntegration,
+} from '@/lib/supabase/integrations';
+import type {
+  MetaCredentials,
+  MetaConfigCredentials,
+} from '@/lib/supabase/integrations';
 
 const OAUTH_CLOSE = '/oauth-close.html';
 const INSTAGRAM_OAUTH_API = 'https://api.instagram.com/oauth';
@@ -55,7 +61,13 @@ export async function GET(request: NextRequest) {
     return redirectWithError('Paramètres OAuth manquants');
   }
 
-  const parsed = verifyAndParseMetaOAuthState(state);
+  const parsed = await verifyAndParseMetaOAuthStateWithOrgSecret(state, async (orgId) => {
+    const config = await getOrgIntegrationWithAdmin<MetaConfigCredentials>(
+      orgId,
+      'meta_config'
+    );
+    return config?.insta_client_secret ?? null;
+  });
   if (!parsed) {
     return redirectWithError('State OAuth invalide');
   }
@@ -65,14 +77,29 @@ export async function GET(request: NextRequest) {
     return redirectWithError(auth.error ?? 'Accès refusé');
   }
 
-  const clientId = process.env.INSTA_CLIENT_ID;
-  const clientSecret = process.env.INSTA_CLIENT_SECRET;
-  const redirectUri =
-    process.env.INSTA_REDIRECT_URI ??
-    `${process.env.NEXT_PUBLIC_APP_URL ?? `http://localhost:${process.env.PORT ?? 3000}`}/api/admin/integrations/meta/callback`;
+  const baseUrl = (
+    process.env.NEXT_PUBLIC_APP_URL ?? `http://localhost:${process.env.PORT ?? 3000}`
+  ).replace(/\/+$/, '');
+  const defaultRedirectUri = `${baseUrl}/api/admin/integrations/meta/callback`;
+
+  const orgConfig = await getOrgIntegrationWithAdmin<MetaConfigCredentials>(
+    parsed.org_id,
+    'meta_config'
+  );
+  const clientId =
+    orgConfig?.insta_client_id?.trim() || process.env.INSTA_CLIENT_ID;
+  const clientSecret =
+    orgConfig?.insta_client_secret?.trim() || process.env.INSTA_CLIENT_SECRET;
+  const rawRedirect =
+    orgConfig?.insta_redirect_uri?.trim() ||
+    process.env.INSTA_REDIRECT_URI ||
+    defaultRedirectUri;
+  const redirectUri = rawRedirect.replace(/\/+$/, '');
 
   if (!clientId || !clientSecret) {
-    return redirectWithError('Configuration Instagram manquante (INSTA_CLIENT_ID, INSTA_CLIENT_SECRET)');
+    return redirectWithError(
+      'Configuration Instagram manquante. Configurez App ID et Secret dans Paramètres.'
+    );
   }
 
   try {

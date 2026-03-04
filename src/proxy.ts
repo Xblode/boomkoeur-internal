@@ -37,7 +37,8 @@ export async function proxy(request: NextRequest) {
     }
 
     // dashboard.perret.app + routes frontend (/contact, etc.) → perret.app
-    if (isDashboardHost && !pathname.startsWith('/dashboard') && !pathname.startsWith('/login') && !pathname.startsWith('/register') && !pathname.startsWith('/auth') && !pathname.startsWith('/onboarding') && !pathname.startsWith('/api')) {
+    // Exclure site.webmanifest et assets statiques pour éviter CORS (reste sur même origine)
+    if (isDashboardHost && !pathname.startsWith('/dashboard') && !pathname.startsWith('/login') && !pathname.startsWith('/register') && !pathname.startsWith('/auth') && !pathname.startsWith('/onboarding') && !pathname.startsWith('/api') && pathname !== '/site.webmanifest') {
       const url = new URL(request.url);
       url.host = FRONTEND_DOMAIN;
       url.protocol = 'https:';

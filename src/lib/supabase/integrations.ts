@@ -8,7 +8,14 @@ import { encrypt, decrypt } from '@/lib/integrations/encryption';
 import { createAdminClient } from './admin';
 import { createHash, randomBytes } from 'crypto';
 
-export type IntegrationProvider = 'shotgun' | 'meta' | 'google';
+export type IntegrationProvider = 'shotgun' | 'meta' | 'google' | 'meta_config';
+
+/** Config OAuth Instagram (App ID, Secret) — stockée avant connexion, comme Google */
+export interface MetaConfigCredentials {
+  insta_client_id?: string;
+  insta_client_secret?: string;
+  insta_redirect_uri?: string;
+}
 
 export interface ShotgunCredentials {
   organizerId: string;
@@ -38,7 +45,11 @@ export interface GoogleCredentials {
   redirect_uri?: string;
 }
 
-export type IntegrationCredentials = ShotgunCredentials | MetaCredentials | GoogleCredentials;
+export type IntegrationCredentials =
+  | ShotgunCredentials
+  | MetaCredentials
+  | GoogleCredentials
+  | MetaConfigCredentials;
 
 /**
  * Récupère la config d'intégration avec le client admin (bypass RLS).

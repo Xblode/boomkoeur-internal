@@ -74,6 +74,15 @@ export default function AdminIntegrationPage() {
   const [savingGoogleConfig, setSavingGoogleConfig] = useState(false);
   const [apiKeysExpanded, setApiKeysExpanded] = useState(false);
 
+  const [metaConfigExpanded, setMetaConfigExpanded] = useState(false);
+  const [metaConfig, setMetaConfig] = useState({
+    instaClientId: '',
+    instaClientSecret: '',
+    instaRedirectUri: '',
+  });
+  const [metaConfigReady, setMetaConfigReady] = useState(false);
+  const [savingMetaConfig, setSavingMetaConfig] = useState(false);
+
   const fetchStatus = async (provider: IntegrationId) => {
     if (!activeOrg?.id) return;
     setLoadingStatus((prev) => ({ ...prev, [provider]: true }));
@@ -118,14 +127,36 @@ export default function AdminIntegrationPage() {
     }
   }, [activeOrg?.id]);
 
+  const fetchMetaConfig = useCallback(async () => {
+    if (!activeOrg?.id) return;
+    try {
+      const res = await fetch(`/api/admin/integrations/meta/config?org_id=${activeOrg.id}`);
+      const data = await res.json();
+      const baseUrl =
+        typeof window !== 'undefined'
+          ? `${window.location.origin}/api/admin/integrations/meta/callback`
+          : '';
+      setMetaConfig({
+        instaClientId: data.insta_client_id ?? '',
+        instaClientSecret: '', // jamais retourné pour sécurité
+        instaRedirectUri: data.insta_redirect_uri ?? baseUrl,
+      });
+      setMetaConfigReady(data.has_config === true);
+    } catch {
+      setMetaConfig({ instaClientId: '', instaClientSecret: '', instaRedirectUri: '' });
+      setMetaConfigReady(false);
+    }
+  }, [activeOrg?.id]);
+
   useEffect(() => {
     if (activeOrg?.id) {
       fetchStatus('shotgun');
       fetchStatus('meta');
       fetchGoogleStatus();
       fetchApiKeys();
+      fetchMetaConfig();
     }
-  }, [activeOrg?.id, fetchApiKeys, fetchGoogleStatus]);
+  }, [activeOrg?.id, fetchApiKeys, fetchGoogleStatus, fetchMetaConfig]);
 
   useEffect(() => {
     setGoogleCalendarIds(
@@ -437,6 +468,35 @@ export default function AdminIntegrationPage() {
       setError('Erreur réseau');
     } finally {
       setSavingGoogleConfig(false);
+    }
+  };
+
+  const handleSaveMetaConfig = async () => {
+    if (!activeOrg?.id) return;
+    setSavingMetaConfig(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/integrations/meta/config?org_id=${activeOrg.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          insta_client_id: metaConfig.instaClientId.trim(),
+          insta_client_secret: metaConfig.instaClientSecret || undefined,
+          insta_redirect_uri: metaConfig.instaRedirectUri.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Erreur lors de l'enregistrement");
+        return;
+      }
+      toast.success('Configuration Instagram enregistrée');
+      setMetaConfigReady(true);
+      setMetaConfigExpanded(false);
+    } catch {
+      setError('Erreur réseau');
+    } finally {
+      setSavingMetaConfig(false);
     }
   };
 
@@ -839,9 +899,16 @@ export default function AdminIntegrationPage() {
           <EditableCard
             key={item.id}
             variant="outline"
-            isEditing={selectedIntegration === item.id}
+            isEditing={
+              item.id === 'meta'
+                ? selectedIntegration === 'meta' && metaConfigExpanded
+                : selectedIntegration === item.id
+            }
             onEdit={() => handleConnect(item.id)}
-            onCloseEdit={handleCloseIntegration}
+            onCloseEdit={() => {
+              if (item.id === 'meta') setMetaConfigExpanded(false);
+              handleCloseIntegration();
+            }}
             headerContent={
               <div className="flex items-start justify-between gap-3 w-full">
                 <div className="flex items-start gap-3 min-w-0">
@@ -868,20 +935,64 @@ export default function AdminIntegrationPage() {
                     </p>
                   </div>
                 </div>
-                <Button
-                  variant={connectedStatus[item.id] ? 'outline' : 'primary'}
-                  size="sm"
-                  onClick={() => handleConnect(item.id)}
-                  className="shrink-0"
-                >
-                  {item.id === 'meta'
-                    ? connectedStatus[item.id]
-                      ? 'Déconnecter'
-                      : 'Connecter avec Instagram'
-                    : connectedStatus[item.id]
-                      ? 'Modifier'
-                      : 'Connecter'}
-                </Button>
+                <div className="flex items-center gap-2 shrink-0">
+                  {item.id === 'meta' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedIntegration('meta');
+                        setMetaConfigExpanded(true);
+                        fetchMetaConfig();
+                      }}
+                      className="text-zinc-500 hover:text-foreground"
+                    >
+                      <Settings size={14} className="mr-1.5" />
+                      Paramètres
+                    </Button>
+                  )}
+                  {item.id === 'meta' ? (
+                    connectedStatus.meta ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleMetaDisconnect}
+                        disabled={metaDisconnecting}
+                        className="text-zinc-500 hover:text-red-600"
+                      >
+                        {metaDisconnecting ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin mr-1.5" />
+                            Déconnexion...
+                          </>
+                        ) : (
+                          <>
+                            <LogOut size={14} className="mr-1.5" />
+                            Déconnecter
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={handleConnectMeta}
+                        disabled={loadingStatus.meta || !metaConfigReady}
+                        title={!metaConfigReady ? 'Configurez d\'abord les identifiants dans Paramètres' : undefined}
+                      >
+                        Connecter avec Instagram
+                      </Button>
+                    )
+                  ) : (
+                    <Button
+                      variant={connectedStatus[item.id] ? 'outline' : 'primary'}
+                      size="sm"
+                      onClick={() => handleConnect(item.id)}
+                    >
+                      {connectedStatus[item.id] ? 'Modifier' : 'Connecter'}
+                    </Button>
+                  )}
+                </div>
               </div>
             }
             editContent={
@@ -926,17 +1037,96 @@ export default function AdminIntegrationPage() {
                     </div>
                   </>
                 )}
-                {item.id === 'meta' && (
+                {item.id === 'meta' && metaConfigExpanded && (
+                  <div className="space-y-4">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Configurez les identifiants OAuth de votre app Meta (Instagram API with Instagram Login).
+                      Copiez l&apos;URI ci-dessous et ajoutez-la dans Meta for Developers &gt; Instagram &gt; Business login settings &gt; OAuth redirect URIs.
+                      La correspondance doit être <strong>exacte</strong> (pas de slash final).
+                    </p>
+                    {error && (
+                      <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-sm">
+                        {error}
+                      </div>
+                    )}
+                    <div>
+                      <Label htmlFor="meta-client-id" className="block mb-2">
+                        Instagram App ID
+                      </Label>
+                      <TokenInput
+                        id="meta-client-id"
+                        name="meta_client_id"
+                        masked={false}
+                        value={metaConfig.instaClientId}
+                        onChange={(e) => setMetaConfig((c) => ({ ...c, instaClientId: e.target.value }))}
+                        placeholder="ID depuis Meta for Developers"
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="meta-client-secret" className="block mb-2">
+                        Instagram App Secret
+                      </Label>
+                      <TokenInput
+                        id="meta-client-secret"
+                        name="meta_client_secret"
+                        value={metaConfig.instaClientSecret}
+                        onChange={(e) => setMetaConfig((c) => ({ ...c, instaClientSecret: e.target.value }))}
+                        placeholder="Laissez vide pour conserver l&apos;existant"
+                        className="w-full font-mono"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="meta-redirect-uri" className="block mb-2">
+                        URI de redirection
+                      </Label>
+                      <TokenInput
+                        id="meta-redirect-uri"
+                        name="meta_redirect_uri"
+                        masked={false}
+                        value={metaConfig.instaRedirectUri}
+                        onChange={(e) => setMetaConfig((c) => ({ ...c, instaRedirectUri: e.target.value }))}
+                        placeholder="https://dashboard.perret.app/api/admin/integrations/meta/callback"
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setMetaConfigExpanded(false)}
+                        disabled={savingMetaConfig}
+                      >
+                        Annuler
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        onClick={handleSaveMetaConfig}
+                        disabled={savingMetaConfig}
+                      >
+                        {savingMetaConfig ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin mr-1.5" />
+                            Enregistrement...
+                          </>
+                        ) : (
+                          'Enregistrer'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {item.id === 'meta' && !metaConfigExpanded && connectedStatus.meta && (
                   <div className="space-y-3">
                     <p className="text-sm text-zinc-600 dark:text-zinc-400">
                       Compte Instagram connecté. Cliquez sur Déconnecter pour révoquer l&apos;accès.
                     </p>
-                    <p className="text-xs text-zinc-500">
-                      Les identifiants Instagram (App ID / Secret) sont configurés via les variables
-                      d&apos;environnement INSTA_CLIENT_ID et INSTA_CLIENT_SECRET.
-                    </p>
                   </div>
                 )}
+                {!(item.id === 'meta' && metaConfigExpanded) && (
                 <div className="flex gap-2">
                   <Button type="button" variant="ghost" size="sm" onClick={handleCloseIntegration} disabled={saving || metaDisconnecting}>
                     Annuler
@@ -976,6 +1166,7 @@ export default function AdminIntegrationPage() {
                     </Button>
                   )}
                 </div>
+                )}
               </form>
             }
           />

@@ -126,7 +126,11 @@ export function EventCampaignSection() {
     return `Event\nJ+${diffDays}`;
   };
 
-  const sortedComPosts = [...(wf.posts ?? [])].sort((a, b) => {
+  const postsToRender = React.useMemo(
+    () => (wf.posts ?? []).filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i),
+    [wf.posts]
+  );
+  const sortedComPosts = [...postsToRender].sort((a, b) => {
     if (!a.scheduledDate && !b.scheduledDate) return 0;
     if (!a.scheduledDate) return 1;
     if (!b.scheduledDate) return -1;
@@ -351,6 +355,205 @@ export function EventCampaignSection() {
     );
   };
 
+  // ── Phase Communication : carousel de cards (sans stepper) ──
+  const downloadPostVisuals = (post: ComWorkflowPost) => {
+    const visuals = post.visuals ?? [];
+    visuals.forEach((v, i) => {
+      const url = getDownloadUrl(v.url);
+      setTimeout(() => {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `post-${post.name || post.id}-${i + 1}.${v.mediaType === 'video' ? 'mp4' : 'jpg'}`;
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }, i * 300);
+    });
+  };
+
+  const renderCommunicationCarousel = () => {
+    if (sortedComPosts.length === 0) {
+      const eventDate = event.date ? new Date(event.date) : null;
+      const isEventPast = eventDate ? eventDate < new Date() : false;
+      return (
+        <div className="space-y-4">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            Publie chaque post selon le calendrier prévu. Crée tes posts dans la section Campagne ci-dessous.
+          </p>
+          <div className="flex items-start gap-3 p-4 rounded-md border border-border-custom bg-zinc-50 dark:bg-zinc-900/40">
+            <div className="w-4 h-4 rounded-full border-2 border-zinc-300 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium">Aucun post planifié</p>
+              <p className="text-xs text-zinc-500 mt-0.5">Crée tes posts dans la section Campagne ci-dessous.</p>
+            </div>
+          </div>
+          {eventDate && (
+            <div className={cn(
+              'flex items-center gap-4 p-4 rounded-md border',
+              isEventPast
+                ? 'border-green-200 bg-green-50 dark:border-green-900/50 dark:bg-green-950/20'
+                : 'border-border-custom bg-zinc-50 dark:bg-zinc-900/40'
+            )}>
+              <div className="w-12 h-12 rounded-md bg-zinc-900 dark:bg-white flex flex-col items-center justify-center shrink-0">
+                <span className="text-[10px] font-bold uppercase text-white dark:text-zinc-900 tracking-wider">
+                  {eventDate.toLocaleDateString('fr-FR', { month: 'short' })}
+                </span>
+                <span className="text-xl font-bold leading-tight text-white dark:text-zinc-900">
+                  {eventDate.getDate()}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold">{event.name}</p>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  {eventDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    const eventDate = event.date ? new Date(event.date) : null;
+    const isEventPast = eventDate ? eventDate < new Date() : false;
+
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          Télécharge les visuels et coche chaque post une fois publié.
+        </p>
+        <div className="flex gap-3 overflow-x-auto pb-2 scroll-smooth snap-x snap-mandatory scrollbar-hide -mx-1 px-1">
+          {sortedComPosts.map((post) => {
+            const scheduledDate = post.scheduledDate ? new Date(post.scheduledDate) : null;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const scheduledDay = scheduledDate ? new Date(scheduledDate) : null;
+            if (scheduledDay) scheduledDay.setHours(0, 0, 0, 0);
+            const isToday = scheduledDay && scheduledDay.getTime() === today.getTime();
+            const isOverdue = scheduledDay && scheduledDay.getTime() < today.getTime() && !post.published;
+            return (
+              <div
+                key={post.id}
+                className={cn(
+                  'flex-none w-[280px] snap-start rounded-lg border p-4 flex flex-col gap-3 min-h-[180px]',
+                  post.published
+                    ? 'border-green-200 bg-green-50 dark:border-green-900/50 dark:bg-green-950/20'
+                    : isOverdue
+                      ? 'border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-950/20'
+                      : isToday
+                        ? 'border-blue-200 bg-blue-50 dark:border-blue-900/50 dark:bg-blue-950/20'
+                        : 'border-border-custom bg-surface-elevated'
+                )}
+              >
+                <div className="flex-1 flex flex-col gap-2 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className={cn(
+                      'text-sm font-medium truncate flex-1 min-w-0',
+                      post.published && 'line-through text-zinc-400 dark:text-zinc-600'
+                    )}>
+                      {post.name}
+                    </span>
+                    {isOverdue && (
+                      <Badge variant="error" className="text-[10px] shrink-0">En retard</Badge>
+                    )}
+                    {isToday && !post.published && (
+                      <Badge variant="info" className="text-[10px] shrink-0">Aujourd&apos;hui</Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {post.type && (
+                      <Badge variant="secondary" className="text-[10px] shrink-0">
+                        {TYPE_LABELS[post.type]}
+                      </Badge>
+                    )}
+                    {post.networks?.map(n => (
+                      <Chip key={n} label={NETWORK_LABELS[n]} variant="outline" className="text-[10px]" />
+                    ))}
+                  </div>
+                  {post.scheduledDate && (
+                    <p className="text-xs text-zinc-500">
+                      {new Date(post.scheduledDate).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
+                      {' · '}
+                      <span className="font-medium">{getPostDayLabel(post.scheduledDate).replace('\n', ' ')}</span>
+                    </p>
+                  )}
+                </div>
+
+                <label className="flex items-center gap-2 cursor-pointer shrink-0">
+                  <Checkbox
+                    id={`pub-card-${post.id}`}
+                    checked={!!post.published}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      const postId = post.id;
+                      const currentPosts = eventRef.current.comWorkflow?.posts ?? [];
+                      const updated = currentPosts.map(p =>
+                        p.id === postId ? { ...p, published: checked } : p
+                      );
+                      setEvent((prev) => ({ ...prev, comWorkflow: buildWfWithPosts(prev.comWorkflow, updated) }));
+                      persistField((current) => ({
+                        comWorkflow: buildWfWithPosts(current.comWorkflow, (current.comWorkflow?.posts ?? []).map(p =>
+                          p.id === postId ? { ...p, published: checked } : p
+                        )),
+                      }));
+                    }}
+                  />
+                  <span className="text-xs font-medium">Publié</span>
+                </label>
+
+                <div className="mt-auto pt-2">
+                  {(post.visuals?.length ?? 0) > 0 ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-center text-xs"
+                      onClick={() => downloadPostVisuals(post)}
+                    >
+                      <Download size={14} className="mr-1.5" />
+                      Télécharger les visuels ({post.visuals!.length})
+                    </Button>
+                  ) : (
+                    <p className="text-xs text-zinc-400 text-center py-1">Aucun visuel</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Card Event J-0 — validation auto quand la date est passée */}
+          {eventDate && (
+            <div
+              className={cn(
+                'flex-none w-[280px] snap-start rounded-lg border p-4 flex flex-col gap-3',
+                isEventPast
+                  ? 'border-green-200 bg-green-50 dark:border-green-900/50 dark:bg-green-950/20'
+                  : 'border-border-custom bg-surface-elevated'
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-md bg-zinc-900 dark:bg-white flex flex-col items-center justify-center shrink-0">
+                  <span className="text-[10px] font-bold uppercase text-white dark:text-zinc-900 tracking-wider">
+                    {eventDate.toLocaleDateString('fr-FR', { month: 'short' })}
+                  </span>
+                  <span className="text-xl font-bold leading-tight text-white dark:text-zinc-900">
+                    {eventDate.getDate()}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold">{event.name}</p>
+                  <p className="text-xs text-zinc-500">
+                    {eventDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   // ── Step content ──
   const renderStep = () => {
     if (currentPhase === 'preparation') {
@@ -505,7 +708,7 @@ export function EventCampaignSection() {
             </p>
             {postsCount > 0 ? (
               <div className="space-y-2">
-                {wf.posts!.map(post => (
+                {postsToRender.map(post => (
                   <div key={post.id} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-md border border-border-custom bg-zinc-50 dark:bg-zinc-900/40">
                     <div className="flex items-center gap-2 min-w-0">
                       {post.type && (
@@ -560,7 +763,7 @@ export function EventCampaignSection() {
             </p>
             {postsCount > 0 ? (
               <div className="space-y-2">
-                {wf.posts!.map(post => {
+                {postsToRender.map(post => {
                   const missing: string[] = [];
                   if (!post.scheduledDate) missing.push('date');
                   if (!post.bio) missing.push('bio');
@@ -632,7 +835,7 @@ export function EventCampaignSection() {
             </p>
             {postsCount > 0 ? (
               <div className="space-y-2">
-                {wf.posts!.map(post => (
+                {postsToRender.map(post => (
                   <div key={post.id} className={cn(
                     'p-3 rounded-md border transition-colors',
                     post.verified
@@ -1058,7 +1261,7 @@ export function EventCampaignSection() {
     const post = currentPosts.find(p => p.id === postId);
     if (!post) return;
     const newVisual: PostVisual = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       url: url.trim(),
       mediaType: detectMediaType(url),
       createdAt: new Date().toISOString(),
@@ -1126,16 +1329,19 @@ export function EventCampaignSection() {
             ))}
           </div>
 
-          <WorkflowStepper steps={steps} currentStep={currentStep} onStepChange={goToStep} />
+          {currentPhase !== 'communication' && (
+            <WorkflowStepper steps={steps} currentStep={currentStep} onStepChange={goToStep} />
+          )}
         </div>
       </div>
 
-      {/* Step content */}
+      {/* Step content — carousel de cards en phase Communication, sinon stepper */}
       <div className="min-h-[180px]">
-        {renderStep()}
+        {currentPhase === 'communication' ? renderCommunicationCarousel() : renderStep()}
       </div>
 
-      {/* Navigation */}
+      {/* Navigation — masquée en phase Communication */}
+      {currentPhase !== 'communication' && (
       <div className="flex items-center justify-between pt-4 border-t border-border-custom">
         {currentStep > 0 ? (
           <Button variant="ghost" size="sm" onClick={goPrev}>
@@ -1161,6 +1367,7 @@ export function EventCampaignSection() {
           <div />
         )}
       </div>
+      )}
 
       {/* Campaign section */}
       <div className="border-t-2 border-dashed border-zinc-200 dark:border-zinc-800 pt-8">
@@ -1182,7 +1389,7 @@ export function EventCampaignSection() {
           <div className="space-y-3">
 
             {/* Post list */}
-            {wf.posts!.map((post) => (
+            {postsToRender.map((post) => (
               <EditableCard
                 key={post.id}
                 isEditing={editingPostId === post.id}
@@ -1533,7 +1740,7 @@ export function EventCampaignSection() {
                     onClick={() => {
                       if (!newPostName.trim()) return;
                       const newPost: ComWorkflowPost = {
-                        id: Date.now().toString(),
+                        id: crypto.randomUUID(),
                         name: newPostName.trim(),
                         description: newPostDesc.trim(),
                         networks: newPostNetworks,
@@ -1543,9 +1750,7 @@ export function EventCampaignSection() {
                       const currentPosts = eventRef.current.comWorkflow?.posts ?? [];
                       const newPosts = [...currentPosts, newPost];
                       setEvent((prev) => ({ ...prev, comWorkflow: buildWfWithPosts(prev.comWorkflow, newPosts) }));
-                      persistField((current) => ({
-                        comWorkflow: buildWfWithPosts(current.comWorkflow, [...(current.comWorkflow?.posts ?? []), newPost]),
-                      }));
+                      persistField({ comWorkflow: buildWfWithPosts(eventRef.current.comWorkflow, newPosts) });
                       resetForm();
                     }}>
                     Ajouter
