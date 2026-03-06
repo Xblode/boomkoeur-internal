@@ -5,6 +5,7 @@
 
 import { supabase } from './client';
 import type { Organisation, OrganisationInput, OrgMember, OrgInvite, OrgRole } from '@/types/organisation';
+import type { AssociationRole } from '@/types/associationStatuts';
 
 // --- DB types ---
 interface DbOrg {
@@ -18,6 +19,22 @@ interface DbOrg {
   created_at: string;
   updated_at: string;
   google_calendar_id?: string | null;
+  legal_siege?: string | null;
+  legal_rna?: string | null;
+  legal_siret?: string | null;
+  legal_activite_principale?: string | null;
+  legal_categorie_juridique?: string | null;
+  legal_slogan?: string | null;
+  legal_tranche_effectif?: string | null;
+  legal_tranche_effectif_annee?: number | null;
+  legal_categorie_entreprise?: string | null;
+  legal_categorie_entreprise_annee?: number | null;
+  doc_joafe_url?: string | null;
+  doc_joafe_name?: string | null;
+  doc_liste_dirigeants_url?: string | null;
+  doc_liste_dirigeants_name?: string | null;
+  doc_recepisse_cr_url?: string | null;
+  doc_recepisse_cr_name?: string | null;
 }
 
 interface DbOrgMember {
@@ -54,6 +71,22 @@ function mapDbOrg(row: DbOrg): Organisation {
     created_at: new Date(row.created_at),
     updated_at: new Date(row.updated_at),
     googleCalendarId: row.google_calendar_id ?? undefined,
+    legalSiege: row.legal_siege ?? undefined,
+    legalRna: row.legal_rna ?? undefined,
+    legalSiret: row.legal_siret ?? undefined,
+    legalActivitePrincipale: row.legal_activite_principale ?? undefined,
+    legalCategorieJuridique: row.legal_categorie_juridique ?? undefined,
+    legalSlogan: row.legal_slogan ?? undefined,
+    legalTrancheEffectif: row.legal_tranche_effectif ?? undefined,
+    legalTrancheEffectifAnnee: row.legal_tranche_effectif_annee ?? undefined,
+    legalCategorieEntreprise: row.legal_categorie_entreprise ?? undefined,
+    legalCategorieEntrepriseAnnee: row.legal_categorie_entreprise_annee ?? undefined,
+    docJoafeUrl: row.doc_joafe_url ?? undefined,
+    docJoafeName: row.doc_joafe_name ?? undefined,
+    docListeDirigeantsUrl: row.doc_liste_dirigeants_url ?? undefined,
+    docListeDirigeantsName: row.doc_liste_dirigeants_name ?? undefined,
+    docRecepisseCrUrl: row.doc_recepisse_cr_url ?? undefined,
+    docRecepisseCrName: row.doc_recepisse_cr_name ?? undefined,
   };
 }
 
@@ -159,7 +192,25 @@ export async function createOrganisation(input: OrganisationInput): Promise<Orga
 
 export async function updateOrganisation(
   id: string,
-  input: Partial<Pick<OrganisationInput, 'name' | 'description' | 'type'> & { logo?: string; googleCalendarId?: string | null }>
+  input: Partial<
+    Pick<OrganisationInput, 'name' | 'description' | 'type'> & {
+      logo?: string;
+      googleCalendarId?: string | null;
+      legalActivitePrincipale?: string | null;
+      legalCategorieJuridique?: string | null;
+      legalSlogan?: string | null;
+      legalTrancheEffectif?: string | null;
+      legalTrancheEffectifAnnee?: number | null;
+      legalCategorieEntreprise?: string | null;
+      legalCategorieEntrepriseAnnee?: number | null;
+      docJoafeUrl?: string | null;
+      docJoafeName?: string | null;
+      docListeDirigeantsUrl?: string | null;
+      docListeDirigeantsName?: string | null;
+      docRecepisseCrUrl?: string | null;
+      docRecepisseCrName?: string | null;
+    }
+  >
 ): Promise<Organisation | null> {
   const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (input.name !== undefined) payload.name = input.name.trim();
@@ -167,6 +218,19 @@ export async function updateOrganisation(
   if (input.type !== undefined) payload.type = input.type;
   if (input.logo !== undefined) payload.logo = input.logo;
   if (input.googleCalendarId !== undefined) payload.google_calendar_id = input.googleCalendarId?.trim() || null;
+  if (input.legalActivitePrincipale !== undefined) payload.legal_activite_principale = input.legalActivitePrincipale?.trim() || null;
+  if (input.legalCategorieJuridique !== undefined) payload.legal_categorie_juridique = input.legalCategorieJuridique?.trim() || null;
+  if (input.legalSlogan !== undefined) payload.legal_slogan = input.legalSlogan?.trim() || null;
+  if (input.legalTrancheEffectif !== undefined) payload.legal_tranche_effectif = input.legalTrancheEffectif?.trim() || null;
+  if (input.legalTrancheEffectifAnnee !== undefined) payload.legal_tranche_effectif_annee = input.legalTrancheEffectifAnnee ?? null;
+  if (input.legalCategorieEntreprise !== undefined) payload.legal_categorie_entreprise = input.legalCategorieEntreprise?.trim() || null;
+  if (input.legalCategorieEntrepriseAnnee !== undefined) payload.legal_categorie_entreprise_annee = input.legalCategorieEntrepriseAnnee ?? null;
+  if (input.docJoafeUrl !== undefined) payload.doc_joafe_url = input.docJoafeUrl?.trim() || null;
+  if (input.docJoafeName !== undefined) payload.doc_joafe_name = input.docJoafeName?.trim() || null;
+  if (input.docListeDirigeantsUrl !== undefined) payload.doc_liste_dirigeants_url = input.docListeDirigeantsUrl?.trim() || null;
+  if (input.docListeDirigeantsName !== undefined) payload.doc_liste_dirigeants_name = input.docListeDirigeantsName?.trim() || null;
+  if (input.docRecepisseCrUrl !== undefined) payload.doc_recepisse_cr_url = input.docRecepisseCrUrl?.trim() || null;
+  if (input.docRecepisseCrName !== undefined) payload.doc_recepisse_cr_name = input.docRecepisseCrName?.trim() || null;
 
   const { data, error } = await supabase
     .from('organisations')
@@ -205,6 +269,7 @@ export async function getOrgMembers(orgId: string): Promise<OrgMember[]> {
     orgId: row.org_id,
     userId: row.user_id,
     role: row.role as OrgRole,
+    associationRole: ((row as unknown as Record<string, unknown>).association_role as AssociationRole | undefined) ?? undefined,
     joinedAt: new Date(row.joined_at),
     profile: {
       firstName: row.profiles?.first_name ?? '',

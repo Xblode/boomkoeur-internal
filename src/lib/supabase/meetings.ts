@@ -18,6 +18,7 @@ interface DbMeeting {
   location: string | null;
   participants: unknown;
   status: string;
+  meeting_type: string;
   agenda: unknown;
   minutes: unknown;
   calendar_event_id: string | null;
@@ -60,6 +61,7 @@ function mapDbMeetingToMeeting(row: DbMeeting): Meeting {
     location: row.location ?? undefined,
     participants: Array.isArray(row.participants) ? row.participants as string[] : [],
     status: row.status as Meeting['status'],
+    meetingType: (row.meeting_type ?? 'standard') as Meeting['meetingType'],
     agenda: agendaItems,
     minutes,
     calendar_event_id: row.calendar_event_id ?? undefined,
@@ -79,6 +81,7 @@ function meetingToDbPayload(meeting: Partial<Meeting> | Partial<MeetingInput>): 
     location: meeting.location ?? null,
     participants: meeting.participants ?? [],
     status: meeting.status ?? 'upcoming',
+    meeting_type: meeting.meetingType ?? 'standard',
     agenda: meeting.agenda ?? [],
     minutes: {
       freeText: minutes.freeText ?? '',
@@ -101,6 +104,7 @@ function buildPartialUpdatePayload(updates: Partial<Meeting> | Partial<MeetingIn
   if (updates.location !== undefined) payload.location = updates.location ?? null;
   if (updates.participants !== undefined) payload.participants = updates.participants ?? [];
   if (updates.status !== undefined) payload.status = updates.status ?? 'upcoming';
+  if ((updates as Partial<Meeting>).meetingType !== undefined) payload.meeting_type = (updates as Partial<Meeting>).meetingType ?? 'standard';
   if (updates.agenda !== undefined) payload.agenda = updates.agenda ?? [];
   if (updates.minutes !== undefined) {
     const m = updates.minutes;

@@ -20,9 +20,12 @@ export function parseGoogleSheetId(url: string): string | null {
   return m2 ? m2[1] : null;
 }
 
-/** Extrait l'ID d'un fichier Drive depuis une URL drive.google.com */
+/** Extrait l'ID d'un fichier Drive depuis une URL drive.google.com ou docs.google.com */
 export function parseDriveFileId(url: string): string | null {
   if (!url?.trim()) return null;
+  // docs.google.com/document/d/XXX, spreadsheets/d/XXX, presentation/d/XXX
+  const docsM = url.match(/docs\.google\.com\/(?:document|spreadsheets|presentation)\/d\/([^/?#]+)/);
+  if (docsM) return docsM[1];
   // drive.google.com/file/d/XXX
   const m = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/);
   if (m) return m[1];

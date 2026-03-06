@@ -2,7 +2,7 @@
  * Types pour le module Point de Vente (Event POS)
  */
 
-export type PosCategory = 'alcool' | 'merch' | 'billet';
+export type PosCategory = 'alcool' | 'merch' | 'billet' | 'autre';
 
 export type PosContainerType = 'fut' | 'cubi' | 'bouteille' | 'canette';
 
@@ -72,6 +72,8 @@ export interface EventPosSale {
   source: PosSaleSource;
   reference?: string | null;
   sale_date: string;
+  /** Heure de la vente (HH:mm) pour le graphique par tranche horaire */
+  sale_time?: string | null;
   org_id: string;
   created_at: string;
 }
@@ -83,6 +85,27 @@ export interface EventPosCashTotal {
   notes?: string | null;
   org_id: string;
   created_at: string;
+}
+
+/** Caisse (entrée, bar, etc.) avec fond de caisse et total en fin */
+export interface EventPosCashRegister {
+  id: string;
+  event_id: string;
+  name: string;
+  initial_amount: number;
+  closing_amount: number;
+  notes?: string | null;
+  sort_order: number;
+  org_id: string;
+  created_at: string;
+}
+
+export interface EventPosCashRegisterInput {
+  name: string;
+  initial_amount?: number;
+  closing_amount?: number;
+  notes?: string | null;
+  sort_order?: number;
 }
 
 export interface EventPosProductWithVariants extends EventPosProduct {
@@ -122,4 +145,5 @@ export interface EventPosSaleInput {
   source: PosSaleSource;
   reference?: string | null;
   sale_date: string;
+  sale_time?: string | null;
 }

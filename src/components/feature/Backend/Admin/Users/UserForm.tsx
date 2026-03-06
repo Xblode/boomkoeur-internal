@@ -6,7 +6,10 @@ import { Button, Input, Select } from '@/components/ui/atoms';
 import { FormField } from '@/components/ui/molecules';
 import { User, UserInput } from '@/types/user';
 import { userService } from '@/lib/services/UserService';
+import { useOrg } from '@/hooks';
 import type { OrgRole } from '@/types/organisation';
+import { ASSOCIATION_ROLE_OPTIONS, type AssociationRole } from '@/types/associationStatuts';
+import { updateAssociationRole } from '@/lib/supabase/associationStatuts';
 
 const ROLE_OPTIONS: { value: OrgRole; label: string }[] = [
   { value: 'admin', label: 'Administrateur' },
@@ -22,6 +25,8 @@ interface UserFormProps {
 }
 
 export default function UserForm({ isOpen, onClose, onSuccess, user }: UserFormProps) {
+  const { activeOrg } = useOrg();
+  const isAssociation = activeOrg?.type === 'association';
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<Partial<UserInput>>({
     firstName: user?.firstName || '',
@@ -35,6 +40,7 @@ export default function UserForm({ isOpen, onClose, onSuccess, user }: UserFormP
     lastLoginAt: user?.lastLoginAt,
   });
   const [role, setRole] = useState<OrgRole>(user?.orgRole ?? 'membre');
+  const [associationRole, setAssociationRole] = useState<AssociationRole>('membre');
 
   useEffect(() => {
     if (user && isOpen) {
@@ -50,6 +56,7 @@ export default function UserForm({ isOpen, onClose, onSuccess, user }: UserFormP
         lastLoginAt: user.lastLoginAt,
       });
       setRole(user.orgRole ?? 'membre');
+      setAssociationRole(((user as Record<string, unknown>).associationRole as AssociationRole) ?? 'membre');
     } else if (!user && isOpen) {
       setFormData({
         firstName: '',
@@ -62,6 +69,7 @@ export default function UserForm({ isOpen, onClose, onSuccess, user }: UserFormP
         registeredAt: new Date(),
       });
       setRole('membre');
+      setAssociationRole('membre');
     }
   }, [user, isOpen]);
 
@@ -74,6 +82,9 @@ export default function UserForm({ isOpen, onClose, onSuccess, user }: UserFormP
         await userService.updateUser(user.id, formData);
         if (user.orgRole !== 'fondateur' && role !== user.orgRole) {
           await userService.updateMemberRole(user.id, role);
+        }
+        if (isAssociation && activeOrg) {
+          await updateAssociationRole(activeOrg.id, user.id, associationRole);
         }
       } else {
         await userService.createUser(formData as UserInput);
@@ -141,7 +152,7 @@ export default function UserForm({ isOpen, onClose, onSuccess, user }: UserFormP
           </FormField>
 
           {user && (
-            <FormField label="Rôle dans l'organisation">
+            <FormField label="Rôle">
               <Select
                 value={role}
                 onChange={(e) => setRole(e.target.value as OrgRole)}
@@ -164,13 +175,23 @@ export default function UserForm({ isOpen, onClose, onSuccess, user }: UserFormP
             />
           </FormField>
 
-          <FormField label="Poste / Fonction">
-            <Input
-              value={formData.position}
-              onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
-              placeholder="Ex: Responsable Communication"
-            />
-          </FormField>
+          {isAssociation ? (
+            <FormField label="Poste">
+              <Select
+                value={associationRole}
+                onChange={(e) => setAssociationRole(e.target.value as AssociationRole)}
+                options={ASSOCIATION_ROLE_OPTIONS}
+              />
+            </FormField>
+          ) : (
+            <FormField label="Poste / Fonction">
+              <Input
+                value={formData.position}
+                onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
+                placeholder="Ex: Responsable Communication"
+              />
+            </FormField>
+          )}
 
           <FormField label="Avatar (URL)">
             <Input

@@ -103,6 +103,11 @@ export default function MeetingCard(props: MeetingCardProps) {
               <h3 className="flex-1 font-bold text-lg text-white leading-tight line-clamp-2 group-hover:text-white/90 transition-colors min-w-0">
                 {meeting.title}
               </h3>
+              {meeting.meetingType === 'assemblee_generale' && (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium border flex-shrink-0 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+                  AG
+                </span>
+              )}
               <span className={cn(
                 "px-2.5 py-0.5 rounded-full text-xs font-medium border flex-shrink-0",
                 badge.className

@@ -1,4 +1,5 @@
 import type { OrgRole } from './organisation';
+import type { AssociationRole } from './associationStatuts';
 
 export type UserStatus = 'active' | 'inactive';
 
@@ -12,6 +13,9 @@ export type User = {
 
   /** Role contextuel dans l'org active (rempli par le service) */
   orgRole?: OrgRole;
+
+  /** Rôle dans l'association (si type = association) */
+  associationRole?: AssociationRole;
 
   phone?: string;
   position?: string;

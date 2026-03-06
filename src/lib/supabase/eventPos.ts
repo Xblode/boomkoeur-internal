@@ -10,6 +10,8 @@ import type {
   EventPosVariant,
   EventPosSale,
   EventPosCashTotal,
+  EventPosCashRegister,
+  EventPosCashRegisterInput,
   EventPosProductWithVariants,
   EventPosProductInput,
   EventPosVariantInput,
@@ -263,6 +265,7 @@ export async function createEventPosSale(
       source: input.source,
       reference: input.reference ?? null,
       sale_date: input.sale_date,
+      sale_time: input.sale_time ?? null,
     })
     .select()
     .single();
@@ -274,6 +277,19 @@ export async function createEventPosSale(
     input.sale_date
   ).catch(() => {});
   return data as EventPosSale;
+}
+
+/** Supprime toutes les ventes importées (source import_csv) pour un event. Utilisé avant réimport pour éviter les doublons. */
+export async function deleteEventPosSalesByImportSource(eventId: string): Promise<void> {
+  const orgId = getActiveOrgId();
+  if (!orgId) return;
+  const { error } = await supabase
+    .from('event_pos_sales')
+    .delete()
+    .eq('event_id', eventId)
+    .eq('org_id', orgId)
+    .eq('source', 'import_csv');
+  if (error) throw error;
 }
 
 export async function bulkCreateEventPosSales(
@@ -294,6 +310,7 @@ export async function bulkCreateEventPosSales(
     source: input.source,
     reference: input.reference ?? null,
     sale_date: input.sale_date,
+    sale_time: input.sale_time ?? null,
   }));
   const { data, error } = await supabase.from('event_pos_sales').insert(rows).select();
   if (error) throw error;
@@ -309,7 +326,7 @@ export async function bulkCreateEventPosSales(
   return sales;
 }
 
-// --- Cash total ---
+// --- Cash total (legacy, conservé pour compat) ---
 
 export async function getEventPosCashTotal(eventId: string): Promise<EventPosCashTotal | null> {
   const { data, error } = await supabase
@@ -343,5 +360,104 @@ export async function upsertEventPosCashTotal(
     .single();
   if (error) throw error;
   return data as EventPosCashTotal;
+}
+
+// --- Caisses (multiples, avec fond de caisse) ---
+
+export async function getEventPosCashRegisters(eventId: string): Promise<EventPosCashRegister[]> {
+  const orgId = getActiveOrgId();
+  if (!orgId) return [];
+  const { data, error } = await supabase
+    .from('event_pos_cash_registers')
+    .select('*')
+    .eq('event_id', eventId)
+    .eq('org_id', orgId)
+    .order('sort_order', { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as EventPosCashRegister[];
+}
+
+export async function createEventPosCashRegister(
+  eventId: string,
+  input: EventPosCashRegisterInput
+): Promise<EventPosCashRegister> {
+  const orgId = getActiveOrgId();
+  if (!orgId) throw new Error('Aucune organisation active');
+  const { data, error } = await supabase
+    .from('event_pos_cash_registers')
+    .insert({
+      event_id: eventId,
+      org_id: orgId,
+      name: input.name,
+      initial_amount: input.initial_amount ?? 0,
+      closing_amount: input.closing_amount ?? 0,
+      notes: input.notes ?? null,
+      sort_order: input.sort_order ?? 0,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as EventPosCashRegister;
+}
+
+export async function updateEventPosCashRegister(
+  id: string,
+  input: Partial<EventPosCashRegisterInput>
+): Promise<EventPosCashRegister> {
+  const updates: Record<string, unknown> = {};
+  if (input.name !== undefined) updates.name = input.name;
+  if (input.initial_amount !== undefined) updates.initial_amount = input.initial_amount;
+  if (input.closing_amount !== undefined) updates.closing_amount = input.closing_amount;
+  if (input.notes !== undefined) updates.notes = input.notes;
+  if (input.sort_order !== undefined) updates.sort_order = input.sort_order;
+  const { data, error } = await supabase
+    .from('event_pos_cash_registers')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as EventPosCashRegister;
+}
+
+export async function deleteEventPosCashRegister(id: string): Promise<void> {
+  const { error } = await supabase.from('event_pos_cash_registers').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function upsertEventPosCashRegisters(
+  eventId: string,
+  registers: Array<{ id?: string; name: string; initial_amount: number; closing_amount: number; notes?: string | null }>
+): Promise<EventPosCashRegister[]> {
+  const existing = await getEventPosCashRegisters(eventId);
+  const result: EventPosCashRegister[] = [];
+  for (let i = 0; i < registers.length; i++) {
+    const r = registers[i];
+    if (r.id && existing.some((e) => e.id === r.id)) {
+      const updated = await updateEventPosCashRegister(r.id, {
+        name: r.name,
+        initial_amount: r.initial_amount,
+        closing_amount: r.closing_amount,
+        notes: r.notes ?? null,
+        sort_order: i,
+      });
+      result.push(updated);
+    } else {
+      const created = await createEventPosCashRegister(eventId, {
+        name: r.name,
+        initial_amount: r.initial_amount,
+        closing_amount: r.closing_amount,
+        notes: r.notes ?? null,
+        sort_order: i,
+      });
+      result.push(created);
+    }
+  }
+  for (const e of existing) {
+    if (!registers.some((r) => r.id === e.id)) {
+      await deleteEventPosCashRegister(e.id);
+    }
+  }
+  return getEventPosCashRegisters(eventId);
 }
 

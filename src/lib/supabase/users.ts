@@ -6,6 +6,7 @@
 import { supabase } from './client';
 import type { User, UserInput, UserStats } from '@/types/user';
 import type { OrgRole } from '@/types/organisation';
+import type { AssociationRole } from '@/types/associationStatuts';
 
 // --- Types DB (snake_case) ---
 interface DbProfile {
@@ -24,7 +25,7 @@ interface DbProfile {
   updated_at: string;
 }
 
-function mapDbToUser(row: DbProfile, orgRole?: OrgRole): User {
+function mapDbToUser(row: DbProfile, orgRole?: OrgRole, associationRole?: AssociationRole): User {
   return {
     id: row.id,
     firstName: row.first_name,
@@ -33,6 +34,7 @@ function mapDbToUser(row: DbProfile, orgRole?: OrgRole): User {
     status: row.status as User['status'],
     isSuperAdmin: row.is_super_admin,
     orgRole,
+    associationRole,
     phone: row.phone ?? undefined,
     position: row.position ?? undefined,
     avatar: row.avatar ?? undefined,
@@ -58,7 +60,7 @@ export async function getUsers(): Promise<User[]> {
 export async function getOrgUsers(orgId: string): Promise<User[]> {
   const { data: members, error: membersErr } = await supabase
     .from('organisation_members')
-    .select('user_id, role')
+    .select('user_id, role, association_role')
     .eq('org_id', orgId);
 
   if (membersErr) throw membersErr;
@@ -66,6 +68,7 @@ export async function getOrgUsers(orgId: string): Promise<User[]> {
 
   const userIds = members.map((m) => m.user_id);
   const roleMap = new Map(members.map((m) => [m.user_id, m.role as OrgRole]));
+  const assocRoleMap = new Map(members.map((m) => [m.user_id, (m.association_role ?? 'membre') as AssociationRole]));
 
   const { data: profiles, error: profilesErr } = await supabase
     .from('profiles')
@@ -74,7 +77,7 @@ export async function getOrgUsers(orgId: string): Promise<User[]> {
     .order('created_at', { ascending: false });
 
   if (profilesErr) throw profilesErr;
-  return (profiles ?? []).map((row: DbProfile) => mapDbToUser(row, roleMap.get(row.id)));
+  return (profiles ?? []).map((row: DbProfile) => mapDbToUser(row, roleMap.get(row.id), assocRoleMap.get(row.id)));
 }
 
 export async function getUserById(id: string, orgId?: string | null): Promise<User | null> {
@@ -91,16 +94,18 @@ export async function getUserById(id: string, orgId?: string | null): Promise<Us
   if (!data) return null;
 
   let orgRole: OrgRole | undefined;
+  let assocRole: AssociationRole | undefined;
   if (orgId) {
     const { data: member } = await supabase
       .from('organisation_members')
-      .select('role')
+      .select('role, association_role')
       .eq('org_id', orgId)
       .eq('user_id', id)
       .maybeSingle();
     orgRole = member?.role as OrgRole | undefined;
+    assocRole = (member?.association_role ?? undefined) as AssociationRole | undefined;
   }
-  return mapDbToUser(data, orgRole);
+  return mapDbToUser(data, orgRole, assocRole);
 }
 
 export async function updateProfile(

@@ -8,12 +8,10 @@ import { useEventDetail } from '../EventDetailProvider';
 import { Button } from '@/components/ui/atoms';
 import { Card, CardContent } from '@/components/ui/molecules';
 import { EmptyState } from '@/components/ui/molecules';
-import { Plus, Loader2, ShoppingBag, Upload, FileSpreadsheet, FileText, Package, Euro } from 'lucide-react';
+import { Plus, Loader2, ShoppingBag, Upload, FileSpreadsheet, FileText, Package, Euro, Receipt } from 'lucide-react';
 import {
   getEventPosProducts,
   getEventPosSales,
-  createEventPosProduct,
-  createEventPosVariant,
   type EventPosProductWithVariants,
   type EventPosSale,
 } from '@/lib/supabase/eventPos';
@@ -23,6 +21,8 @@ import { PosSalesImport } from './PosSalesImport';
 import { PosSalesChart } from './PosSalesChart';
 import { toast } from 'sonner';
 import { ImportSalesCsvModal } from './modals/ImportSalesCsvModal';
+import { AddPosProductModal } from './modals/AddPosProductModal';
+import { financeDataService } from '@/lib/services/FinanceDataService';
 
 function computeMetadata(products: EventPosProductWithVariants[], sales: EventPosSale[]) {
   const totalProducts = products.length;
@@ -47,8 +47,10 @@ export function EventPointDeVenteSection() {
   const [products, setProducts] = useState<EventPosProductWithVariants[]>([]);
   const [sales, setSales] = useState<EventPosSale[]>([]);
   const [loading, setLoading] = useState(true);
-  const [addingProduct, setAddingProduct] = useState(false);
+  const [creatingTransaction, setCreatingTransaction] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [addConsumableModalOpen, setAddConsumableModalOpen] = useState(false);
+  const [addMerchModalOpen, setAddMerchModalOpen] = useState(false);
 
   const fetchData = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setLoading(true);
@@ -69,26 +71,35 @@ export function EventPointDeVenteSection() {
     }
   }, [event.id]);
 
-  const handleAddProductInline = useCallback(async () => {
-    setAddingProduct(true);
-    try {
-      const product = await createEventPosProduct(event.id, {
-        name: 'Nouveau produit',
-        category: 'alcool',
-      });
-      await createEventPosVariant(product.id, {
-        price: 0,
-        stock_initial: 0,
-        sale_unit_cl: 25,
-      });
-      toast.success('Produit ajouté');
-      await fetchData({ silent: true });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erreur');
-    } finally {
-      setAddingProduct(false);
+  const totalCbSales = sales.filter((s) => s.payment_type === 'card').reduce((sum, s) => sum + s.total, 0);
+  const eventDateStr = new Date(event.date).toISOString().slice(0, 10);
+
+  const handleCreateCbTransaction = useCallback(async () => {
+    if (totalCbSales <= 0) {
+      toast.error('Aucune vente CB à enregistrer');
+      return;
     }
-  }, [event.id, fetchData]);
+    setCreatingTransaction(true);
+    try {
+      await financeDataService.createTransaction({
+        type: 'income',
+        date: eventDateStr,
+        label: `Point de vente CB — ${event.name}`,
+        amount: totalCbSales,
+        category: 'Bar',
+        vat_applicable: false,
+        status: 'pending',
+        fiscal_year: new Date(eventDateStr).getFullYear(),
+        reconciled: false,
+        event_id: event.id,
+      });
+      toast.success(`Transaction CB créée : ${totalCbSales.toFixed(2)} €`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erreur lors de la création');
+    } finally {
+      setCreatingTransaction(false);
+    }
+  }, [event.id, event.name, eventDateStr, totalCbSales]);
 
   useEffect(() => {
     fetchData();
@@ -110,24 +121,47 @@ export function EventPointDeVenteSection() {
               variant="toolbar"
             />
             <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCreateCbTransaction}
+              disabled={creatingTransaction || totalCbSales <= 0}
+            >
+              {creatingTransaction ? (
+                <Loader2 size={14} className="animate-spin mr-1.5" />
+              ) : (
+                <Receipt size={14} className="mr-1.5" />
+              )}
+              Créer une transaction
+            </Button>
+            <Button
               variant="primary"
               size="sm"
-              onClick={handleAddProductInline}
-              disabled={addingProduct}
+              onClick={() => setAddConsumableModalOpen(true)}
             >
-              {addingProduct ? (
-                <Loader2 size={14} className="mr-1.5 animate-spin" />
-              ) : (
-                <Plus size={14} className="mr-1.5" />
-              )}
-              Ajouter un produit
+              <Plus size={14} className="mr-1.5" />
+              Ajouter consommable
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAddMerchModalOpen(true)}
+            >
+              <Plus size={14} className="mr-1.5" />
+              Ajouter merch
             </Button>
           </PageToolbarActions>
         }
       />
     );
     return () => setToolbar(null);
-  }, [event.id, event.name, setToolbar, addingProduct, handleAddProductInline]);
+  }, [
+    event.id,
+    event.name,
+    setToolbar,
+    handleCreateCbTransaction,
+    creatingTransaction,
+    totalCbSales,
+  ]);
 
   const metadata = computeMetadata(products, sales);
 
@@ -159,34 +193,89 @@ export function EventPointDeVenteSection() {
         gridColumns="100px 1fr 100px 1fr 100px 1fr"
       />
 
+      {/* Tableau Consommables (alcool, billet, autre) */}
       <Card variant="outline">
         <CardContent className="p-0">
-          {products.length === 0 ? (
-            <EmptyState
-              icon={ShoppingBag}
-              title="Aucun produit"
-              description="Ajoutez vos produits en vente (boissons, merch, billets) pour gérer le stock et les ventes."
-              variant="compact"
-            />
-          ) : (
-            <PosProductList
-              products={products}
-              eventId={event.id}
-              sales={sales}
-              onRefresh={() => fetchData({ silent: true })}
-            />
-          )}
+          <div className="px-4 py-3 border-b border-border-custom flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold">Consommables</h3>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Boissons, billets et autres — stock, ventes et pertes
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setAddConsumableModalOpen(true)}>
+              <Plus size={14} className="mr-1.5" />
+              Ajouter
+            </Button>
+          </div>
+          {(() => {
+            const consumableProducts = products.filter(
+              (p) => p.category === 'alcool' || p.category === 'billet' || p.category === 'autre'
+            );
+            return consumableProducts.length === 0 ? (
+              <EmptyState
+                icon={ShoppingBag}
+                title="Aucun consommable"
+                description="Ajoutez des boissons, billets ou autres produits pour gérer le stock et les ventes."
+                variant="compact"
+              />
+            ) : (
+              <PosProductList
+                products={consumableProducts}
+                eventId={event.id}
+                sales={sales}
+                onRefresh={() => fetchData({ silent: true })}
+              />
+            );
+          })()}
+        </CardContent>
+      </Card>
+
+      {/* Tableau Merch */}
+      <Card variant="outline">
+        <CardContent className="p-0">
+          <div className="px-4 py-3 border-b border-border-custom flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold">Merch</h3>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Produits liés au catalogue — stock et quantités vendues par variante
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setAddMerchModalOpen(true)}>
+              <Plus size={14} className="mr-1.5" />
+              Ajouter
+            </Button>
+          </div>
+          {(() => {
+            const merchProducts = products.filter((p) => p.category === 'merch');
+            return merchProducts.length === 0 ? (
+              <EmptyState
+                icon={ShoppingBag}
+                title="Aucun merch"
+                description="Ajoutez des produits merch en les liant au catalogue produits."
+                variant="compact"
+              />
+            ) : (
+              <PosProductList
+                products={merchProducts}
+                eventId={event.id}
+                sales={sales}
+                onRefresh={() => fetchData({ silent: true })}
+              />
+            );
+          })()}
         </CardContent>
       </Card>
 
       {sales.length > 0 && (
-        <PosSalesChart sales={sales} products={products} />
+        <PosSalesChart sales={sales} products={products} event={event} />
       )}
 
       {products.length > 0 && (
         <PosSalesImport
           eventId={event.id}
-          eventDate={typeof event.date === 'string' ? event.date : new Date(event.date).toISOString()}
+          eventName={event.name}
+          eventDate={new Date(event.date).toISOString()}
           hideImportCard
         />
       )}
@@ -196,9 +285,32 @@ export function EventPointDeVenteSection() {
         onClose={() => setImportModalOpen(false)}
         eventId={event.id}
         products={products}
-        defaultDate={typeof event.date === 'string' ? event.date : new Date(event.date).toISOString()}
+        defaultDate={new Date(event.date).toISOString()}
         onSuccess={() => {
           setImportModalOpen(false);
+          fetchData({ silent: true });
+        }}
+      />
+
+      <AddPosProductModal
+        isOpen={addConsumableModalOpen}
+        onClose={() => setAddConsumableModalOpen(false)}
+        eventId={event.id}
+        defaultCategory="alcool"
+        onSuccess={() => {
+          setAddConsumableModalOpen(false);
+          fetchData({ silent: true });
+        }}
+      />
+
+      <AddPosProductModal
+        isOpen={addMerchModalOpen}
+        onClose={() => setAddMerchModalOpen(false)}
+        eventId={event.id}
+        defaultCategory="merch"
+        requireProductLink
+        onSuccess={() => {
+          setAddMerchModalOpen(false);
           fetchData({ silent: true });
         }}
       />

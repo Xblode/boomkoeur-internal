@@ -12,6 +12,7 @@ export const mockMeetings: Meeting[] = [
     location: 'Salle de réunion A',
     participants: ['Alice Martin', 'Bob Dupont', 'Claire Dubois', 'David Lefebvre'],
     status: 'upcoming',
+    meetingType: 'standard',
     agenda: [
       {
         id: 'agenda-001-1',
@@ -75,6 +76,7 @@ export const mockMeetings: Meeting[] = [
     location: 'Visio - Zoom',
     participants: ['Alice Martin', 'Claire Dubois', 'Emma Rousseau', 'Franck Bernard'],
     status: 'completed',
+    meetingType: 'standard',
     agenda: [
       {
         id: 'agenda-002-1',
@@ -162,6 +164,7 @@ Excellente rétrospective du projet Boom Koeur. Le bilan est globalement très p
     location: 'Salle de réunion B',
     participants: ['Alice Martin', 'Claire Dubois', 'Sophie Martin', 'Thomas Moreau'],
     status: 'upcoming',
+    meetingType: 'standard',
     agenda: [
       {
         id: 'agenda-003-1',
@@ -234,6 +237,7 @@ Excellente rétrospective du projet Boom Koeur. Le bilan est globalement très p
     location: 'Bureau',
     participants: ['Alice Martin', 'Lucas Petit'],
     status: 'completed',
+    meetingType: 'standard',
     agenda: [
       {
         id: 'agenda-004-1',

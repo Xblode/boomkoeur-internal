@@ -1,7 +1,10 @@
 // Types pour le module Réunions
 
+import type { MeetingType } from './associationStatuts';
+
 // Statut simple
 export type MeetingStatus = 'upcoming' | 'completed';
+export type { MeetingType };
 
 // Document attaché à un point de l'ordre du jour
 export type AgendaDocument = {
@@ -46,6 +49,9 @@ export type Meeting = {
     updatedAt?: Date;
   };
   
+  // Type de réunion
+  meetingType: MeetingType;
+
   // Métadonnées
   created_at: Date;
   updated_at: Date;

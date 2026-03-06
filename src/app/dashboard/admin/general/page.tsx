@@ -20,6 +20,13 @@ export default function AdminGeneralPage() {
     description: '',
     type: 'association' as OrgType,
     logo: '',
+    legalActivitePrincipale: '',
+    legalCategorieJuridique: '',
+    legalSlogan: '',
+    legalTrancheEffectif: '',
+    legalTrancheEffectifAnnee: '' as string | number,
+    legalCategorieEntreprise: '',
+    legalCategorieEntrepriseAnnee: '' as string | number,
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -30,6 +37,13 @@ export default function AdminGeneralPage() {
         description: activeOrg.description ?? '',
         type: activeOrg.type,
         logo: activeOrg.logo ?? '',
+        legalActivitePrincipale: activeOrg.legalActivitePrincipale ?? '',
+        legalCategorieJuridique: activeOrg.legalCategorieJuridique ?? '',
+        legalSlogan: activeOrg.legalSlogan ?? '',
+        legalTrancheEffectif: activeOrg.legalTrancheEffectif ?? '',
+        legalTrancheEffectifAnnee: activeOrg.legalTrancheEffectifAnnee ?? '',
+        legalCategorieEntreprise: activeOrg.legalCategorieEntreprise ?? '',
+        legalCategorieEntrepriseAnnee: activeOrg.legalCategorieEntrepriseAnnee ?? '',
       });
     }
   }, [activeOrg]);
@@ -45,6 +59,13 @@ export default function AdminGeneralPage() {
         description: settings.description || undefined,
         type: settings.type,
         logo: settings.logo || undefined,
+        legalActivitePrincipale: settings.legalActivitePrincipale || null,
+        legalCategorieJuridique: settings.legalCategorieJuridique || null,
+        legalSlogan: settings.legalSlogan || null,
+        legalTrancheEffectif: settings.legalTrancheEffectif || null,
+        legalTrancheEffectifAnnee: settings.legalTrancheEffectifAnnee ? Number(settings.legalTrancheEffectifAnnee) : null,
+        legalCategorieEntreprise: settings.legalCategorieEntreprise || null,
+        legalCategorieEntrepriseAnnee: settings.legalCategorieEntrepriseAnnee ? Number(settings.legalCategorieEntrepriseAnnee) : null,
       });
       await refreshOrgs();
       toast.success('Organisation mise a jour', {
@@ -200,6 +221,13 @@ export default function AdminGeneralPage() {
                 description: activeOrg.description ?? '',
                 type: activeOrg.type,
                 logo: activeOrg.logo ?? '',
+                legalActivitePrincipale: activeOrg.legalActivitePrincipale ?? '',
+                legalCategorieJuridique: activeOrg.legalCategorieJuridique ?? '',
+                legalSlogan: activeOrg.legalSlogan ?? '',
+                legalTrancheEffectif: activeOrg.legalTrancheEffectif ?? '',
+                legalTrancheEffectifAnnee: activeOrg.legalTrancheEffectifAnnee ?? '',
+                legalCategorieEntreprise: activeOrg.legalCategorieEntreprise ?? '',
+                legalCategorieEntrepriseAnnee: activeOrg.legalCategorieEntrepriseAnnee ?? '',
               });
             }}>
               Annuler
@@ -209,6 +237,164 @@ export default function AdminGeneralPage() {
             </Button>
           </CardFooter>
         </Card>
+      {activeOrg.type === 'association' && (
+        <Card
+          variant="settings"
+          className="mt-6"
+          title="Informations légales"
+          description="Données extraites des statuts et informations complémentaires."
+        >
+          <CardContent className="p-0 divide-y divide-border-custom">
+            <SettingsCardRow
+              label="Siège social"
+              description="Adresse du siège de l'association."
+              controlClassName="w-full md:w-2/3 flex justify-end"
+            >
+              <div className="text-sm text-zinc-600 dark:text-zinc-400 max-w-md text-right">
+                {activeOrg.legalSiege || <span className="italic text-zinc-400">Non renseigné</span>}
+              </div>
+            </SettingsCardRow>
+
+            <SettingsCardRow
+              label="Numéro RNA"
+              description="Répertoire National des Associations."
+              controlClassName="w-full md:w-2/3 flex justify-end"
+            >
+              <div className="text-sm text-zinc-600 dark:text-zinc-400 font-mono max-w-md text-right">
+                {activeOrg.legalRna || <span className="italic text-zinc-400 font-sans">Non renseigné</span>}
+              </div>
+            </SettingsCardRow>
+
+            <SettingsCardRow
+              label="SIRET"
+              description="Numéro d'identification."
+              controlClassName="w-full md:w-2/3 flex justify-end"
+            >
+              <div className="text-sm text-zinc-600 dark:text-zinc-400 font-mono max-w-md text-right">
+                {activeOrg.legalSiret || <span className="italic text-zinc-400 font-sans">Non renseigné</span>}
+              </div>
+            </SettingsCardRow>
+
+            <SettingsCardRow
+              label="Activité principale exercée"
+              description="Activité principale de l'organisation."
+              htmlFor="legalActivitePrincipale"
+              controlClassName="w-full md:w-2/3 flex justify-end"
+            >
+              <Input
+                id="legalActivitePrincipale"
+                className="max-w-md"
+                value={settings.legalActivitePrincipale}
+                onChange={(e) => setSettings({ ...settings, legalActivitePrincipale: e.target.value })}
+                placeholder="Ex. : organisation d'événements culturels"
+              />
+            </SettingsCardRow>
+
+            <SettingsCardRow
+              label="Catégorie juridique"
+              description="Forme juridique de l'organisation."
+              htmlFor="legalCategorieJuridique"
+              controlClassName="w-full md:w-2/3 flex justify-end"
+            >
+              <Input
+                id="legalCategorieJuridique"
+                className="max-w-md"
+                value={settings.legalCategorieJuridique}
+                onChange={(e) => setSettings({ ...settings, legalCategorieJuridique: e.target.value })}
+                placeholder="Ex. : Association loi 1901"
+              />
+            </SettingsCardRow>
+
+            <SettingsCardRow
+              label="Slogan"
+              description="Slogan ou devise de l'organisation."
+              htmlFor="legalSlogan"
+              controlClassName="w-full md:w-2/3 flex justify-end"
+            >
+              <Input
+                id="legalSlogan"
+                className="max-w-md"
+                value={settings.legalSlogan}
+                onChange={(e) => setSettings({ ...settings, legalSlogan: e.target.value })}
+                placeholder="Ex. : Ensemble pour la culture"
+              />
+            </SettingsCardRow>
+
+            <SettingsCardRow
+              label="Tranche d'effectif"
+              description="Effectif salarié de l'organisation, avec année de validité."
+              htmlFor="legalTrancheEffectif"
+              controlClassName="w-full md:w-2/3 flex justify-end items-center gap-2"
+            >
+              <Input
+                id="legalTrancheEffectif"
+                className="max-w-md"
+                value={settings.legalTrancheEffectif}
+                onChange={(e) => setSettings({ ...settings, legalTrancheEffectif: e.target.value })}
+                placeholder="Ex. : 0 salarié, 1 à 9, 10 à 19..."
+              />
+              <Input
+                id="legalTrancheEffectifAnnee"
+                type="number"
+                className="w-24 shrink-0"
+                value={settings.legalTrancheEffectifAnnee}
+                onChange={(e) => setSettings({ ...settings, legalTrancheEffectifAnnee: e.target.value })}
+                placeholder="Année"
+                min={2000}
+                max={2100}
+                aria-label="Année de validité"
+              />
+            </SettingsCardRow>
+
+            <SettingsCardRow
+              label="Catégorie d'entreprise"
+              description="Classification (TPE, PME, ETI, GE...), avec année de validité."
+              htmlFor="legalCategorieEntreprise"
+              controlClassName="w-full md:w-2/3 flex justify-end items-center gap-2"
+            >
+              <Input
+                id="legalCategorieEntreprise"
+                className="max-w-md"
+                value={settings.legalCategorieEntreprise}
+                onChange={(e) => setSettings({ ...settings, legalCategorieEntreprise: e.target.value })}
+                placeholder="Ex. : TPE, PME, ETI, GE"
+              />
+              <Input
+                id="legalCategorieEntrepriseAnnee"
+                type="number"
+                className="w-24 shrink-0"
+                value={settings.legalCategorieEntrepriseAnnee}
+                onChange={(e) => setSettings({ ...settings, legalCategorieEntrepriseAnnee: e.target.value })}
+                placeholder="Année"
+                min={2000}
+                max={2100}
+                aria-label="Année de validité"
+              />
+            </SettingsCardRow>
+          </CardContent>
+
+          <CardFooter className="border-t border-border-custom p-4 flex justify-end gap-3 rounded-b-md">
+            <Button type="button" variant="ghost" size="sm" onClick={() => {
+              if (activeOrg) setSettings({
+                ...settings,
+                legalActivitePrincipale: activeOrg.legalActivitePrincipale ?? '',
+                legalCategorieJuridique: activeOrg.legalCategorieJuridique ?? '',
+                legalSlogan: activeOrg.legalSlogan ?? '',
+                legalTrancheEffectif: activeOrg.legalTrancheEffectif ?? '',
+                legalTrancheEffectifAnnee: activeOrg.legalTrancheEffectifAnnee ?? '',
+                legalCategorieEntreprise: activeOrg.legalCategorieEntreprise ?? '',
+                legalCategorieEntrepriseAnnee: activeOrg.legalCategorieEntrepriseAnnee ?? '',
+              });
+            }}>
+              Annuler
+            </Button>
+            <Button type="submit" variant="primary" size="sm" disabled={isSaving}>
+              {isSaving ? 'Enregistrement...' : 'Sauvegarder'}
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
+
       </form>
 
       {isFounder && (

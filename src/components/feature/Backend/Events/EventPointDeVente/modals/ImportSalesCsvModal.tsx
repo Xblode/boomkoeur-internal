@@ -4,7 +4,7 @@ import React, { useState, useRef } from 'react';
 import { Modal, ModalFooter } from '@/components/ui/organisms';
 import { Button, Label, Select } from '@/components/ui/atoms';
 import { Loader2, Upload, Package, FileSpreadsheet, ArrowRight } from 'lucide-react';
-import { bulkCreateEventPosSales } from '@/lib/supabase/eventPos';
+import { bulkCreateEventPosSales, deleteEventPosSalesByImportSource } from '@/lib/supabase/eventPos';
 import type { EventPosProductWithVariants, EventPosVariant } from '@/types/eventPos';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -15,6 +15,8 @@ interface ParsedRow {
   quantity: number;
   amount: number;
   date: string;
+  /** Heure extraite (HH:mm) si présente dans la date source */
+  time: string | null;
   raw: string[];
 }
 
@@ -49,20 +51,25 @@ function parseCsvLine(line: string): string[] {
   return result;
 }
 
-/** Parse une date SumUp (ex: "27 sept. 2025 19:06") en YYYY-MM-DD */
-function parseSumUpDateToIso(dateStr: string): string | null {
-  if (!dateStr || !dateStr.trim()) return null;
-  const m = dateStr.match(/(\d{1,2})\s+(janv|févr|mars|avr|mai|juin|juil|août|sept|oct|nov|déc)\.?\s+(\d{4})/i);
-  if (!m) return null;
+/** Parse une date SumUp (ex: "27 sept. 2025 19:06") en YYYY-MM-DD et HH:mm */
+function parseSumUpDateTime(dateStr: string): { date: string; time: string | null } {
+  if (!dateStr || !dateStr.trim()) return { date: '', time: null };
+  const m = dateStr.match(/(\d{1,2})\s+(janv|févr|mars|avr|mai|juin|juil|août|sept|oct|nov|déc)\.?\s+(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/i);
+  if (!m) return { date: '', time: null };
   const mois: Record<string, number> = {
     janv: 1, févr: 2, mars: 3, avr: 4, mai: 5, juin: 6,
     juil: 7, août: 8, sept: 9, oct: 10, nov: 11, déc: 12,
   };
   const moisNum = mois[m[2].toLowerCase()] ?? 0;
-  if (!moisNum) return null;
+  if (!moisNum) return { date: '', time: null };
   const d = parseInt(m[1], 10);
   const y = parseInt(m[3], 10);
-  return `${y}-${String(moisNum).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  const date = `${y}-${String(moisNum).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  const time =
+    m[4] != null && m[5] != null
+      ? `${String(parseInt(m[4], 10)).padStart(2, '0')}:${String(parseInt(m[5], 10)).padStart(2, '0')}`
+      : null;
+  return { date, time };
 }
 
 /** Extrait variante (50cl, 25cl...) de la description pour le matching */
@@ -105,8 +112,9 @@ function parseArticlesCsv(lines: string[], header: string[]): ParsedRow[] {
     const product = productIdx >= 0 ? String(cells[productIdx] || '').trim() : '';
     const variant = variantIdx >= 0 ? String(cells[variantIdx] || '').trim() : '';
     const quantity = qtyIdx >= 0 ? parseInt(String(cells[qtyIdx] || '1'), 10) || 1 : 1;
-    const date = dateIdx >= 0 ? cells[dateIdx] : '';
-    rows.push({ product, variant, quantity, amount, date, raw: cells });
+    const dateStr = dateIdx >= 0 ? cells[dateIdx] : '';
+    const { date, time } = parseSumUpDateTime(dateStr);
+    rows.push({ product, variant, quantity, amount, date: date || dateStr, time, raw: cells });
   }
   return rows;
 }
@@ -131,14 +139,16 @@ function parseVentesCsv(lines: string[], header: string[]): ParsedRow[] {
     const description = descIdx >= 0 ? String(cells[descIdx] || '').trim() : '';
     if (!description) continue;
     const quantity = qtyIdx >= 0 ? parseInt(String(cells[qtyIdx] || '1'), 10) || 1 : 1;
-    const date = dateIdx >= 0 ? cells[dateIdx] : '';
+    const dateStr = dateIdx >= 0 ? cells[dateIdx] : '';
+    const { date, time } = parseSumUpDateTime(dateStr);
     const { product, variant } = extractVariantFromDescription(description);
     rows.push({
       product: product || description,
       variant,
       quantity,
       amount,
-      date,
+      date: date || dateStr,
+      time,
       raw: cells,
     });
   }
@@ -179,6 +189,11 @@ function groupParsedRows(rows: ParsedRow[]): GroupedCsvRow[] {
     }
   }
   return Array.from(map.values());
+}
+
+/** Trouve l'index du groupe contenant la ligne rowIndex */
+function findGroupIndexForRow(grouped: GroupedCsvRow[], rowIndex: number): number {
+  return grouped.findIndex((g) => g.rowIndices.includes(rowIndex));
 }
 
 function formatVariantLabel(v: EventPosVariant): string {
@@ -276,28 +291,32 @@ export function ImportSalesCsvModal({
       source: 'import_csv';
       reference: string | null;
       sale_date: string;
+      sale_time: string | null;
     }> = [];
 
-    for (let i = 0; i < grouped.length; i++) {
-      const grp = grouped[i];
-      const map = mapping[i];
+    for (let rowIdx = 0; rowIdx < parsed.length; rowIdx++) {
+      const row = parsed[rowIdx];
+      const grpIdx = findGroupIndexForRow(grouped, rowIdx);
+      if (grpIdx < 0) continue;
+      const map = mapping[grpIdx];
       if (!map) continue;
       const product = products.find((p) => p.id === map.productId);
       if (!product) continue;
       const variant = product.variants.find((v) => v.id === map.variantId);
       const variantId = variant?.id ?? product.variants[0]?.id ?? null;
-      const unitPrice = grp.quantity > 0 ? grp.amount / grp.quantity : grp.amount;
-      const saleDate = parseSumUpDateToIso(grp.date) || grp.date || dateStr;
+      const unitPrice = row.quantity > 0 ? row.amount / row.quantity : row.amount;
+      const saleDate = row.date || dateStr;
       toCreate.push({
         event_pos_product_id: map.productId,
         event_pos_variant_id: variantId,
-        quantity: grp.quantity,
+        quantity: row.quantity,
         unit_price: unitPrice,
-        total: grp.amount,
+        total: row.amount,
         payment_type: 'card',
         source: 'import_csv',
         reference: null,
         sale_date: saleDate,
+        sale_time: row.time,
       });
     }
 
@@ -308,6 +327,7 @@ export function ImportSalesCsvModal({
 
     setLoading(true);
     try {
+      await deleteEventPosSalesByImportSource(eventId);
       await bulkCreateEventPosSales(eventId, toCreate);
       toast.success(`${toCreate.length} vente(s) importée(s)`);
       onSuccess();

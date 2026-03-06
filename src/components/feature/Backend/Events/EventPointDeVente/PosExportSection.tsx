@@ -9,7 +9,7 @@ import autoTable from 'jspdf-autotable';
 import {
   getEventPosProducts,
   getEventPosSales,
-  getEventPosCashTotal,
+  getEventPosCashRegisters,
 } from '@/lib/supabase/eventPos';
 import type { EventPosProductWithVariants, EventPosVariant } from '@/types/eventPos';
 
@@ -128,12 +128,13 @@ export function PosExportSection({ eventId, eventName, variant = 'default' }: Po
   const [loading, setLoading] = useState(false);
 
   const fetchExportData = useCallback(async () => {
-    const [products, sales, cash] = await Promise.all([
+    const [products, sales, registers] = await Promise.all([
       getEventPosProducts(eventId),
       getEventPosSales(eventId),
-      getEventPosCashTotal(eventId),
+      getEventPosCashRegisters(eventId),
     ]);
-    return buildExportData(products, sales, cash?.total_amount ?? 0);
+    const cashTotal = registers.reduce((s, r) => s + r.closing_amount, 0);
+    return buildExportData(products, sales, cashTotal);
   }, [eventId]);
 
   const handleExportCsv = useCallback(async () => {
@@ -167,9 +168,10 @@ export function PosExportSection({ eventId, eventName, variant = 'default' }: Po
     }
   }, [eventName, fetchExportData]);
 
+  const btnSize = variant === 'toolbar' ? 'xs' : 'sm';
   const buttons = (
-    <div className="flex gap-2">
-      <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={loading}>
+    <div className="flex items-center gap-2">
+      <Button variant="outline" size={btnSize} onClick={handleExportCsv} disabled={loading}>
         {loading ? (
           <Loader2 size={14} className="animate-spin mr-1.5" />
         ) : (
@@ -177,8 +179,12 @@ export function PosExportSection({ eventId, eventName, variant = 'default' }: Po
         )}
         Export CSV
       </Button>
-      <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={loading}>
-        <FileText size={14} className="mr-1.5" />
+      <Button variant="outline" size={btnSize} onClick={handleExportPdf} disabled={loading}>
+        {loading ? (
+          <Loader2 size={14} className="animate-spin mr-1.5" />
+        ) : (
+          <FileText size={14} className="mr-1.5" />
+        )}
         Export PDF
       </Button>
     </div>

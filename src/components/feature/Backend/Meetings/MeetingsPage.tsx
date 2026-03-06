@@ -67,6 +67,7 @@ export default function MeetingsPage() {
         startTime: '09:00',
         endTime: '10:00',
         status: 'upcoming',
+        meetingType: 'standard',
         participants: [],
         agenda: [],
         minutes: { freeText: '' },

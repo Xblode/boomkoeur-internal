@@ -25,12 +25,14 @@ const CATEGORIES: { value: PosCategory; label: string }[] = [
   { value: 'alcool', label: 'Boissons' },
   { value: 'merch', label: 'Merch' },
   { value: 'billet', label: 'Billet' },
+  { value: 'autre', label: 'Autre' },
 ];
 
 const CATEGORY_LABELS: Record<string, string> = {
   alcool: 'Boissons',
   merch: 'Merch',
   billet: 'Billet',
+  autre: 'Autre',
 };
 
 const CONTAINER_LABELS: Record<string, string> = {
@@ -255,13 +257,13 @@ export function PosProductList({ products, eventId, sales, onRefresh }: PosProdu
       <div className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-zinc-500 dark:text-zinc-400 border-b border-border-custom">
         <div className="w-5 shrink-0" />
         <div className="flex-1 min-w-0 grid grid-cols-[minmax(160px,220px)_116px_110px_82px_98px_82px_82px] gap-2">
-          <span>Nom</span>
-          <span>Catégorie</span>
-          <span>Contenant</span>
-          <span>Capacité</span>
-          <span>Prix achat</span>
-          <span>Stock In</span>
-          <span>Stock Out</span>
+          <span className="px-2">Nom</span>
+          <span className="px-2">Catégorie</span>
+          <span className="px-2">Contenant</span>
+          <span className="px-2">Capacité</span>
+          <span className="px-2">Prix achat</span>
+          <span className="px-2">Stock In</span>
+          <span className="px-2">Stock Out</span>
         </div>
         <div className="w-6 shrink-0" />
       </div>
@@ -692,6 +694,7 @@ export function PosProductList({ products, eventId, sales, onRefresh }: PosProdu
                   <div className="space-y-3">
                     {p.variants.map((v) => {
                       const stats = getVariantStats(v.id, sales);
+                      const variantSales = sales.filter((s) => s.event_pos_variant_id === v.id);
 
                       return (
                         <PosVariantCard
@@ -699,6 +702,7 @@ export function PosProductList({ products, eventId, sales, onRefresh }: PosProdu
                           variant={v}
                           product={p}
                           sales={stats}
+                          variantSales={variantSales}
                           saleUnits={saleUnits}
                           onUpdate={(data) => handleSaveVariant(v, data)}
                           onDelete={() => setVariantToDelete(v)}
@@ -747,10 +751,16 @@ export function PosProductList({ products, eventId, sales, onRefresh }: PosProdu
   );
 }
 
+const PAYMENT_LABELS: Record<string, string> = {
+  card: 'CB',
+  cash: 'Espèces',
+};
+
 interface PosVariantCardProps {
   variant: EventPosVariant;
   product: EventPosProductWithVariants;
   sales: { qty: number; revenue: number };
+  variantSales: EventPosSale[];
   saleUnits: { id: string; value_cl: number; label: string }[];
   onUpdate: (data: { sale_unit_cl?: number | null; price: number; stock_initial: number }) => void;
   onDelete: () => void;
@@ -760,6 +770,7 @@ function PosVariantCard({
   variant,
   product,
   sales,
+  variantSales,
   saleUnits,
   onUpdate,
   onDelete,
@@ -767,6 +778,7 @@ function PosVariantCard({
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [saleUnitPopoverOpen, setSaleUnitPopoverOpen] = useState(false);
+  const [transactionsExpanded, setTransactionsExpanded] = useState(false);
 
   const handleBlur = (field: string) => {
     if (editingField !== field) return;
@@ -794,7 +806,24 @@ function PosVariantCard({
   };
 
   return (
-    <div className="flex items-center gap-4 flex-wrap p-3 rounded-lg border border-border-custom bg-card-bg group/card">
+    <div className="flex flex-col gap-2 p-3 rounded-lg border border-border-custom bg-card-bg group/card">
+      <div className="flex items-center gap-4 flex-wrap">
+      {variantSales.length > 0 && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setTransactionsExpanded((prev) => !prev);
+          }}
+          className="shrink-0 p-0.5 rounded text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-400"
+          aria-label={transactionsExpanded ? 'Replier' : 'Déplier'}
+        >
+          <ChevronRight
+            size={18}
+            className={cn('transition-transform', transactionsExpanded && 'rotate-90')}
+          />
+        </button>
+      )}
       {product.category === 'alcool' ? (
         <Popover open={saleUnitPopoverOpen} onOpenChange={setSaleUnitPopoverOpen}>
           <PopoverTrigger asChild>
@@ -880,9 +909,16 @@ function PosVariantCard({
         </div>
       )}
 
-      <span className="text-xs text-zinc-500 tabular-nums">
-        Vendus: {sales.qty} · CA: {sales.revenue.toFixed(2)} €
-      </span>
+      <div className="flex items-center gap-6 ml-auto shrink-0">
+        <div className="flex flex-col">
+          <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-wide">Vendus</span>
+          <span className="text-base font-semibold tabular-nums text-foreground">{sales.qty}</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-wide">CA</span>
+          <span className="text-base font-semibold tabular-nums text-foreground">{sales.revenue.toFixed(2)} €</span>
+        </div>
+      </div>
 
       <Popover>
         <PopoverTrigger asChild>
@@ -906,6 +942,27 @@ function PosVariantCard({
           </Button>
         </PopoverContent>
       </Popover>
+      </div>
+      {transactionsExpanded && variantSales.length > 0 && (
+        <div className="w-full mt-2 pl-2 border-l-2 border-zinc-200 dark:border-zinc-700 space-y-1.5">
+          <div className="text-[10px] font-medium text-zinc-500 uppercase tracking-wide mb-1">
+            Transactions
+          </div>
+          {variantSales.map((s) => (
+            <div
+              key={s.id}
+              className="flex items-center justify-between gap-4 text-xs py-1 px-2 rounded bg-zinc-50 dark:bg-zinc-900/50"
+            >
+              <span className="tabular-nums">
+                {s.quantity} × {s.unit_price.toFixed(2)} € = {s.total.toFixed(2)} €
+              </span>
+              <span className="text-zinc-500">
+                {s.sale_time ?? '—'} · {PAYMENT_LABELS[s.payment_type] ?? s.payment_type}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

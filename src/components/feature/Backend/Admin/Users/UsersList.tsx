@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { userService } from '@/lib/services/UserService';
 import { User, UserStatus } from '@/types/user';
 import type { OrgRole } from '@/types/organisation';
+import { ASSOCIATION_ROLE_LABELS, ASSOCIATION_ROLE_OPTIONS, type AssociationRole } from '@/types/associationStatuts';
+import { updateAssociationRole } from '@/lib/supabase/associationStatuts';
 import { Plus, Search, Mail, Users, Trash2, Key, LinkIcon } from 'lucide-react';
 import {
   Button,
@@ -49,10 +51,15 @@ const ROLE_OPTIONS: { value: OrgRole; label: string }[] = [
 interface UserEditExpandContentProps {
   user: User;
   roleOptions: { value: OrgRole; label: string }[];
-  onSave: (formData: Partial<{ firstName: string; lastName: string; email: string; status: UserStatus; phone?: string; position?: string }>, role: OrgRole) => Promise<void>;
+  isAssociation: boolean;
+  onSave: (
+    formData: Partial<{ firstName: string; lastName: string; email: string; status: UserStatus; phone?: string; position?: string }>,
+    role: OrgRole,
+    associationRole?: AssociationRole,
+  ) => Promise<void>;
 }
 
-function UserEditExpandContent({ user, roleOptions, onSave }: UserEditExpandContentProps) {
+function UserEditExpandContent({ user, roleOptions, isAssociation, onSave }: UserEditExpandContentProps) {
   const [formData, setFormData] = useState({
     firstName: user.firstName,
     lastName: user.lastName,
@@ -62,13 +69,14 @@ function UserEditExpandContent({ user, roleOptions, onSave }: UserEditExpandCont
     position: user.position ?? '',
   });
   const [role, setRole] = useState<OrgRole>(user.orgRole ?? 'membre');
+  const [associationRole, setAssociationRole] = useState<AssociationRole>(user.associationRole ?? 'membre');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await onSave(formData, role);
+      await onSave(formData, role, isAssociation ? associationRole : undefined);
     } finally {
       setIsSubmitting(false);
     }
@@ -124,19 +132,29 @@ function UserEditExpandContent({ user, roleOptions, onSave }: UserEditExpandCont
             disabled={user.orgRole === 'fondateur'}
           />
         </FormField>
+        {isAssociation ? (
+          <FormField label="Poste">
+            <Select
+              value={associationRole}
+              onChange={(e) => setAssociationRole(e.target.value as AssociationRole)}
+              options={ASSOCIATION_ROLE_OPTIONS}
+            />
+          </FormField>
+        ) : (
+          <FormField label="Poste">
+            <Input
+              value={formData.position}
+              onChange={(e) => setFormData((p) => ({ ...p, position: e.target.value }))}
+              placeholder="Ex: Responsable Communication"
+            />
+          </FormField>
+        )}
         <FormField label="Téléphone">
           <Input
             type="tel"
             value={formData.phone}
             onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))}
             placeholder="+33 6 12 34 56 78"
-          />
-        </FormField>
-        <FormField label="Poste">
-          <Input
-            value={formData.position}
-            onChange={(e) => setFormData((p) => ({ ...p, position: e.target.value }))}
-            placeholder="Ex: Responsable Communication"
           />
         </FormField>
       </div>
@@ -242,14 +260,35 @@ export default function UsersList({
     setFilteredUsers(filtered);
   };
 
+  const isAssociation = activeOrg?.type === 'association';
+
   const getRoleBadge = (role?: OrgRole) => {
     if (!role) return null;
     const config = ROLE_CONFIG[role];
     return (
-      <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-medium border", config.className)}>
+      <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-medium border inline-block w-fit", config.className)}>
         {config.label}
       </span>
     );
+  };
+
+  const getPosteBadge = (user: User) => {
+    if (isAssociation && user.associationRole) {
+      const label = ASSOCIATION_ROLE_LABELS[user.associationRole];
+      return (
+        <span className="px-2.5 py-0.5 rounded-full text-xs font-medium border inline-block w-fit bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700">
+          {label}
+        </span>
+      );
+    }
+    if (user.position?.trim()) {
+      return (
+        <span className="px-2.5 py-0.5 rounded-full text-xs font-medium border inline-block w-fit bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700">
+          {user.position}
+        </span>
+      );
+    }
+    return <span className="text-xs text-zinc-400 dark:text-zinc-500">—</span>;
   };
 
   const getStatusBadge = (status: UserStatus, onClick?: React.MouseEventHandler<HTMLSpanElement>) => {
@@ -292,11 +331,15 @@ export default function UsersList({
       key={user.id}
       user={user}
       roleOptions={ROLE_OPTIONS}
-      onSave={async (formData, role) => {
+      isAssociation={!!isAssociation}
+      onSave={async (formData, role, associationRole) => {
         try {
           await userService.updateUser(user.id, formData);
           if (user.orgRole !== 'fondateur' && role !== user.orgRole) {
             await userService.updateMemberRole(user.id, role);
+          }
+          if (isAssociation && activeOrg && associationRole !== undefined) {
+            await updateAssociationRole(activeOrg.id, user.id, associationRole);
           }
           loadUsers();
           setExpandedUserId(null);
@@ -329,11 +372,12 @@ export default function UsersList({
           >
             <TableHeader>
               <TableRow hoverCellOnly>
-                <TableHead minWidth={180} defaultWidth={220} className="px-2">Utilisateur</TableHead>
+                <TableHead minWidth={220} defaultWidth={280} className="px-2">Utilisateur</TableHead>
                 <TableHead minWidth={180} defaultWidth={240}>Email</TableHead>
-                <TableHead minWidth={100} defaultWidth={120} className="px-2">Role</TableHead>
+                <TableHead minWidth={100} defaultWidth={120} className="px-2">Rôle</TableHead>
+                <TableHead minWidth={120} defaultWidth={140} className="px-2">Poste</TableHead>
                 <TableHead minWidth={90} defaultWidth={100} className="px-2">Statut</TableHead>
-                <TableHead minWidth={140} defaultWidth={160} align="right">Dernière connexion</TableHead>
+                <TableHead minWidth={100} defaultWidth={110} align="right" className="px-2">Dernière connexion</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -347,8 +391,9 @@ export default function UsersList({
                   </TableCell>
                   <TableCell noHoverBorder><Skeleton className="h-4 w-48" /></TableCell>
                   <TableCell noHoverBorder className="px-2"><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+                  <TableCell noHoverBorder className="px-2"><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
                   <TableCell noHoverBorder className="px-2"><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
-                  <TableCell noHoverBorder align="right"><Skeleton className="h-4 w-24 ml-auto" /></TableCell>
+                  <TableCell noHoverBorder align="right" className="px-2"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -393,7 +438,7 @@ export default function UsersList({
           </div>
         </div>
         <div>
-          <Label className="text-xs text-zinc-600 dark:text-zinc-400 mb-1.5 block">Role</Label>
+          <Label className="text-xs text-zinc-600 dark:text-zinc-400 mb-1.5 block">Rôle</Label>
           <Select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value as OrgRole | 'all')}
@@ -449,11 +494,12 @@ export default function UsersList({
           >
             <TableHeader>
               <TableRow hoverCellOnly>
-                <TableHead minWidth={180} defaultWidth={220} className="px-2">Utilisateur</TableHead>
+                <TableHead minWidth={220} defaultWidth={280} className="px-2">Utilisateur</TableHead>
                 <TableHead minWidth={180} defaultWidth={240}>Email</TableHead>
-                <TableHead minWidth={100} defaultWidth={120} className="px-2">Role</TableHead>
+                <TableHead minWidth={100} defaultWidth={120} className="px-2">Rôle</TableHead>
+                <TableHead minWidth={120} defaultWidth={140} className="px-2">Poste</TableHead>
                 <TableHead minWidth={90} defaultWidth={100} className="px-2">Statut</TableHead>
-                <TableHead minWidth={140} defaultWidth={160} align="right">Dernière connexion</TableHead>
+                <TableHead minWidth={100} defaultWidth={110} align="right" className="px-2">Dernière connexion</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -495,10 +541,13 @@ export default function UsersList({
                       {getRoleBadge(user.orgRole)}
                     </TableCell>
                     <TableCell noHoverBorder className="px-2">
+                      {getPosteBadge(user)}
+                    </TableCell>
+                    <TableCell noHoverBorder className="px-2">
                       {getStatusBadge(user.status, (e) => handleToggleStatus(user, e))}
                     </TableCell>
-                    <TableCell noHoverBorder className="text-muted-foreground text-sm" align="right">
-                      {user.lastLoginAt ? format(user.lastLoginAt, 'd MMM yyyy', { locale: fr }) : 'Jamais'}
+                    <TableCell noHoverBorder className="text-muted-foreground text-sm px-2" align="right">
+                      {user.lastLoginAt ? format(user.lastLoginAt, 'd MMM yy', { locale: fr }) : '—'}
                     </TableCell>
                   </TableRow>
                 ))}
