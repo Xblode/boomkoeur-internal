@@ -127,11 +127,6 @@ export const Hero: React.FC = () => {
                     Essayer la démo
                   </Button>
                 </Link>
-                <Link href={ROUTES.REGISTER}>
-                  <Button variant="outline" size="lg">
-                    Commencer
-                  </Button>
-                </Link>
               </motion.div>
             </div>
 

@@ -23,6 +23,7 @@ const STACK_ITEMS = [
 const INTEGRATIONS = [
   { name: 'Google', desc: 'Calendar, Drive, Docs, Sheets, Gmail.', href: '/dashboard/admin/integration' },
   { name: 'Meta (Facebook / Instagram)', desc: 'Authentification, publications, insights.', href: '/dashboard/admin/integration' },
+  { name: 'SumUp', desc: 'Paiements en ligne (cartes, Apple Pay, Google Pay).', href: '/dashboard/admin/integration' },
 ];
 
 export function StackPage() {

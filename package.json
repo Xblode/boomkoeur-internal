@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "demo:create": "node scripts/create-demo.js",
+    "cv:generate": "node scripts/generate-cv-pdf.js",
     "dev": "next dev",
     "build": "next build",
     "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",

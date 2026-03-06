@@ -13,6 +13,7 @@ import {
   Link as LinkIcon,
   CalendarClock,
   Ticket,
+  ShoppingBag,
 } from 'lucide-react';
 import { EntitySelectorDropdown } from '@/components/ui';
 import { usePageSidebar } from '@/components/providers/PageSidebarProvider';
@@ -21,7 +22,7 @@ import { useChatPanel } from '@/components/providers/ChatPanelProvider';
 import { addComment } from '@/lib/supabase/events';
 import { useEvents, useEvent } from '@/hooks';
 
-type SectionId = 'info' | 'campagne' | 'artistes' | 'planning' | 'billetterie' | 'liens';
+type SectionId = 'info' | 'campagne' | 'artistes' | 'planning' | 'billetterie' | 'point-de-ventes' | 'liens';
 
 const SIDEBAR_SECTIONS = [
   { id: 'info' as const, label: 'Informations', icon: <AlignLeft size={16} />, slug: '' },
@@ -29,6 +30,7 @@ const SIDEBAR_SECTIONS = [
   { id: 'artistes' as const, label: 'Artistes', icon: <Music size={16} />, slug: '/artistes' },
   { id: 'planning' as const, label: 'Planning', icon: <CalendarClock size={16} />, slug: '/planning' },
   { id: 'billetterie' as const, label: 'Billetterie', icon: <Ticket size={16} />, slug: '/billetterie' },
+  { id: 'point-de-ventes' as const, label: 'Point de ventes', icon: <ShoppingBag size={16} />, slug: '/point-de-ventes' },
   { id: 'liens' as const, label: 'Éléments liés', icon: <LinkIcon size={16} />, slug: '/elements-lies' },
 ];
 
@@ -38,6 +40,7 @@ function getActiveSectionFromPath(pathname: string, basePath: string): SectionId
   if (relative === '/artistes') return 'artistes';
   if (relative === '/planning') return 'planning';
   if (relative === '/billetterie') return 'billetterie';
+  if (relative === '/point-de-ventes') return 'point-de-ventes';
   if (relative === '/elements-lies') return 'liens';
   return 'info';
 }

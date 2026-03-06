@@ -8,7 +8,7 @@ import { encrypt, decrypt } from '@/lib/integrations/encryption';
 import { createAdminClient } from './admin';
 import { createHash, randomBytes } from 'crypto';
 
-export type IntegrationProvider = 'shotgun' | 'meta' | 'google' | 'meta_config';
+export type IntegrationProvider = 'shotgun' | 'meta' | 'google' | 'meta_config' | 'sumup';
 
 /** Config OAuth Instagram (App ID, Secret) — stockée avant connexion, comme Google */
 export interface MetaConfigCredentials {
@@ -20,6 +20,13 @@ export interface MetaConfigCredentials {
 export interface ShotgunCredentials {
   organizerId: string;
   apiToken: string;
+}
+
+/** SumUp API - clés pour paiements en ligne (sk_test_ ou sk_live_) */
+export interface SumUpCredentials {
+  api_key: string;
+  /** Code marchand (ex: MH4H92C7) - requis pour certaines APIs, visible dans le dashboard SumUp */
+  merchant_code?: string;
 }
 
 /** Credentials après OAuth (tokens stockés par org) */
@@ -49,7 +56,8 @@ export type IntegrationCredentials =
   | ShotgunCredentials
   | MetaCredentials
   | GoogleCredentials
-  | MetaConfigCredentials;
+  | MetaConfigCredentials
+  | SumUpCredentials;
 
 /**
  * Récupère la config d'intégration avec le client admin (bypass RLS).

@@ -10,6 +10,7 @@ export interface TableContextValue {
   expandable?: boolean;
   addable?: boolean;
   onAddRow?: (values: string[]) => void;
+  addRowPlaceholder?: string;
   selectionColumn?: boolean;
   statusColumn?: boolean;
   selectAllChecked?: boolean;
@@ -41,6 +42,8 @@ export interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
   addable?: boolean;
   /** Callback appelé à la validation (blur/Enter) avec les valeurs des colonnes */
   onAddRow?: (values: string[]) => void;
+  /** Placeholder pour la 1ère cellule de la ligne addable */
+  addRowPlaceholder?: string;
   /** Colonne à gauche avec grip (drag) et checkbox (sélection multiple), visible au hover */
   selectionColumn?: boolean;
   /** État "tout sélectionner" pour la checkbox du header (nécessite selectionColumn) */
@@ -92,6 +95,8 @@ export interface TableRowProps extends React.HTMLAttributes<HTMLTableRowElement>
   status?: 'default' | string;
   /** Composant personnalisé pour remplacer le cercle par défaut */
   statusContent?: React.ReactNode;
+  /** Cercle avec contenu (ex: nombre de variantes) — même niveau que status et chevron, sans sélecteur */
+  badgeContent?: React.ReactNode;
   /** Callback quand on clique sur le sélecteur d'état */
   onStatusChange?: () => void;
   /** Config tags pour afficher TagMultiSelect à droite du nom (1ère cellule) */
@@ -173,6 +178,8 @@ export interface TableCellProps
   statusColumn?: boolean;
   status?: 'default' | string;
   statusContent?: React.ReactNode;
+  /** Cercle avec contenu (ex: nombre) — même niveau que status et chevron */
+  badgeContent?: React.ReactNode;
   onStatusChange?: () => void;
   /** Tags affichés à droite du nom (injecté par TableRow quand showTagsEditor) */
   tagsConfig?: { value: string[]; onChange: (v: string[]) => void };

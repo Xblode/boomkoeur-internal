@@ -408,4 +408,9 @@ Pour toute question ou problème, consultez la [documentation Next.js](https://n
 
 ## Licence
 
-Ce template est libre d'utilisation pour vos projets.
+**CC BY-NC 4.0** (Attribution - Pas d'Utilisation Commerciale)
+
+- ✅ **Usage non commercial** : gratuit (personnel, éducationnel, associatif…)
+- ❌ **Usage commercial** : interdit sans licence payante — contactez-nous pour obtenir une licence commerciale.
+
+Voir le fichier [LICENSE](./LICENSE) pour les détails.

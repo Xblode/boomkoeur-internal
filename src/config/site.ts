@@ -14,8 +14,10 @@ export const siteConfig = {
   ogImage: 'https://perret.app/og.jpg',
   links: {
     twitter: 'https://twitter.com',
-    github: 'https://github.com',
+    github: 'https://github.com/Xblode/boomkoeur-internal',
   },
+  /** URL du repo GitHub (open source) */
+  githubRepo: process.env.NEXT_PUBLIC_GITHUB_REPO || 'https://github.com/Xblode/boomkoeur-internal',
   keywords: ['événements', 'billetterie', 'gestion', 'finance', 'campagnes', 'organisation'],
 };
 

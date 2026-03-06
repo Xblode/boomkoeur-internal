@@ -5,6 +5,7 @@ import {
   upsertOrgIntegration,
   type IntegrationProvider,
   type ShotgunCredentials,
+  type SumUpCredentials,
 } from '@/lib/supabase/integrations';
 
 async function ensureOrgAdmin(orgId: string) {
@@ -38,8 +39,8 @@ export async function GET(request: NextRequest) {
   }
 
   const provider = request.nextUrl.searchParams.get('provider') as IntegrationProvider | null;
-  if (!provider || !['shotgun', 'meta', 'google'].includes(provider)) {
-    return NextResponse.json({ error: 'provider invalide (shotgun, meta, google)' }, { status: 400 });
+  if (!provider || !['shotgun', 'meta', 'google', 'sumup'].includes(provider)) {
+    return NextResponse.json({ error: 'provider invalide (shotgun, meta, google, sumup)' }, { status: 400 });
   }
 
   const config = await getOrgIntegration(auth.supabase, orgId, provider);
@@ -55,18 +56,33 @@ export async function GET(request: NextRequest) {
     !!config.access_token &&
     !!config.refresh_token;
 
-  const response: { connected: boolean; hasCredentials?: boolean; email?: string } = {
-    connected: provider === 'google' ? isGoogleConnected : true,
+  const isSumUpConnected =
+    provider === 'sumup' && 'api_key' in config && !!config.api_key;
+
+  const response: { connected: boolean; hasCredentials?: boolean; email?: string; merchant_code?: string } = {
+    connected:
+      provider === 'google'
+        ? isGoogleConnected
+        : provider === 'sumup'
+          ? isSumUpConnected
+          : true,
     hasCredentials: true,
   };
   if (provider === 'google' && isGoogleConnected && 'email' in config && config.email) {
     response.email = config.email;
   }
+  if (provider === 'sumup' && 'merchant_code' in config && config.merchant_code) {
+    response.merchant_code = config.merchant_code;
+  }
   return NextResponse.json(response);
 }
 
 export async function POST(request: NextRequest) {
-  let body: { org_id: string; provider: IntegrationProvider; credentials: ShotgunCredentials };
+  let body: {
+    org_id: string;
+    provider: IntegrationProvider;
+    credentials: ShotgunCredentials | SumUpCredentials;
+  };
   try {
     body = await request.json();
   } catch {
@@ -81,9 +97,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (provider !== 'shotgun') {
+  if (provider === 'meta' || provider === 'google' || provider === 'meta_config') {
     return NextResponse.json(
-      { error: 'Meta utilise le flux OAuth. Utilisez le bouton "Connecter avec Facebook".' },
+      {
+        error:
+          provider === 'meta' || provider === 'meta_config'
+            ? 'Meta utilise le flux OAuth. Utilisez le bouton "Connecter avec Instagram".'
+            : 'Google utilise le flux OAuth. Utilisez le bouton "Connecter avec Google".',
+      },
       { status: 400 }
     );
   }
@@ -93,12 +114,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const c = credentials as ShotgunCredentials;
-  if (!c.organizerId?.trim() || !c.apiToken?.trim()) {
-    return NextResponse.json(
-      { error: 'organizerId et apiToken requis pour Shotgun' },
-      { status: 400 }
-    );
+  if (provider === 'shotgun') {
+    const c = credentials as ShotgunCredentials;
+    if (!c.organizerId?.trim() || !c.apiToken?.trim()) {
+      return NextResponse.json(
+        { error: 'organizerId et apiToken requis pour Shotgun' },
+        { status: 400 }
+      );
+    }
+  }
+
+  if (provider === 'sumup') {
+    const c = credentials as SumUpCredentials;
+    if (!c.api_key?.trim()) {
+      return NextResponse.json(
+        { error: 'Clé API requise pour SumUp' },
+        { status: 400 }
+      );
+    }
   }
 
   try {

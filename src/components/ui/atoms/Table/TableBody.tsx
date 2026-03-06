@@ -57,7 +57,9 @@ function TableAddRow() {
   const columnCount = ctx?.columnCount ?? 0;
   const fillColumn = ctx?.fillColumn ?? false;
   const selectionColumn = ctx?.selectionColumn ?? false;
+  const statusColumn = ctx?.statusColumn ?? false;
   const onAddRow = ctx?.onAddRow;
+  const addRowPlaceholder = ctx?.addRowPlaceholder ?? '+ Ajouter une ligne';
 
   const [addRowValues, setAddRowValues] = useState<string[]>([]);
 
@@ -107,9 +109,10 @@ function TableAddRow() {
       onChange={(e) => updateValue(i, e.target.value)}
       onBlur={i === 0 ? handleFirstCellBlur : undefined}
       onKeyDown={i === 0 ? handleFirstCellKeyDown : undefined}
-      placeholder={i === 0 ? '+ Ajouter une ligne' : ''}
+      placeholder={i === 0 ? addRowPlaceholder : ''}
       noHoverBorder={i === 0}
       editClassName={i > 0 ? 'cursor-not-allowed' : undefined}
+      className={i === 0 && statusColumn ? 'pl-8' : undefined}
     />
   ));
 

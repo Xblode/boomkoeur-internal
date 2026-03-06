@@ -6,10 +6,10 @@ import { EditableCard } from '@/components/ui/molecules';
 import { Button, IconButton, Input, Label, TokenInput } from '@/components/ui/atoms';
 import { Modal, ModalContent, ModalFooter } from '@/components/ui/organisms';
 import { useOrg } from '@/hooks';
-import { Ticket, Share2, Check, Loader2, Key, Copy, Trash2, Cloud, LogOut, Settings } from 'lucide-react';
+import { Ticket, Share2, Check, Loader2, Key, Copy, Trash2, Cloud, LogOut, Settings, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 
-type IntegrationId = 'shotgun' | 'meta';
+type IntegrationId = 'shotgun' | 'meta' | 'sumup';
 
 const INTEGRATIONS: { id: IntegrationId; name: string; description: string; icon: React.ReactNode }[] = [
   {
@@ -24,6 +24,12 @@ const INTEGRATIONS: { id: IntegrationId; name: string; description: string; icon
     description: 'Instagram Business pour publications et statistiques',
     icon: <Share2 size={20} className="text-zinc-600 dark:text-zinc-400" />,
   },
+  {
+    id: 'sumup',
+    name: 'SumUp',
+    description: 'Paiements en ligne et terminaux (cartes, Apple Pay, Google Pay)',
+    icon: <CreditCard size={20} className="text-zinc-600 dark:text-zinc-400" />,
+  },
 ];
 
 export default function AdminIntegrationPage() {
@@ -33,10 +39,13 @@ export default function AdminIntegrationPage() {
   const [connectedStatus, setConnectedStatus] = useState<Record<IntegrationId, boolean>>({
     shotgun: false,
     meta: false,
+    sumup: false,
   });
+  const [sumupMerchantCode, setSumupMerchantCode] = useState<string | null>(null);
   const [loadingStatus, setLoadingStatus] = useState<Record<IntegrationId, boolean>>({
     shotgun: false,
     meta: false,
+    sumup: false,
   });
   const [googleConnected, setGoogleConnected] = useState(false);
   const [googleEmail, setGoogleEmail] = useState<string | null>(null);
@@ -47,6 +56,8 @@ export default function AdminIntegrationPage() {
     apiToken: '',
     clientId: '',
     clientSecret: '',
+    sumupApiKey: '',
+    sumupMerchantCode: '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +101,9 @@ export default function AdminIntegrationPage() {
       const res = await fetch(`/api/admin/integrations?org_id=${activeOrg.id}&provider=${provider}`);
       const data = await res.json();
       setConnectedStatus((prev) => ({ ...prev, [provider]: data.connected === true }));
+      if (provider === 'sumup' && data.merchant_code) {
+        setSumupMerchantCode(data.merchant_code);
+      }
     } catch {
       setConnectedStatus((prev) => ({ ...prev, [provider]: false }));
     } finally {
@@ -152,6 +166,7 @@ export default function AdminIntegrationPage() {
     if (activeOrg?.id) {
       fetchStatus('shotgun');
       fetchStatus('meta');
+      fetchStatus('sumup');
       fetchGoogleStatus();
       fetchApiKeys();
       fetchMetaConfig();
@@ -304,11 +319,42 @@ export default function AdminIntegrationPage() {
       return;
     }
     setSelectedIntegration(id);
-    setFormData({ organizerId: '', apiToken: '', clientId: '', clientSecret: '' });
+    setFormData({
+      organizerId: '',
+      apiToken: '',
+      clientId: '',
+      clientSecret: '',
+      sumupApiKey: '',
+      sumupMerchantCode: sumupMerchantCode ?? '',
+    });
     setError(null);
   };
 
   const [metaDisconnecting, setMetaDisconnecting] = useState(false);
+  const [shotgunDisconnecting, setShotgunDisconnecting] = useState(false);
+
+  const handleShotgunDisconnect = async () => {
+    if (!activeOrg?.id) return;
+    setShotgunDisconnecting(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/integrations/shotgun/disconnect?org_id=${activeOrg.id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? 'Erreur');
+      }
+      setConnectedStatus((prev) => ({ ...prev, shotgun: false }));
+      handleCloseIntegration();
+      toast.success('Shotgun déconnecté');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la déconnexion');
+    } finally {
+      setShotgunDisconnecting(false);
+    }
+  };
+
   const handleMetaDisconnect = async () => {
     if (!activeOrg?.id) return;
     setMetaDisconnecting(true);
@@ -347,14 +393,19 @@ export default function AdminIntegrationPage() {
       const credentials =
         selectedIntegration === 'shotgun'
           ? { organizerId: formData.organizerId.trim(), apiToken: formData.apiToken.trim() }
-          : { clientId: formData.clientId.trim(), clientSecret: formData.clientSecret.trim() };
+          : selectedIntegration === 'sumup'
+            ? {
+                api_key: formData.sumupApiKey.trim(),
+                merchant_code: formData.sumupMerchantCode.trim() || undefined,
+              }
+            : { clientId: formData.clientId.trim(), clientSecret: formData.clientSecret.trim() };
 
       const res = await fetch('/api/admin/integrations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           org_id: activeOrg.id,
-          provider: selectedIntegration,
+          provider: selectedIntegration as 'shotgun' | 'sumup',
           credentials,
         }),
       });
@@ -366,6 +417,7 @@ export default function AdminIntegrationPage() {
       }
       setConnectedStatus((prev) => ({ ...prev, [selectedIntegration]: true }));
       handleCloseIntegration();
+      toast.success(selectedIntegration === 'sumup' ? 'SumUp connecté' : 'Intégration enregistrée');
     } catch (err) {
       setError('Erreur réseau');
     } finally {
@@ -893,9 +945,7 @@ export default function AdminIntegrationPage() {
         }
       />
 
-      {/* Shotgun et Meta - EditableCard integration */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {INTEGRATIONS.map((item) => (
+      {INTEGRATIONS.map((item) => (
           <EditableCard
             key={item.id}
             variant="outline"
@@ -951,6 +1001,17 @@ export default function AdminIntegrationPage() {
                       Paramètres
                     </Button>
                   )}
+                  {item.id === 'shotgun' && connectedStatus.shotgun && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleConnect('shotgun')}
+                      className="text-zinc-500 hover:text-foreground"
+                    >
+                      <Settings size={14} className="mr-1.5" />
+                      Paramètres
+                    </Button>
+                  )}
                   {item.id === 'meta' ? (
                     connectedStatus.meta ? (
                       <Button
@@ -981,6 +1042,36 @@ export default function AdminIntegrationPage() {
                         title={!metaConfigReady ? 'Configurez d\'abord les identifiants dans Paramètres' : undefined}
                       >
                         Connecter avec Instagram
+                      </Button>
+                    )
+                  ) : item.id === 'shotgun' ? (
+                    connectedStatus.shotgun ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleShotgunDisconnect}
+                        disabled={shotgunDisconnecting}
+                        className="text-zinc-500 hover:text-red-600"
+                      >
+                        {shotgunDisconnecting ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin mr-1.5" />
+                            Déconnexion...
+                          </>
+                        ) : (
+                          <>
+                            <LogOut size={14} className="mr-1.5" />
+                            Déconnecter
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => handleConnect('shotgun')}
+                      >
+                        Connecter
                       </Button>
                     )
                   ) : (
@@ -1034,6 +1125,53 @@ export default function AdminIntegrationPage() {
                         placeholder="JWT depuis Settings > Integrations > Shotgun APIs"
                         className="w-full font-mono"
                       />
+                    </div>
+                  </>
+                )}
+                {item.id === 'sumup' && (
+                  <>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Récupérez votre clé API dans le{' '}
+                      <a
+                        href="https://developer.sumup.com/tools/authorization/api-keys/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-zinc-900 dark:text-zinc-100 underline hover:no-underline"
+                      >
+                        SumUp Developer Portal
+                      </a>
+                      . Utilisez <code className="bg-zinc-100 dark:bg-zinc-800 px-1 rounded">sk_test_</code> pour les tests et{' '}
+                      <code className="bg-zinc-100 dark:bg-zinc-800 px-1 rounded">sk_live_</code> pour la production.
+                    </p>
+                    <div>
+                      <Label htmlFor={`sumup-api-key-${item.id}`} className="block mb-2">
+                        Clé API SumUp
+                      </Label>
+                      <TokenInput
+                        id={`sumup-api-key-${item.id}`}
+                        name="sumup_api_key"
+                        value={formData.sumupApiKey}
+                        onChange={(e) => setFormData({ ...formData, sumupApiKey: e.target.value })}
+                        placeholder="sk_test_... ou sk_live_..."
+                        className="w-full font-mono"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`sumup-merchant-code-${item.id}`} className="block mb-2">
+                        Code marchand (optionnel)
+                      </Label>
+                      <TokenInput
+                        id={`sumup-merchant-code-${item.id}`}
+                        name="sumup_merchant_code"
+                        masked={false}
+                        value={formData.sumupMerchantCode}
+                        onChange={(e) => setFormData({ ...formData, sumupMerchantCode: e.target.value })}
+                        placeholder="ex: MH4H92C7 — Paramètres > Compte marchand dans me.sumup.com"
+                        className="w-full"
+                      />
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                        Peut être requis selon le type de compte SumUp.
+                      </p>
                     </div>
                   </>
                 )}
@@ -1171,7 +1309,6 @@ export default function AdminIntegrationPage() {
             }
           />
         ))}
-      </div>
 
       <Modal
         isOpen={!!newKeyModal}

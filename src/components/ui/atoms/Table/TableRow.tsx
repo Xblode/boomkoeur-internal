@@ -63,6 +63,7 @@ const TableRow = React.forwardRef<HTMLTableRowElement, TableRowProps>(
       status,
       onStatusChange,
       statusContent,
+      badgeContent,
       tagsConfig,
       showTagsEditor,
       subTaskRows,
@@ -92,12 +93,13 @@ const TableRow = React.forwardRef<HTMLTableRowElement, TableRowProps>(
       ? (onExpandToggle ?? (() => {}))
       : () => setInternalExpanded((e) => !e);
     const canExpandFromContent = Boolean(expandContent && ctx?.expandable);
+    const hasBadgeOrStatus = Boolean(statusContent || badgeContent);
     const canExpandFromSubTasks = Boolean(
-      statusContent && ctx?.statusColumn && (subTaskRows || onAddSubTask)
+      hasBadgeOrStatus && ctx?.statusColumn && (subTaskRows || onAddSubTask)
     );
     const canExpand = canExpandFromContent || canExpandFromSubTasks;
     const addSubTaskAction: TableRowAction | null =
-      statusContent && onAddSubTask
+      (statusContent || badgeContent) && onAddSubTask
         ? { icon: <Plus size={14} />, label: 'Ajouter une sous-tâche', onClick: onAddSubTask }
         : null;
     const mergedRowActions = addSubTaskAction
@@ -161,8 +163,9 @@ const TableRow = React.forwardRef<HTMLTableRowElement, TableRowProps>(
             ...(ctx?.statusColumn && {
               statusColumn: true,
               status: status ?? 'default',
-              statusContent,
-              onStatusChange,
+              statusContent: badgeContent ?? statusContent,
+              badgeContent,
+              onStatusChange: badgeContent ? undefined : onStatusChange,
             }),
           })
         : flatChildren[0];
@@ -202,8 +205,9 @@ const TableRow = React.forwardRef<HTMLTableRowElement, TableRowProps>(
             ...(ctx?.statusColumn && {
               statusColumn: true,
               status: status ?? 'default',
-              statusContent,
-              onStatusChange,
+              statusContent: badgeContent ?? statusContent,
+              badgeContent,
+              onStatusChange: badgeContent ? undefined : onStatusChange,
             }),
             ...(showTagsEditor && tagsConfig && {
               tagsConfig,
@@ -231,8 +235,9 @@ const TableRow = React.forwardRef<HTMLTableRowElement, TableRowProps>(
         const cloned = React.cloneElement(cellToInject.element as React.ReactElement<TableCellProps>, {
           statusColumn: true,
           status: status ?? 'default',
-          statusContent,
-          onStatusChange,
+          statusContent: badgeContent ?? statusContent,
+          badgeContent,
+          onStatusChange: badgeContent ? undefined : onStatusChange,
           ...(favoriteConfig && { favoriteConfig }),
           ...(mergedRowActions && mergedRowActions.length > 0 && { rowActions: mergedRowActions }),
           ...(showTagsEditor && tagsConfig && {

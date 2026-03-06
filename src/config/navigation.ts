@@ -1,4 +1,4 @@
-import { LayoutDashboard, CalendarDays, Wallet, Package, Users, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Wallet, Package, Users, ClipboardList, CreditCard } from 'lucide-react';
 
 /**
  * Configuration de la navigation Frontend (header)
@@ -38,6 +38,11 @@ export const backendNavigation = [
     label: 'Commercial',
     href: '/dashboard/commercial',
     icon: Users,
+  },
+  {
+    label: 'SumUp',
+    href: '/dashboard/sumup',
+    icon: CreditCard,
   },
 ];
 

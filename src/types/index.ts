@@ -1,4 +1,5 @@
 export * from './event';
+export * from './eventPos';
 export * from './communication';
 export * from './product';
 export * from './order';

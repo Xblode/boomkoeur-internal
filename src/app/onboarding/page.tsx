@@ -107,15 +107,17 @@ export default function OnboardingPage() {
             </Card>
 
             <Card
-              className="cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors"
-              onClick={() => setMode('create')}
+              className="cursor-not-allowed opacity-60 border-zinc-200 dark:border-zinc-800 select-none"
+              aria-disabled="true"
+              title="Créer une organisation n'est pas disponible — déployez votre propre instance depuis le repo open source"
+              role="button"
             >
               <CardContent className="p-6 flex flex-col items-center text-center gap-3">
-                <div className="h-12 w-12 rounded-full bg-green-50 dark:bg-green-900/30 flex items-center justify-center">
-                  <Plus size={24} className="text-green-600 dark:text-green-400" />
+                <div className="h-12 w-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                  <Plus size={24} className="text-zinc-400 dark:text-zinc-500" />
                 </div>
-                <h3 className="font-semibold text-foreground">Creer</h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                <h3 className="font-semibold text-zinc-500 dark:text-zinc-500">Creer</h3>
+                <p className="text-xs text-zinc-400 dark:text-zinc-600">
                   Demarrer une nouvelle organisation
                 </p>
               </CardContent>
