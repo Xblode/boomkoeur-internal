@@ -210,16 +210,18 @@ export function MessageFeed({
       </div>
 
       {/* Composer */}
-      <MessageComposer
-        onSend={onSend}
-        onSendImage={onSendImage}
-        onSendDriveFile={onSendDriveFile}
-        onSendEntity={onSendEntity}
-        onSendPoll={onSendPoll}
-        onSendQuickVote={onSendQuickVote}
-        orgId={orgId}
-        disabled={isLoading}
-      />
+      <div className="pb-3 sm:pb-0">
+        <MessageComposer
+          onSend={onSend}
+          onSendImage={onSendImage}
+          onSendDriveFile={onSendDriveFile}
+          onSendEntity={onSendEntity}
+          onSendPoll={onSendPoll}
+          onSendQuickVote={onSendQuickVote}
+          orgId={orgId}
+          disabled={isLoading}
+        />
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-'use client';
+ 'use client';
 
 import { Pin, PinOff, MoreVertical, Copy, Trash2, Zap } from 'lucide-react';
 import { format } from 'date-fns';
@@ -254,7 +254,10 @@ export function MessageItem({
           />
         </div>
 
-        <div className={cn('min-w-0 flex-1', isOwnMessage && 'flex flex-col items-end')}>
+        <div
+          className={cn('min-w-0 flex-1', isOwnMessage && 'flex flex-col items-end')}
+          onDoubleClick={onToggleReaction ? () => onToggleReaction(message.id, '👍') : undefined}
+        >
           {isFirst && (
             <MessageHeader
               label={headerLabel}
@@ -266,7 +269,7 @@ export function MessageItem({
 
           {/* Link previews */}
           {!isPoll && !isQuickVote && !isEntityCard && (message.metadata?.linkPreviews as Array<{ url: string; title?: string; description?: string; image?: string; siteName?: string }>)?.length > 0 && (
-            <div className={cn('mb-1 space-y-1.5 min-w-0 w-full max-w-full sm:max-w-[85%]', isOwnMessage ? 'self-end' : 'w-full')}>
+            <div className={cn('mb-1 space-y-1.5 min-w-0 w-full max-w-full sm:max-w-[385px]', isOwnMessage ? 'self-end' : 'w-full')}>
               {(message.metadata.linkPreviews as Array<{ url: string; title?: string; description?: string; image?: string; siteName?: string }>).map((p, i) => (
                 <LinkPreview key={`${p.url}-${i}`} preview={p} />
               ))}
@@ -274,7 +277,12 @@ export function MessageItem({
           )}
 
           {/* Bubble + reaction + menu row */}
-          <div className={cn('flex items-center gap-1', isOwnMessage && 'flex-row-reverse w-fit max-w-full')}>
+          <div className={cn(
+            'flex items-center gap-1',
+            isOwnMessage && 'flex-row-reverse',
+            isOwnMessage && !isPoll && !isQuickVote && 'w-fit max-w-full',
+            isOwnMessage && (isPoll || isQuickVote) && 'w-full',
+          )}>
             {isPoll && pollData ? (
               <PollDisplay
                 question={pollData.question}
@@ -283,7 +291,10 @@ export function MessageItem({
                 currentUserId={currentUserId ?? null}
                 onVote={onVotePoll ? (optId) => onVotePoll(message.id, optId) : undefined}
                 bubbleRadius={cardBubbleRadius}
-                className={isOwnMessage ? 'bg-[#495ef3] border-[#495ef3]/80 [&_p]:text-white [&_span]:text-white/90 [&_.text-zinc-500]:text-white/80' : ''}
+                className={cn(
+                  isOwnMessage && 'min-w-[260px] sm:min-w-[385px] max-w-full sm:max-w-[385px]',
+                  isOwnMessage && 'bg-[#495ef3] border-[#495ef3]/80 [&_p]:text-white [&_span]:text-white/90 [&_.text-zinc-500]:text-white/80',
+                )}
               />
             ) : isQuickVote && quickVoteData ? (
               <QuickVoteDisplay
@@ -293,11 +304,14 @@ export function MessageItem({
                 currentUserId={currentUserId ?? null}
                 onVote={onVoteQuick ? (vote) => onVoteQuick(message.id, vote) : undefined}
                 bubbleRadius={cardBubbleRadius}
-                className={isOwnMessage ? 'bg-[#495ef3] border-[#495ef3]/80 [&_p]:text-white [&_span]:text-white/90 [&_.text-zinc-500]:text-white/80' : ''}
+                className={cn(
+                  isOwnMessage && 'min-w-[260px] sm:min-w-[385px] max-w-full sm:max-w-[385px]',
+                  isOwnMessage && 'bg-[#495ef3] border-[#495ef3]/80 [&_p]:text-white [&_span]:text-white/90 [&_.text-zinc-500]:text-white/80',
+                )}
               />
             ) : isEntityCard && message.relatedEntityType && entityConf ? (
               <div className={cn(
-                'inline-block min-w-0 sm:min-w-[385px] w-full max-w-full sm:max-w-[85%] border overflow-hidden',
+                'inline-block min-w-0 sm:min-w-[385px] w-full max-w-full sm:max-w-[385px] border overflow-hidden',
                 cardBubbleRadius,
                 entityConf.borderColor,
               )}>
@@ -387,7 +401,7 @@ export function MessageItem({
 
           {/* MessageEntityCard below text for messages with entity + text content */}
           {message.relatedEntityType && !isEntityCard && (
-            <div className={cn('inline-block min-w-[300px] sm:min-w-[385px] max-w-[300px] sm:max-w-[85%]', isOwnMessage && 'ml-auto')}>
+            <div className={cn('inline-block min-w-0 sm:min-w-[385px] w-full max-w-full sm:max-w-[385px]', isOwnMessage && 'ml-auto')}>
               <MessageEntityCard entityType={message.relatedEntityType} metadata={message.metadata} />
             </div>
           )}

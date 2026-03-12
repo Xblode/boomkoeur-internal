@@ -30,7 +30,7 @@ export function LinkPreview({ preview, className }: LinkPreviewProps) {
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
-        'block max-w-sm rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden',
+        'block min-w-0 w-full rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden',
         'bg-zinc-50 dark:bg-zinc-900/50 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors',
         className,
       )}
@@ -103,7 +103,7 @@ export function PollDisplay({
   return (
     <div
       className={cn(
-        'flex-1 min-w-0 sm:min-w-[385px] w-full max-w-full sm:max-w-[85%] border overflow-hidden',
+        'flex-1 min-w-0 sm:min-w-[385px] w-full max-w-full sm:max-w-[385px] border overflow-hidden',
         'border-zinc-200 dark:border-zinc-700',
         'bg-zinc-50/50 dark:bg-zinc-900/30',
         bubbleRadius,
@@ -193,7 +193,7 @@ export function QuickVoteDisplay({
   return (
     <div
       className={cn(
-        'flex-1 min-w-0 sm:min-w-[385px] w-full max-w-full sm:max-w-[85%] border overflow-hidden',
+        'flex-1 min-w-0 sm:min-w-[385px] w-full max-w-full sm:max-w-[385px] border overflow-hidden',
         'border-zinc-200 dark:border-zinc-700',
         'bg-zinc-50/50 dark:bg-zinc-900/30',
         bubbleRadius,
