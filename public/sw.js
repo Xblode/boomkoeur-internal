@@ -15,7 +15,6 @@ self.addEventListener('push', (event) => {
     tag: data.tag || 'message',
     data: data.data || { url: '/dashboard/messages' },
     requireInteraction: false,
-    renotify: true,
   };
   event.waitUntil(self.registration.showNotification(title, options));
 });

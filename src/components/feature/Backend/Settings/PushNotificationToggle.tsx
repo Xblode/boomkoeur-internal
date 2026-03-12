@@ -1,8 +1,20 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Switch, Label } from '@/components/ui/atoms';
+import { toast } from 'sonner';
+import { Switch, Label, Button } from '@/components/ui/atoms';
 import { useOrgOptional } from '@/components/providers/OrgProvider';
+
+function isIOS(): boolean {
+  if (typeof window === 'undefined') return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function isStandalonePWA(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (window.matchMedia('(display-mode: standalone)').matches)
+    || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+}
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -22,6 +34,7 @@ export function PushNotificationToggle() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [supported, setSupported] = useState(false);
+  const [needsHomeScreen, setNeedsHomeScreen] = useState(false);
 
   const fetchStatus = useCallback(async () => {
     if (!orgId) return;
@@ -39,11 +52,9 @@ export function PushNotificationToggle() {
   }, [orgId]);
 
   useEffect(() => {
-    setSupported(
-      typeof window !== 'undefined' &&
-        'serviceWorker' in navigator &&
-        'PushManager' in window
-    );
+    const ok = typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window;
+    setSupported(ok);
+    setNeedsHomeScreen(ok && isIOS() && !isStandalonePWA());
   }, []);
 
   useEffect(() => {
@@ -52,35 +63,49 @@ export function PushNotificationToggle() {
 
   const handleToggle = async (checked: boolean) => {
     if (!orgId || saving) return;
+    if (checked && needsHomeScreen) {
+      toast.error(
+        'Sur iPhone, ajoutez l\'app à l\'écran d\'accueil pour activer les notifications. Utilisez le bouton Partager puis "Sur l\'écran d\'accueil".'
+      );
+      return;
+    }
     setSaving(true);
+    const toastId = toast.loading(checked ? 'Activation en cours…' : 'Désactivation…');
     try {
       if (checked) {
-        const reg = await navigator.serviceWorker.register('/sw.js');
-        if ('ready' in reg && reg.ready instanceof Promise) {
-          await reg.ready;
-        }
+        toast.loading('Demande de permission…', { id: toastId });
         if (Notification.permission === 'default') {
           const permission = await Notification.requestPermission();
           if (permission !== 'granted') {
+            toast.error('Autorisation refusée. Les notifications ne fonctionneront pas.', { id: toastId });
             setSaving(false);
             return;
           }
         } else if (Notification.permission !== 'granted') {
+          toast.error('Les notifications sont bloquées. Autorisez-les dans Réglages > Notifications.', { id: toastId });
           setSaving(false);
           return;
         }
+        toast.loading('Enregistrement du service worker…', { id: toastId });
+        const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+        if ('ready' in reg && reg.ready instanceof Promise) {
+          await reg.ready;
+        }
+        toast.loading('Récupération de la clé…', { id: toastId });
         const vapidRes = await fetch('/api/push/vapid-public');
-        if (!vapidRes.ok) throw new Error('Push non configuré');
+        if (!vapidRes.ok) throw new Error('Push non configuré côté serveur');
         const { publicKey } = await vapidRes.json();
-        if (!publicKey) throw new Error('Clé manquante');
+        if (!publicKey) throw new Error('Clé VAPID manquante');
+        toast.loading('Abonnement aux notifications…', { id: toastId });
         const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
         });
         const subscription = sub.toJSON();
         if (!subscription.endpoint || !subscription.keys?.p256dh || !subscription.keys?.auth) {
-          throw new Error('Abonnement invalide');
+          throw new Error('Abonnement invalide (données manquantes)');
         }
+        toast.loading('Enregistrement sur le serveur…', { id: toastId });
         const res = await fetch('/api/push/subscribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -90,8 +115,12 @@ export function PushNotificationToggle() {
             orgId,
           }),
         });
-        if (!res.ok) throw new Error('Erreur enregistrement');
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error ?? 'Erreur enregistrement serveur');
+        }
         setEnabled(true);
+        toast.success('Notifications activées', { id: toastId });
       } else {
         const regs = await navigator.serviceWorker.getRegistrations();
         for (const reg of regs) {
@@ -105,8 +134,11 @@ export function PushNotificationToggle() {
         });
         if (!res.ok) throw new Error('Erreur désactivation');
         setEnabled(false);
+        toast.success('Notifications désactivées', { id: toastId });
       }
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erreur inattendue';
+      toast.error(msg, { id: toastId });
       await fetchStatus();
     } finally {
       setSaving(false);
@@ -131,21 +163,35 @@ export function PushNotificationToggle() {
   }
 
   return (
-    <div className="flex items-center justify-between gap-4">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div className="space-y-0.5">
         <Label htmlFor="push-toggle" className="text-sm font-medium">
           Notifications push (messages)
         </Label>
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Recevez des notifications sur votre téléphone ou ordinateur quand quelqu&apos;un envoie un message.
+          {needsHomeScreen
+            ? 'Sur iPhone : ajoutez l\'app à l\'écran d\'accueil (Partager → Sur l\'écran d\'accueil) pour activer les notifications.'
+            : 'Recevez des notifications sur votre téléphone ou ordinateur quand quelqu\'un envoie un message.'}
         </p>
       </div>
-      <Switch
-        id="push-toggle"
-        checked={enabled}
-        onCheckedChange={handleToggle}
-        disabled={saving}
-      />
+      <div className="flex items-center gap-3">
+        {isIOS() && !enabled && !saving && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => handleToggle(true)}
+          >
+            Activer
+          </Button>
+        )}
+        <Switch
+          id="push-toggle"
+          checked={enabled}
+          onCheckedChange={handleToggle}
+          disabled={saving}
+        />
+      </div>
     </div>
   );
 }
