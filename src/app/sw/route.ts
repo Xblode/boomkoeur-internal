@@ -1,4 +1,6 @@
-/* Service Worker - Push Notifications */
+import { NextResponse } from 'next/server';
+
+const SW_SCRIPT = `/* Service Worker - Push Notifications */
 self.addEventListener('push', (event) => {
   if (!event.data) return;
   let data = {};
@@ -35,3 +37,14 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
+`;
+
+export async function GET() {
+  return new NextResponse(SW_SCRIPT, {
+    headers: {
+      'Content-Type': 'application/javascript',
+      'Cache-Control': 'public, max-age=0, must-revalidate',
+      'Service-Worker-Allowed': '/',
+    },
+  });
+}
