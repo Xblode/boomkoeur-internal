@@ -15,4 +15,5 @@ export * from './useTreasuryForecasts';
 export * from './useFinanceKPIs';
 export * from './useMessages';
 export * from './useMessagesUnreadCount';
+export * from './usePushNotifications';
 export { useOrg } from '@/components/providers/OrgProvider';

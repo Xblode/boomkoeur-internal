@@ -1,4 +1,5 @@
-import { Card, CardContent } from '@/components/ui/molecules';
+import { Card } from '@/components/ui/molecules';
+import { PushNotificationToggle } from '@/components/feature/Backend/Settings';
 
 export default function SettingsNotificationsPage() {
   return (
@@ -12,14 +13,12 @@ export default function SettingsNotificationsPage() {
 
       <Card
         variant="settings"
-        title="Préférences de notifications"
-        description="Choisissez les types de notifications que vous souhaitez recevoir."
+        title="Notifications push"
+        description="Recevez des alertes sur vos appareils quand vous recevez des messages."
       >
-        <CardContent className="p-4">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            La configuration des notifications sera disponible prochainement.
-          </p>
-        </CardContent>
+        <div className="p-4">
+          <PushNotificationToggle />
+        </div>
       </Card>
     </div>
   );

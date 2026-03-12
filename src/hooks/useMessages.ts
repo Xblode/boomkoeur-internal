@@ -216,9 +216,22 @@ export function useMessages() {
   const sendMessage = useCallback(
     async (input: SendMessageInput): Promise<Message | undefined> => {
       if (!conversation) return undefined;
-      return sendMessageApi(conversation.id, input);
+      const msg = await sendMessageApi(conversation.id, input);
+      if (msg && orgId) {
+        fetch('/api/push/notify-new-message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orgId,
+            authorId: msg.authorId,
+            authorName: msg.author?.name,
+            content: msg.content,
+          }),
+        }).catch(() => {});
+      }
+      return msg;
     },
-    [conversation]
+    [conversation, orgId]
   );
 
   const togglePin = useCallback(
