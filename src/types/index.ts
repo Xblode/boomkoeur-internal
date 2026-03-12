@@ -10,3 +10,4 @@ export * from './planning';
 export * from './shotgun';
 export * from './organisation';
 export * from './tableColumns';
+export * from './messages';

@@ -35,7 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       onMouseEnter={() => mode === 'compact' && setIsHovered(true)}
       onMouseLeave={() => mode === 'compact' && setIsHovered(false)}
       className={cn(
-        "fixed left-0 top-[52px] bottom-0 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-backend flex flex-col transition-all duration-300 ease-in-out overflow-hidden py-2",
+        "fixed left-0 top-[52px] bottom-0 border-r border-border-custom bg-backend flex flex-col transition-all duration-300 ease-in-out overflow-hidden py-2",
         isExpanded ? "w-[200px]" : "w-[52px]",
         mode === 'compact' && isHovered ? "z-50 shadow-lg" : "z-40",
         className

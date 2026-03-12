@@ -60,13 +60,13 @@ export function MobileNavDrawer({ items, className }: MobileNavDrawerProps) {
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className={cn(
-              'fixed left-0 top-0 bottom-0 z-[61] w-[min(280px,85vw)] border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-backend flex flex-col lg:hidden',
+              'fixed left-0 top-0 bottom-0 z-[61] w-[min(280px,85vw)] border-r border-border-custom bg-backend flex flex-col lg:hidden',
               className
             )}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header du drawer */}
-            <div className="flex items-center justify-between h-[52px] px-4 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+            <div className="flex items-center justify-between h-[52px] px-4 border-b border-border-custom shrink-0">
               <span className="font-semibold text-sm">Menu</span>
               <IconButton
                 icon={X}

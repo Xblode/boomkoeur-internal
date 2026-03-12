@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Modal, ModalFooter, ModalTwoColumnLayout } from '@/components/ui/organisms/Modal';
+import { Modal, ModalFooter } from '@/components/ui/organisms/Modal';
 import { Button, Input } from '@/components/ui/atoms';
 import { cn } from '@/lib/utils';
-import { FolderOpen, Folder, Image as ImageIcon, Film, FileText, ChevronRight, ChevronDown, Loader2, Link2, Monitor } from 'lucide-react';
+import { Folder, Image as ImageIcon, Film, FileText, ChevronRight, Loader2, Link2, Monitor, LayoutGrid, List } from 'lucide-react';
 
 /** ID spécial pour le dossier "Ordinateur" (Google Drive for Desktop) */
 const COMPUTERS_FOLDER_ID = 'computers';
@@ -14,14 +14,15 @@ export interface DriveFile {
   name: string;
   mimeType: string;
   webViewLink: string;
+  thumbnailLink?: string;
   isFolder: boolean;
 }
 
 interface DrivePickerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  /** url et optionnellement name (pour mode document) */
-  onSelect: (url: string, name?: string) => void;
+  /** url, name (optionnel), mimeType (optionnel, pour distinguer image/vidéo/fichier) */
+  onSelect: (url: string, name?: string, mimeType?: string) => void;
   orgId: string;
   /** 'image' = images/vidéos, 'document' = Docs, Sheets, Slides, PDF */
   mode?: 'image' | 'document';
@@ -34,21 +35,24 @@ export function DrivePickerModal({ isOpen, onClose, onSelect, orgId, mode = 'ima
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
-  const [loadingFolders, setLoadingFolders] = useState<Set<string>>(new Set());
   const [nextPageTokens, setNextPageTokens] = useState<Map<string | null, string | null>>(new Map());
   const [loadingMore, setLoadingMore] = useState(false);
   const [showUrlFallback, setShowUrlFallback] = useState(false);
   const [urlInput, setUrlInput] = useState('');
+  /** Chemin de navigation pour le breadcrumb : [{ id, name }, ...] */
+  const [breadcrumbPath, setBreadcrumbPath] = useState<Array<{ id: string; name: string }>>([]);
+  /** 'mydrive' | 'computers' pour le breadcrumb */
+  const [rootType, setRootType] = useState<'mydrive' | 'computers'>('mydrive');
+  /** Vue grille (images) ou liste (documents) */
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const loadFolder = useCallback(
-    async (folderId: string | null, pageToken?: string | null, append = false) => {
+    async (folderId: string | null, pageToken?: string | null, append = false, silent = false) => {
       if (!orgId) return;
       const isLoadMore = !!pageToken && append;
-      if (isLoadMore) setLoadingMore(true);
-      else {
-        setLoading(true);
-        if (folderId) setLoadingFolders((prev) => new Set(prev).add(folderId));
+      if (!silent) {
+        if (isLoadMore) setLoadingMore(true);
+        else setLoading(true);
       }
       setError(null);
 
@@ -86,13 +90,48 @@ export function DrivePickerModal({ isOpen, onClose, onSelect, orgId, mode = 'ima
           next.set(folderId, data.nextPageToken ?? null);
           return next;
         });
+
+        // Préchargement : charger les sous-dossiers en arrière-plan (max 8 en parallèle)
+        if (!append && !silent && folders.length > 0) {
+          const toPreload = folders.slice(0, 8).map((f: DriveFile) => f.id);
+          const preloadParams = new URLSearchParams({ org_id: orgId, folder_ids: toPreload.join(',') });
+          fetch(`/api/admin/integrations/google/drive/files?${preloadParams}`)
+            .then((r) => r.json())
+            .then((batchData) => {
+              if (batchData.results) {
+                setFolderContents((prev) => {
+                  const next = new Map(prev);
+                  for (const [id, result] of Object.entries(batchData.results as Record<string, { files: DriveFile[]; nextPageToken: string | null }>)) {
+                    const f = result.files ?? [];
+                    const subFolders = f.filter((x: DriveFile) => x.isFolder).sort((a: DriveFile, b: DriveFile) =>
+                      (a.name ?? '').localeCompare(b.name ?? '', undefined, { sensitivity: 'base' })
+                    );
+                    const subFiles = f.filter((x: DriveFile) => !x.isFolder).sort((a: DriveFile, b: DriveFile) =>
+                      (a.name ?? '').localeCompare(b.name ?? '', undefined, { sensitivity: 'base' })
+                    );
+                    next.set(id, { folders: subFolders, files: subFiles });
+                  }
+                  return next;
+                });
+                setNextPageTokens((prev) => {
+                  const next = new Map(prev);
+                  for (const [id, result] of Object.entries(batchData.results as Record<string, { nextPageToken: string | null }>)) {
+                    next.set(id, result.nextPageToken ?? null);
+                  }
+                  return next;
+                });
+              }
+            })
+            .catch(() => {});
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erreur inconnue');
         if (!append) setFolderContents((prev) => new Map(prev).set(folderId, { folders: [], files: [] }));
       } finally {
-        setLoading(false);
-        setLoadingMore(false);
-        if (folderId) setLoadingFolders((prev) => { const n = new Set(prev); n.delete(folderId); return n; });
+        if (!silent) {
+          setLoading(false);
+          setLoadingMore(false);
+        }
       }
     },
     [orgId]
@@ -101,14 +140,16 @@ export function DrivePickerModal({ isOpen, onClose, onSelect, orgId, mode = 'ima
   useEffect(() => {
     if (isOpen) {
       setFolderContents(new Map());
-      setExpandedFolders(new Set());
       setSelectedFolderId(null);
       setNextPageTokens(new Map());
+      setBreadcrumbPath([]);
+      setRootType('mydrive');
+      setViewMode(mode === 'image' ? 'grid' : 'list');
       setError(null);
       setShowUrlFallback(false);
       setUrlInput('');
     }
-  }, [isOpen]);
+  }, [isOpen, mode]);
 
   useEffect(() => {
     if (isOpen && orgId) {
@@ -116,50 +157,48 @@ export function DrivePickerModal({ isOpen, onClose, onSelect, orgId, mode = 'ima
     }
   }, [isOpen, orgId, loadFolder]);
 
-  const handleFolderClick = (folder: DriveFile) => {
+  const handleFolderClick = (folder: DriveFile, pathFromRoot: Array<{ id: string; name: string }>) => {
     const alreadyLoaded = folderContents.has(folder.id);
-    const isExpanded = expandedFolders.has(folder.id);
 
     setSelectedFolderId(folder.id);
+    setBreadcrumbPath([...pathFromRoot, { id: folder.id, name: folder.name }]);
 
     if (!alreadyLoaded) {
-      setExpandedFolders((prev) => new Set(prev).add(folder.id));
       loadFolder(folder.id);
-    } else {
-      setExpandedFolders((prev) => {
-        const next = new Set(prev);
-        if (isExpanded) next.delete(folder.id);
-        else next.add(folder.id);
-        return next;
-      });
     }
+  };
+
+  const handleBreadcrumbClick = (index: number) => {
+    if (index === -1) {
+      setSelectedFolderId(rootType === 'computers' ? COMPUTERS_FOLDER_ID : null);
+      setBreadcrumbPath([]);
+      return;
+    }
+    const item = breadcrumbPath[index];
+    setSelectedFolderId(item.id);
+    setBreadcrumbPath(breadcrumbPath.slice(0, index + 1));
   };
 
   const handleRootClick = () => {
     setSelectedFolderId(null);
+    setBreadcrumbPath([]);
+    setRootType('mydrive');
   };
 
   const handleComputersClick = () => {
     const alreadyLoaded = folderContents.has(COMPUTERS_FOLDER_ID);
-    const isExpanded = expandedFolders.has(COMPUTERS_FOLDER_ID);
 
     setSelectedFolderId(COMPUTERS_FOLDER_ID);
+    setBreadcrumbPath([]);
+    setRootType('computers');
 
     if (!alreadyLoaded) {
-      setExpandedFolders((prev) => new Set(prev).add(COMPUTERS_FOLDER_ID));
       loadFolder(COMPUTERS_FOLDER_ID);
-    } else {
-      setExpandedFolders((prev) => {
-        const next = new Set(prev);
-        if (isExpanded) next.delete(COMPUTERS_FOLDER_ID);
-        else next.add(COMPUTERS_FOLDER_ID);
-        return next;
-      });
     }
   };
 
   const handleFileSelect = (file: DriveFile) => {
-    onSelect(file.webViewLink, mode === 'document' ? file.name : undefined);
+    onSelect(file.webViewLink, mode === 'document' ? file.name : undefined, file.mimeType);
     onClose();
   };
 
@@ -180,7 +219,10 @@ export function DrivePickerModal({ isOpen, onClose, onSelect, orgId, mode = 'ima
 
   const rootContents = folderContents.get(null);
   const selectedContents = selectedFolderId ? folderContents.get(selectedFolderId) : rootContents;
-  const allFiles = selectedContents?.files ?? [];
+  const folders = selectedContents?.folders ?? [];
+  const files = selectedContents?.files ?? [];
+  /** Dossiers + fichiers pour affichage type Google Drive (dossiers en premier) */
+  const allItems = [...folders, ...files];
   const isSelectableFile = (f: DriveFile) => {
     if (mode === 'document') {
       return (
@@ -194,196 +236,6 @@ export function DrivePickerModal({ isOpen, onClose, onSelect, orgId, mode = 'ima
   };
   const displayNextToken = selectedFolderId ? nextPageTokens.get(selectedFolderId) : nextPageTokens.get(null);
 
-  const renderFolderTree = (parentId: string | null, level = 0) => {
-    if (parentId === null) {
-      // Niveau racine : Ordinateur au-dessus de Mon Drive
-      const computersContents = folderContents.get(COMPUTERS_FOLDER_ID);
-      const computersFolders = computersContents?.folders ?? [];
-      const rootContents = folderContents.get(null);
-      const rootFolders = rootContents?.folders ?? [];
-      const isComputersExpanded = expandedFolders.has(COMPUTERS_FOLDER_ID);
-      const isComputersLoaded = folderContents.has(COMPUTERS_FOLDER_ID);
-      const isLoadingComputers = loadingFolders.has(COMPUTERS_FOLDER_ID);
-
-      return (
-        <div className="flex flex-col gap-0.5">
-          {/* Ordinateur - au-dessus de Mon Drive */}
-          <button
-            type="button"
-            onClick={handleComputersClick}
-            className={cn(
-              'flex items-center gap-2 py-1.5 px-2 rounded text-left text-sm w-full',
-              selectedFolderId === COMPUTERS_FOLDER_ID
-                ? 'bg-zinc-100 dark:bg-zinc-800 font-medium'
-                : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
-            )}
-          >
-            {isComputersLoaded && computersFolders.length > 0 ? (
-              isComputersExpanded ? (
-                <ChevronDown size={16} className="text-zinc-400 shrink-0" />
-              ) : (
-                <ChevronRight size={16} className="text-zinc-400 shrink-0" />
-              )
-            ) : isLoadingComputers ? (
-              <Loader2 size={16} className="animate-spin text-zinc-400 shrink-0" />
-            ) : (
-              <ChevronRight size={16} className="text-zinc-400 shrink-0 opacity-50" />
-            )}
-            <Monitor size={18} className="text-amber-500 shrink-0" />
-            <span className="truncate">Ordinateur</span>
-          </button>
-          {isComputersExpanded && isComputersLoaded && computersFolders.length > 0 && (
-            <div className="ml-3 border-l border-zinc-200 dark:border-zinc-700 pl-2">
-              {computersFolders.map((f) => {
-                const isExpanded = expandedFolders.has(f.id);
-                const hasLoaded = folderContents.has(f.id);
-                const isLoading = loadingFolders.has(f.id);
-                const subfolders = folderContents.get(f.id)?.folders ?? [];
-
-                return (
-                  <div key={f.id} className="mt-0.5">
-                    <button
-                      type="button"
-                      onClick={() => handleFolderClick(f)}
-                      className={cn(
-                        'flex items-center gap-2 py-1.5 px-2 rounded text-left text-sm w-full',
-                        selectedFolderId === f.id
-                          ? 'bg-zinc-100 dark:bg-zinc-800 font-medium'
-                          : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
-                      )}
-                    >
-                      {hasLoaded && subfolders.length > 0 ? (
-                        isExpanded ? (
-                          <ChevronDown size={16} className="text-zinc-400 shrink-0" />
-                        ) : (
-                          <ChevronRight size={16} className="text-zinc-400 shrink-0" />
-                        )
-                      ) : isLoading ? (
-                        <Loader2 size={16} className="animate-spin text-zinc-400 shrink-0" />
-                      ) : (
-                        <ChevronRight size={16} className="text-zinc-400 shrink-0 opacity-0" />
-                      )}
-                      <FolderOpen size={18} className="text-amber-500 shrink-0" />
-                      <span className="truncate flex-1">{f.name}</span>
-                    </button>
-                    {isExpanded && hasLoaded && subfolders.length > 0 && (
-                      <div className="mt-0.5">{renderFolderTree(f.id, level + 2)}</div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Mon Drive */}
-          <button
-            type="button"
-            onClick={handleRootClick}
-            className={cn(
-              'flex items-center gap-2 py-1.5 px-2 rounded text-left text-sm w-full',
-              selectedFolderId === null
-                ? 'bg-zinc-100 dark:bg-zinc-800 font-medium'
-                : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
-            )}
-          >
-            <Folder size={18} className="text-amber-500 shrink-0" />
-            <span className="truncate">Mon Drive</span>
-          </button>
-          {rootFolders.map((f) => {
-            const isExpanded = expandedFolders.has(f.id);
-            const hasLoaded = folderContents.has(f.id);
-            const isLoading = loadingFolders.has(f.id);
-            const subfolders = folderContents.get(f.id)?.folders ?? [];
-
-            return (
-              <div key={f.id} className="mt-0.5">
-                <button
-                  type="button"
-                  onClick={() => handleFolderClick(f)}
-                  className={cn(
-                    'flex items-center gap-2 py-1.5 px-2 rounded text-left text-sm w-full',
-                    selectedFolderId === f.id
-                      ? 'bg-zinc-100 dark:bg-zinc-800 font-medium'
-                      : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
-                  )}
-                >
-                  {hasLoaded && subfolders.length > 0 ? (
-                    isExpanded ? (
-                      <ChevronDown size={16} className="text-zinc-400 shrink-0" />
-                    ) : (
-                      <ChevronRight size={16} className="text-zinc-400 shrink-0" />
-                    )
-                  ) : isLoading ? (
-                    <Loader2 size={16} className="animate-spin text-zinc-400 shrink-0" />
-                  ) : (
-                    <ChevronRight size={16} className="text-zinc-400 shrink-0 opacity-0" />
-                  )}
-                  <FolderOpen size={18} className="text-amber-500 shrink-0" />
-                  <span className="truncate flex-1">{f.name}</span>
-                </button>
-                {isExpanded && hasLoaded && subfolders.length > 0 && (
-                  <div className="mt-0.5 ml-3 border-l border-zinc-200 dark:border-zinc-700 pl-2">
-                    {renderFolderTree(f.id, level + 1)}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      );
-    }
-
-    // Sous-dossiers (récursion)
-    const contents = folderContents.get(parentId);
-    const folders = contents?.folders ?? [];
-    if (!contents || folders.length === 0) return null;
-
-    return (
-      <div className={cn('flex flex-col', level > 0 && 'ml-3 border-l border-zinc-200 dark:border-zinc-700 pl-2')}>
-        {folders.map((f) => {
-          const isExpanded = expandedFolders.has(f.id);
-          const hasLoaded = folderContents.has(f.id);
-          const isLoading = loadingFolders.has(f.id);
-          const subfolders = folderContents.get(f.id)?.folders ?? [];
-
-          return (
-            <div key={f.id} className="mt-0.5">
-              <button
-                type="button"
-                onClick={() => handleFolderClick(f)}
-                className={cn(
-                  'flex items-center gap-2 py-1.5 px-2 rounded text-left text-sm w-full',
-                  selectedFolderId === f.id
-                    ? 'bg-zinc-100 dark:bg-zinc-800 font-medium'
-                    : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
-                )}
-              >
-                {hasLoaded && subfolders.length > 0 ? (
-                  isExpanded ? (
-                    <ChevronDown size={16} className="text-zinc-400 shrink-0" />
-                  ) : (
-                    <ChevronRight size={16} className="text-zinc-400 shrink-0" />
-                  )
-                ) : isLoading ? (
-                  <Loader2 size={16} className="animate-spin text-zinc-400 shrink-0" />
-                ) : (
-                  <ChevronRight size={16} className="text-zinc-400 shrink-0 opacity-0" />
-                )}
-                <FolderOpen size={18} className="text-amber-500 shrink-0" />
-                <span className="truncate flex-1">{f.name}</span>
-              </button>
-              {isExpanded && hasLoaded && subfolders.length > 0 && (
-                <div className="mt-0.5">
-                  {renderFolderTree(f.id, level + 1)}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
   return (
     <Modal
       isOpen={isOpen}
@@ -392,30 +244,68 @@ export function DrivePickerModal({ isOpen, onClose, onSelect, orgId, mode = 'ima
       size="lg"
       variant="fullBleed"
     >
-      <ModalTwoColumnLayout
-        leftWidth="16rem"
-        minHeight="360px"
-        left={
-          <div className="pr-4 py-2">
-            {loading && !rootContents ? (
-              <div className="flex items-center gap-2 py-4 text-sm text-zinc-500">
-                <Loader2 size={18} className="animate-spin" />
-                Chargement...
-              </div>
-            ) : error && !rootContents ? (
-              <div className="py-4">
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">{error}</p>
-                <Button variant="outline" size="sm" onClick={() => loadFolder(null)}>
-                  Réessayer
-                </Button>
+      <div className="flex flex-col h-full min-h-[360px] p-4">
+          {/* Breadcrumb + Mon Drive / Ordinateur switcher */}
+          <nav className="flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400 mb-3 flex-wrap min-h-[28px]">
+            {breadcrumbPath.length === 0 ? (
+              /* À la racine : switcher Mon Drive / Ordinateur */
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={handleRootClick}
+                  className={cn(
+                    'flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors',
+                    rootType === 'mydrive'
+                      ? 'bg-zinc-200 dark:bg-zinc-700 font-medium text-zinc-900 dark:text-zinc-100'
+                      : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                  )}
+                >
+                  <Folder size={16} />
+                  Mon Drive
+                </button>
+                <button
+                  type="button"
+                  onClick={handleComputersClick}
+                  className={cn(
+                    'flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors',
+                    rootType === 'computers'
+                      ? 'bg-zinc-200 dark:bg-zinc-700 font-medium text-zinc-900 dark:text-zinc-100'
+                      : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                  )}
+                >
+                  <Monitor size={16} />
+                  Ordinateur
+                </button>
               </div>
             ) : (
-              renderFolderTree(null)
+              /* En chemin : breadcrumb classique */
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleBreadcrumbClick(-1)}
+                  className="px-1.5 py-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                >
+                  {rootType === 'computers' ? 'Ordinateur' : 'Mon Drive'}
+                </button>
+              </>
             )}
-          </div>
-        }
-        right={
-          <div className="flex flex-col h-full p-4">
+            {breadcrumbPath.map((item, i) => (
+              <span key={item.id} className="flex items-center gap-1">
+                <ChevronRight size={14} className="text-zinc-400 shrink-0" />
+                <button
+                  type="button"
+                  onClick={() => handleBreadcrumbClick(i)}
+                  className={cn(
+                    'px-1.5 py-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 truncate max-w-[120px]',
+                    selectedFolderId === item.id && 'font-medium text-zinc-900 dark:text-zinc-100'
+                  )}
+                  title={item.name}
+                >
+                  {item.name}
+                </button>
+              </span>
+            ))}
+          </nav>
           {loading && !selectedContents ? (
             <div className="flex flex-col items-center justify-center py-12 gap-2">
               <Loader2 size={32} className="animate-spin text-zinc-400" />
@@ -428,9 +318,85 @@ export function DrivePickerModal({ isOpen, onClose, onSelect, orgId, mode = 'ima
                 Réessayer
               </Button>
             </div>
-          ) : allFiles.length > 0 ? (
+          ) : allItems.length > 0 ? (
             <>
+              {mode === 'image' && (
+                <div className="flex items-center gap-1 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('grid')}
+                    className={cn(
+                      'p-1.5 rounded transition-colors',
+                      viewMode === 'grid' ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                    )}
+                    title="Vue grille"
+                  >
+                    <LayoutGrid size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('list')}
+                    className={cn(
+                      'p-1.5 rounded transition-colors',
+                      viewMode === 'list' ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                    )}
+                    title="Vue liste"
+                  >
+                    <List size={18} />
+                  </button>
+                </div>
+              )}
               <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-auto flex-1 min-h-0">
+                {mode === 'image' && viewMode === 'grid' ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-3">
+                    {allItems.map((f) => {
+                      const isFolder = f.isFolder;
+                      const selectable = !isFolder && isSelectableFile(f);
+                      const isVideo = f.mimeType.startsWith('video/');
+                      const pathFromRoot = breadcrumbPath;
+                      return (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={
+                            isFolder
+                              ? () => handleFolderClick(f, pathFromRoot)
+                              : selectable
+                                ? () => handleFileSelect(f)
+                                : undefined
+                          }
+                          disabled={!isFolder && !selectable}
+                          className={cn(
+                            'group flex flex-col items-stretch gap-2 text-left',
+                            isFolder || selectable
+                              ? 'cursor-pointer'
+                              : 'cursor-default opacity-60'
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              'aspect-square w-full rounded-lg border border-zinc-200 dark:border-zinc-700 flex items-center justify-center overflow-hidden transition-all',
+                              isFolder || selectable
+                                ? 'hover:border-zinc-400 dark:hover:border-zinc-500 hover:shadow-md'
+                                : ''
+                            )}
+                          >
+                            {isFolder ? (
+                              <Folder size={40} className="text-amber-500" />
+                            ) : (
+                              <div className="text-zinc-400">
+                                {isVideo ? <Film size={32} /> : <ImageIcon size={32} />}
+                              </div>
+                            )}
+                          </div>
+                          <span className="w-full truncate text-sm font-medium text-zinc-900 dark:text-zinc-100 text-left" title={f.name}>
+                            {f.name}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
                 <table className="w-full text-sm table-fixed">
                   <thead>
                     <tr className="bg-zinc-50 dark:bg-zinc-800/80 border-b border-zinc-200 dark:border-zinc-700">
@@ -444,33 +410,43 @@ export function DrivePickerModal({ isOpen, onClose, onSelect, orgId, mode = 'ima
                     </tr>
                   </thead>
                   <tbody>
-                    {allFiles.map((f) => {
-                      const selectable = isSelectableFile(f);
+                    {allItems.map((f) => {
+                      const isFolder = f.isFolder;
+                      const selectable = !isFolder && isSelectableFile(f);
                       return (
                         <tr
                           key={f.id}
-                          role={selectable ? 'button' : undefined}
-                          tabIndex={selectable ? 0 : undefined}
-                          onClick={selectable ? () => handleFileSelect(f) : undefined}
+                          role={isFolder || selectable ? 'button' : undefined}
+                          tabIndex={isFolder || selectable ? 0 : undefined}
+                          onClick={
+                            isFolder
+                              ? () => handleFolderClick(f, breadcrumbPath)
+                              : selectable
+                                ? () => handleFileSelect(f)
+                                : undefined
+                          }
                           onKeyDown={
-                            selectable
+                            isFolder || selectable
                               ? (e) => {
                                   if (e.key === 'Enter' || e.key === ' ') {
                                     e.preventDefault();
-                                    handleFileSelect(f);
+                                    if (isFolder) handleFolderClick(f, breadcrumbPath);
+                                    else handleFileSelect(f);
                                   }
                                 }
                               : undefined
                           }
                           className={cn(
                             'border-b border-zinc-100 dark:border-zinc-800 last:border-0',
-                            selectable
+                            isFolder || selectable
                               ? 'cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors'
                               : 'opacity-60 cursor-default'
                           )}
                         >
                           <td className="px-3 py-2">
-                            {f.mimeType.startsWith('video/') ? (
+                            {f.isFolder ? (
+                              <Folder size={18} className="text-amber-500" />
+                            ) : f.mimeType.startsWith('video/') ? (
                               <Film size={18} className="text-zinc-400" />
                             ) : f.mimeType.startsWith('image/') ? (
                               <ImageIcon size={18} className="text-zinc-400" />
@@ -482,13 +458,14 @@ export function DrivePickerModal({ isOpen, onClose, onSelect, orgId, mode = 'ima
                             {f.name}
                           </td>
                           <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 text-xs">
-                            {getFileTypeLabel(f)}
+                            {f.isFolder ? 'Dossier' : getFileTypeLabel(f)}
                           </td>
                         </tr>
                       );
                     })}
                   </tbody>
                 </table>
+                )}
               </div>
               {displayNextToken && (
                 <div className="flex justify-center pt-3">
@@ -510,7 +487,7 @@ export function DrivePickerModal({ isOpen, onClose, onSelect, orgId, mode = 'ima
               <p className="text-sm text-zinc-600 dark:text-zinc-400">
                 {selectedContents
                   ? (mode === 'document' ? 'Aucun document (Docs, Sheets, Slides, PDF) dans ce dossier' : 'Aucune image ou vidéo dans ce dossier')
-                  : 'Sélectionnez un dossier à gauche'}
+                  : 'Aucun contenu'}
               </p>
               {!rootContents && (
                 <Button
@@ -526,9 +503,7 @@ export function DrivePickerModal({ isOpen, onClose, onSelect, orgId, mode = 'ima
               )}
             </div>
           )}
-        </div>
-      }
-    />
+      </div>
 
       <ModalFooter>
         <div className="flex flex-col gap-3 w-full">

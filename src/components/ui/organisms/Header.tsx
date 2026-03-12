@@ -7,13 +7,13 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button, IconButton } from '@/components/ui/atoms';
 import { cn } from '@/lib/utils';
-import { LogOut, User, Settings, Search, Calendar, Shield, Menu, X } from 'lucide-react';
+import { LogOut, User, Settings, Search, Calendar, Shield, Menu, X, MessageSquare } from 'lucide-react';
 import { Breadcrumb } from '../molecules/Breadcrumb';
 import { GlobalSearchModal } from './GlobalSearchModal';
 import { useMobileNav } from '@/components/providers/MobileNavProvider';
 import { supabase } from '@/lib/supabase/client';
 import { ROUTES } from '@/lib/constants';
-import { useUser } from '@/hooks';
+import { useUser, useMessagesUnreadCount } from '@/hooks';
 import { useOrgOptional } from '@/components/providers/OrgProvider';
 import { siteConfig } from '@/config/site';
 
@@ -36,6 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { user: sessionUser } = useUser();
   const orgContext = useOrgOptional();
+  const { count: messagesUnreadCount } = useMessagesUnreadCount();
   const isDemo = orgContext?.activeOrg?.slug === 'demo';
   const user = userProp ?? (sessionUser
     ? { name: sessionUser.name, email: sessionUser.email, avatar: sessionUser.avatar }
@@ -74,11 +75,11 @@ export const Header: React.FC<HeaderProps> = ({
   if (variant === 'admin') {
     return (
       <header className={cn(
-        "fixed top-0 left-0 right-0 z-50 h-[52px] border-b border-zinc-200 bg-white backdrop-blur-md dark:border-zinc-800 dark:bg-backend flex overflow-visible",
+        "fixed top-0 left-0 right-0 z-50 h-[52px] border-b border-border-custom bg-backend backdrop-blur-md flex overflow-visible",
         className
       )}>
         {/* Logo / Hamburger Area — hamburger sur mobile, logo sur desktop */}
-        <div className="w-[52px] min-w-[52px] h-full flex items-center justify-center border-r border-zinc-200 dark:border-zinc-800 shrink-0">
+        <div className="w-[52px] min-w-[52px] h-full flex items-center justify-center border-r border-border-custom shrink-0">
           <button
             type="button"
             onClick={toggleMobileNav}
@@ -97,7 +98,7 @@ export const Header: React.FC<HeaderProps> = ({
               alt="Logo"
               width={20}
               height={40}
-              className="brightness-0 invert"
+              className="brightness-0 dark:invert"
             />
           </Link>
         </div>
@@ -138,6 +139,20 @@ export const Header: React.FC<HeaderProps> = ({
               title="Calendrier"
             >
               <Calendar size={18} />
+            </Link>
+
+            {/* Messages */}
+            <Link
+              href="/dashboard/messages"
+              className="relative p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
+              title="Messages"
+            >
+              <MessageSquare size={18} />
+              {messagesUnreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex min-w-[18px] h-[18px] items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1">
+                  {messagesUnreadCount > 99 ? '99+' : messagesUnreadCount}
+                </span>
+              )}
             </Link>
 
             {/* User Menu — désactivé en mode démo (pas d'accès paramètres/profil) */}
@@ -261,7 +276,7 @@ export const Header: React.FC<HeaderProps> = ({
               alt="Logo"
               width={120}
               height={34}
-              className="brightness-0 invert"
+              className="brightness-0 dark:invert"
             />
           </Link>
 

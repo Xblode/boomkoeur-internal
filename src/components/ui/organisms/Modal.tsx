@@ -329,16 +329,21 @@ export function ModalThreeColumnLayout({
 }: ModalThreeColumnLayoutProps) {
   return (
     <div
-      className="grid overflow-hidden h-full min-w-0"
-      style={{ gridTemplateColumns, minHeight }}
+      className="flex flex-col md:grid h-full min-w-0 md:[grid-template-columns:var(--grid-cols-custom)] overflow-y-auto md:overflow-hidden bg-card-bg md:bg-transparent"
+      style={{ 
+        '--grid-cols-custom': gridTemplateColumns,
+        '--min-height': minHeight 
+      } as React.CSSProperties}
     >
-      <aside className="border-r border-border-custom flex flex-col bg-zinc-50/30 dark:bg-zinc-900/20 min-w-0">
+      <aside className="border-b md:border-b-0 md:border-r border-border-custom flex flex-col bg-zinc-50/30 dark:bg-zinc-900/20 min-w-0 shrink-0 md:static overflow-y-auto md:overflow-visible relative z-[10]">
         {sidebar}
       </aside>
-      <div className="border-r border-border-custom flex flex-col overflow-hidden min-w-0">
-        {list}
+      <div className="border-b md:border-b-0 md:border-r border-border-custom flex flex-col min-w-0 flex-1 md:overflow-hidden min-h-[40vh] max-h-[50vh] md:max-h-none md:min-h-0 bg-card-bg z-0 relative isolate">
+        <div className="flex-1 overflow-y-auto min-h-0 relative">
+          {list}
+        </div>
       </div>
-      <div className="overflow-y-auto p-5 min-w-0">
+      <div className="flex-1 overflow-y-auto min-h-0 p-4 md:p-5 bg-card-bg md:bg-transparent md:min-h-0 min-h-[30vh]">
         {detail}
       </div>
     </div>
@@ -365,17 +370,21 @@ export function ModalTwoColumnLayout({
 }: ModalTwoColumnLayoutProps) {
   return (
     <div
-      className="flex gap-4 overflow-hidden min-w-0 flex-1"
-      style={{ minHeight }}
+      className="flex flex-col md:flex-row overflow-y-auto md:overflow-hidden min-w-0 flex-1"
+      style={{ 
+        '--md-left-width': leftWidth,
+        minHeight 
+      } as React.CSSProperties}
     >
       <aside
-        className="shrink-0 border-r border-zinc-200 dark:border-zinc-700 overflow-y-auto flex flex-col"
-        style={{ width: leftWidth }}
+        className="shrink-0 border-b md:border-b-0 md:border-r border-border-custom flex flex-col w-full md:w-[var(--md-left-width)]"
       >
         {left}
       </aside>
-      <div className="flex-1 min-w-0 min-h-0 overflow-y-auto flex flex-col">
-        {right}
+      <div className="flex-1 min-w-0 md:overflow-y-auto flex flex-col min-h-[300px] md:min-h-0">
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {right}
+        </div>
       </div>
     </div>
   )

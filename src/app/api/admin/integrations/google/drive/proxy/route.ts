@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getDriveClient } from '@/lib/integrations/google';
 import { parseDriveFileId } from '@/lib/integrations/google-utils';
 
-async function ensureOrgAdmin(orgId: string) {
+async function ensureOrgMember(orgId: string) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -12,12 +12,12 @@ async function ensureOrgAdmin(orgId: string) {
     return { error: 'Non authentifié', status: 401 };
   }
 
-  const { data } = await supabase.rpc('is_org_admin', {
-    uid: user.id,
+  // user_belongs_to_org utilise auth.uid() en interne, ne prend que oid
+  const { data } = await supabase.rpc('user_belongs_to_org', {
     oid: orgId,
   });
   if (!data) {
-    return { error: "Accès réservé aux administrateurs de l'organisation", status: 403 };
+    return { error: "Accès réservé aux membres de l'organisation", status: 403 };
   }
   return null;
 }
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'org_id et file_id (ou url) requis' }, { status: 400 });
   }
 
-  const authError = await ensureOrgAdmin(orgId);
+  const authError = await ensureOrgMember(orgId);
   if (authError) {
     return NextResponse.json({ error: authError.error }, { status: authError.status });
   }

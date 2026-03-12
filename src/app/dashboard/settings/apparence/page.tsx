@@ -10,7 +10,7 @@ import { useSidebarMode } from '@/hooks';
 import Link from 'next/link';
 
 export default function SettingsApparencePage() {
-  const { theme, setTheme } = useTheme();
+  const { palette, mode, setPalette, setMode } = useTheme();
   const { sidebarMode, setSidebarMode } = useSidebarMode();
   const [mounted, setMounted] = useState(false);
 
@@ -37,15 +37,47 @@ export default function SettingsApparencePage() {
         <CardContent className="p-0 divide-y divide-border-custom">
 
           <SettingsCardRow
-            label="Thème de l'interface"
-            description="Choisissez entre le mode clair, sombre, système ou la palette personnalisée."
+            label="Thème couleur"
+            description="Choisissez la palette de couleurs de l'interface."
           >
             <div className="flex items-center gap-2 p-1 bg-toggle rounded-lg w-fit border border-border-custom flex-wrap">
               <button
-                onClick={() => setTheme('light')}
+                onClick={() => setPalette('neutral')}
                 className={cn(
                   "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
-                  theme === 'light'
+                  palette === 'neutral'
+                    ? "bg-toggle-active text-foreground shadow-sm"
+                    : "text-zinc-500 hover:text-foreground"
+                )}
+              >
+                <span className="w-4 h-4 rounded-full bg-zinc-400" aria-hidden />
+                Neutre
+              </button>
+              <button
+                onClick={() => setPalette('brand')}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
+                  palette === 'brand'
+                    ? "bg-toggle-active text-foreground shadow-sm"
+                    : "text-zinc-500 hover:text-foreground"
+                )}
+              >
+                <span className="w-4 h-4 rounded-full bg-[var(--color-accent)]" aria-hidden />
+                Brand
+              </button>
+            </div>
+          </SettingsCardRow>
+
+          <SettingsCardRow
+            label="Mode clair/sombre"
+            description="Choisissez entre le mode clair, sombre ou système."
+          >
+            <div className="flex items-center gap-2 p-1 bg-toggle rounded-lg w-fit border border-border-custom flex-wrap">
+              <button
+                onClick={() => setMode('light')}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
+                  mode === 'light'
                     ? "bg-toggle-active text-foreground shadow-sm"
                     : "text-zinc-500 hover:text-foreground"
                 )}
@@ -54,10 +86,10 @@ export default function SettingsApparencePage() {
                 Clair
               </button>
               <button
-                onClick={() => setTheme('dark')}
+                onClick={() => setMode('dark')}
                 className={cn(
                   "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
-                  theme === 'dark'
+                  mode === 'dark'
                     ? "bg-toggle-active text-foreground shadow-sm"
                     : "text-zinc-500 hover:text-foreground"
                 )}
@@ -66,28 +98,16 @@ export default function SettingsApparencePage() {
                 Sombre
               </button>
               <button
-                onClick={() => setTheme('system')}
+                onClick={() => setMode('system')}
                 className={cn(
                   "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
-                  theme === 'system'
+                  mode === 'system'
                     ? "bg-toggle-active text-foreground shadow-sm"
                     : "text-zinc-500 hover:text-foreground"
                 )}
               >
                 <Monitor size={16} />
                 Système
-              </button>
-              <button
-                onClick={() => setTheme('custom')}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
-                  theme === 'custom'
-                    ? "bg-toggle-active text-foreground shadow-sm"
-                    : "text-zinc-500 hover:text-foreground"
-                )}
-              >
-                <span className="w-4 h-4 rounded-full bg-[var(--color-accent)]" aria-hidden />
-                Custom
               </button>
             </div>
           </SettingsCardRow>

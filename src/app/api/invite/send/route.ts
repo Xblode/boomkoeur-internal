@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getAppUrl } from '@/lib/app-url';
 
 async function ensureAdmin() {
   const supabase = await createClient();
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Token d\'invitation requis' }, { status: 400 });
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? (request.nextUrl.origin || 'https://dashboard.perret.app');
+  const appUrl = getAppUrl(request);
   const redirectTo = `${appUrl}/onboarding?invite=${encodeURIComponent(inviteToken.trim())}`;
 
   const admin = createAdminClient();

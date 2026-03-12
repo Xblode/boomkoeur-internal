@@ -38,7 +38,7 @@ export function DashboardShell({ children, className }: DashboardShellProps) {
   const { config: pageSidebarConfig } = usePageSidebar();
   const { config: chatPanelConfig } = useChatPanel();
   const { config: detailPanelConfig } = useDetailPanel();
-  const { maxWidth, fullBleed } = usePageLayout();
+  const { maxWidth, fullBleed, noPadding } = usePageLayout();
 
   const hasPageSidebar = pageSidebarConfig != null;
   const hasCustomSidebar = hasPageSidebar && pageSidebarConfig.customContent != null;
@@ -59,7 +59,7 @@ export function DashboardShell({ children, className }: DashboardShellProps) {
       {hasPageSidebar && (
         <>
           {hasCustomSidebar ? (
-            <aside className="hidden lg:block w-64 shrink-0 bg-backend border-r border-zinc-200 dark:border-zinc-800 sticky top-[52px] h-[calc(100vh-52px)] overflow-y-auto">
+            <aside className="hidden lg:block w-64 shrink-0 bg-backend border-r border-border-custom sticky top-[52px] h-[calc(100vh-52px)] overflow-y-auto">
               <div className="p-4 space-y-4">{pageSidebarConfig.customContent}</div>
             </aside>
           ) : hasStandardSidebar ? (
@@ -86,14 +86,14 @@ export function DashboardShell({ children, className }: DashboardShellProps) {
           <div className="shrink-0 flex flex-col z-20">
             {alertNode}
             {(toolbar || (hasStandardSidebar && pageSidebarConfig && (pageSidebarConfig.backLink || pageSidebarConfig.sectionGroups?.some((g) => g.sections.length > 0) || (pageSidebarConfig.sections?.length ?? 0) > 0))) && (
-            <div className="flex items-center w-full border-b border-zinc-200 dark:border-zinc-800 bg-backend text-foreground min-h-10">
+            <div className="flex items-center w-full border-b border-border-custom bg-backend text-foreground min-h-10">
               {hasStandardSidebar && pageSidebarConfig && (() => {
                 const groups = pageSidebarConfig.sectionGroups ?? (pageSidebarConfig.sections?.length ? [{ sections: pageSidebarConfig.sections }] : []);
                 const allSections = groups.flatMap((g) => g.sections);
                 const hasContent = pageSidebarConfig.backLink || allSections.length > 0;
                 if (!hasContent) return null;
                 return (
-                  <div className="lg:hidden flex items-center gap-1 px-2 py-1.5 border-r border-zinc-200 dark:border-zinc-800 shrink-0">
+                  <div className="lg:hidden flex items-center gap-1 px-2 py-1.5 border-r border-border-custom shrink-0">
                     {pageSidebarConfig.backLink && (
                       <Link
                         href={pageSidebarConfig.backLink.href}
@@ -135,8 +135,8 @@ export function DashboardShell({ children, className }: DashboardShellProps) {
           </div>
         )}
 
-        <div className={cn('flex-1 min-h-0 overflow-y-auto scrollbar-gutter-stable', fullBleed ? 'p-6' : 'p-6 md:p-8 lg:p-12')}>
-          <div className={cn(!fullBleed && 'mx-auto', !fullBleed && maxWidthClasses[maxWidth])}>
+        <div className={cn('flex-1 min-h-0 min-w-0 scrollbar-gutter-stable', noPadding ? 'overflow-hidden' : 'overflow-y-auto', noPadding ? '' : fullBleed ? 'p-6' : 'p-6 md:p-8 lg:p-12')}>
+          <div className={cn(!fullBleed && !noPadding && 'mx-auto', !fullBleed && !noPadding && maxWidthClasses[maxWidth], noPadding && 'h-full min-w-0')}>
             {children}
           </div>
         </div>
@@ -144,8 +144,8 @@ export function DashboardShell({ children, className }: DashboardShellProps) {
 
       {/* DetailPanel — panneau latéral droit pour édition */}
       {detailPanelConfig != null && (
-        <aside className="fixed top-[52px] right-0 bottom-0 w-full max-w-md lg:max-w-lg xl:max-w-xl bg-backend border-l border-zinc-200 dark:border-zinc-800 shadow-xl z-30 flex flex-col overflow-hidden">
-          <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
+        <aside className="fixed top-[52px] right-0 bottom-0 w-full max-w-md lg:max-w-lg xl:max-w-xl bg-backend border-l border-border-custom shadow-xl z-30 flex flex-col overflow-hidden">
+          <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-border-custom">
             <h2 className="text-lg font-semibold text-foreground truncate">
               {detailPanelConfig.title ?? 'Détail'}
             </h2>

@@ -112,6 +112,8 @@ export { PeriodSelector } from './PeriodSelector';
 export type { PeriodSelectorProps, PeriodType } from './PeriodSelector';
 
 export { EditableCard } from './EditableCard';
+export { MenuPicker } from './MenuPicker';
+export type { MenuPickerProps, MenuPickerItem } from './MenuPicker';
 export type { EditableCardProps } from './EditableCard';
 
 export { CodeSnippet } from './CodeSnippet';

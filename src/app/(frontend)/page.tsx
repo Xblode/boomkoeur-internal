@@ -1,4 +1,4 @@
-import { Hero, LogosSection, FeaturesSection, CampaignSection, IntegrationsSection, CTASection } from '@/components/feature/Frontend/Home';
+import { Hero, LogosSection, EventPreviewSection, CampaignSection, IntegrationsSection, FinanceSection, CTASection } from '@/components/feature/Frontend/Home';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -12,9 +12,10 @@ export default function HomePage() {
     <>
       <Hero />
       <LogosSection />
-      <FeaturesSection />
+      <EventPreviewSection />
       <CampaignSection />
       <IntegrationsSection />
+      <FinanceSection />
       <CTASection />
     </>
   );

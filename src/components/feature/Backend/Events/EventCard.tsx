@@ -15,9 +15,47 @@ import {
   CalendarDays,
   MapPin,
   Clock,
+  ChevronDown,
+  ChevronUp,
+  AlignLeft,
+  Users,
+  Flag,
+  Link2,
+  Ticket,
+  Tag,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+
+function InfoRow({
+  icon: Icon,
+  label,
+  value,
+  multiline,
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  value: React.ReactNode;
+  multiline?: boolean;
+}) {
+  return (
+    <div className="flex gap-3">
+      <Icon size={14} className="text-zinc-500 shrink-0 mt-0.5" />
+      <div className="flex-1 min-w-0">
+        <p className="text-[11px] text-zinc-500 uppercase tracking-wide mb-0.5">{label}</p>
+        <div
+          className={cn(
+            "text-zinc-300",
+            multiline && "whitespace-pre-wrap line-clamp-4"
+          )}
+        >
+          {value}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 interface EventCardBaseProps {
   event: Event;
@@ -25,6 +63,8 @@ interface EventCardBaseProps {
 
 interface EventCardListProps extends EventCardBaseProps {
   variant?: "list";
+  isExpanded?: boolean;
+  onToggleExpand?: (event: Event) => void;
   onEdit: (event: Event) => void;
   onDelete: (event: Event) => void;
   onDuplicate: (id: string) => void;
@@ -57,6 +97,11 @@ export const EventCard: React.FC<EventCardProps> = (props) => {
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!isCompact && "onDelete" in props) props.onDelete(event);
+  };
+
+  const handleToggleExpand = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isCompact && "onToggleExpand" in props) props.onToggleExpand?.(event);
   };
 
   const STATUS_VARIANT: Record<EventStatus, 'warning' | 'info' | 'success' | 'secondary' | 'default'> = {
@@ -114,7 +159,7 @@ export const EventCard: React.FC<EventCardProps> = (props) => {
               </h3>
               <div className={`flex items-center gap-1.5 mt-0.5 text-muted-foreground ${compactSize === "lg" ? "text-xs lg:text-sm" : "text-xs"}`}>
                 <MapPin size={12} className="flex-shrink-0" />
-                <span className="line-clamp-1">{event.location}</span>
+                <span className="line-clamp-1">{event.location || "Non rempli"}</span>
               </div>
               <div className={`flex items-center gap-1.5 mt-1 text-muted-foreground ${compactSize === "lg" ? "text-xs lg:text-sm" : "text-xs"}`}>
                 <Clock size={12} className="flex-shrink-0" />
@@ -164,7 +209,7 @@ export const EventCard: React.FC<EventCardProps> = (props) => {
                 {STATUS_LABEL[event.status]}
               </Badge>
             </div>
-            <p className="text-sm text-zinc-400 font-medium">{event.location}</p>
+            <p className="text-sm text-zinc-400 font-medium">{event.location || "Non rempli"}</p>
           </div>
 
           {/* Bloc Date */}
@@ -186,24 +231,122 @@ export const EventCard: React.FC<EventCardProps> = (props) => {
           )}
 
           <div className="space-y-2 text-sm text-text-tertiary">
-            {artistsText && (
-              <div className="flex items-center gap-2.5">
-                <Music className="h-4 w-4 text-text-tertiary flex-shrink-0" />
-                <span className="line-clamp-1">{artistsText}</span>
-              </div>
-            )}
             <div className="flex items-center gap-2.5">
               <Music className="h-4 w-4 text-text-tertiary flex-shrink-0" />
+              <span className="line-clamp-1">{artistsText || "Non rempli"}</span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <Clock className="h-4 w-4 text-text-tertiary flex-shrink-0" />
               <span>{timeRange}</span>
             </div>
           </div>
         </div>
 
+        {/* Section dépliée : infos détaillées */}
+        {!isCompact && "isExpanded" in props && props.isExpanded && (
+          <div
+            className="px-4 pb-4 pt-0 border-t border-zinc-700/50 mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="pt-4 space-y-4 text-sm">
+              <InfoRow
+                icon={AlignLeft}
+                label="Description"
+                value={event.description?.trim() || "Non rempli"}
+                multiline
+              />
+              <InfoRow
+                icon={AlignLeft}
+                label="Brief"
+                value={event.brief?.trim() || "Non rempli"}
+                multiline
+              />
+              <InfoRow
+                icon={Users}
+                label="Assignées"
+                value={
+                  event.assignees && event.assignees.length > 0
+                    ? event.assignees.join(", ")
+                    : "Non rempli"
+                }
+              />
+              <InfoRow
+                icon={Flag}
+                label="Priorité"
+                value={
+                  event.priority
+                    ? ({ low: "Faible", medium: "Normale", high: "Haute", urgent: "Urgente" } as const)[
+                        event.priority
+                      ]
+                    : "Non rempli"
+                }
+              />
+              <InfoRow
+                icon={Tag}
+                label="Tags"
+                value={
+                  event.tags && event.tags.length > 0
+                    ? event.tags.join(", ")
+                    : "Non rempli"
+                }
+              />
+              <InfoRow
+                icon={Link2}
+                label="Éléments liés"
+                value={
+                  event.linkedElements && event.linkedElements.length > 0
+                    ? event.linkedElements.map((e) => e.label).join(", ")
+                    : "Non rempli"
+                }
+              />
+              {event.shotgunEventUrl && (
+                <InfoRow
+                  icon={Ticket}
+                  label="Shotgun"
+                  value={
+                    <a
+                      href={event.shotgunEventUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Voir sur Shotgun
+                    </a>
+                  }
+                />
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Pied de page */}
         <CardFooter variant="list" className="mt-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-sm text-white">
-            <MessageSquare className="h-4 w-4 text-zinc-400" />
-            <span className="font-medium">{event.comments.length}</span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 text-sm text-white">
+              <MessageSquare className="h-4 w-4 text-zinc-400" />
+              <span className="font-medium">{event.comments.length}</span>
+            </div>
+            {!isCompact && "onToggleExpand" in props && (
+              <button
+                type="button"
+                onClick={handleToggleExpand}
+                className="flex items-center gap-1 text-xs text-zinc-400 hover:text-white transition-colors"
+                aria-label={props.isExpanded ? "Replier" : "Voir plus"}
+              >
+                {props.isExpanded ? (
+                  <>
+                    <ChevronUp size={14} />
+                    Replier
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown size={14} />
+                    Voir plus
+                  </>
+                )}
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-1">

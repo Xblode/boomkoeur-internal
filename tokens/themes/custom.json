@@ -1,52 +1,52 @@
 {
   "name": "custom",
-  "description": "Thème custom - palette verte (#0C7236), neutres teintés",
+  "description": "Thème custom - fond #E5E9DD, brand #a67278, tertiaire #4f5173",
   "light": {
     "surface": {
-      "canvas": "color.neutral.0",
-      "base": "#f0fdf4",
-      "subtle": "#dcfce7",
+      "canvas": "#E5E9DD",
+      "base": "#E5E9DD",
+      "subtle": "#d8dcd0",
       "elevated": {
         "1": "color.neutral.0",
         "2": "color.neutral.0",
         "3": "color.neutral.0"
       },
-      "sidebar": "#dcfce7",
-      "header": "color.neutral.0"
+      "sidebar": "#E5E9DD",
+      "header": "#E5E9DD"
     },
     "content": {
-      "primary": "#14532d",
-      "secondary": "#166534",
-      "muted": "#15803d",
+      "primary": "#2d2d2d",
+      "secondary": "#4f5173",
+      "muted": "#4f5173",
       "disabled": "color.neutral.400",
       "inverse": {
         "primary": "color.neutral.0"
       }
     },
     "border": {
-      "default": "#86efac",
-      "subtle": "#bbf7d0",
-      "strong": "#22c55e"
+      "default": "#9a9f92",
+      "subtle": "#b0b5a8",
+      "strong": "#7a7f72"
     },
     "brand": {
-      "primary": "#0C7236",
-      "secondary": "#166534",
-      "accent": "#0C7236",
+      "primary": "#a67278",
+      "secondary": "#8a5e63",
+      "accent": "#a67278",
       "onPrimary": "color.neutral.0",
       "onAccent": "color.neutral.0"
     },
     "action": {
       "primary": {
-        "bg": "#0C7236",
+        "bg": "#a67278",
         "fg": "color.neutral.0",
-        "hover": { "bg": "#065f2e" },
-        "active": { "bg": "#044d25" }
+        "hover": { "bg": "#8a5e63" },
+        "active": { "bg": "#724a4f" }
       },
       "secondary": {
-        "bg": "#dcfce7",
-        "fg": "#14532d",
-        "hover": { "bg": "#bbf7d0" },
-        "active": { "bg": "#86efac" }
+        "bg": "#d8dcd0",
+        "fg": "#4f5173",
+        "hover": { "bg": "#b0b5a8" },
+        "active": { "bg": "#9a9f92" }
       },
       "destructive": {
         "bg": "color.status.error.500",
@@ -56,16 +56,16 @@
       },
       "ghost": {
         "bg": "transparent",
-        "fg": "#14532d",
-        "hover": { "bg": "#f0fdf4" },
-        "active": { "bg": "#dcfce7" }
+        "fg": "#4f5173",
+        "hover": { "bg": "#d8dcd0" },
+        "active": { "bg": "#b0b5a8" }
       },
       "outline": {
         "bg": "transparent",
-        "fg": "#14532d",
-        "border": "#86efac",
-        "hover": { "bg": "#f0fdf4" },
-        "active": { "bg": "#dcfce7" }
+        "fg": "#4f5173",
+        "border": "#9a9f92",
+        "hover": { "bg": "#d8dcd0" },
+        "active": { "bg": "#b0b5a8" }
       }
     },
     "status": {
@@ -91,65 +91,65 @@
       }
     },
     "focus": {
-      "ring": "#0C7236",
-      "ringOffset": "color.neutral.0"
+      "ring": "#a67278",
+      "ringOffset": "#E5E9DD"
     },
     "input": {
       "bg": "color.neutral.0",
-      "border": "#86efac",
-      "borderFocus": "#0C7236"
+      "border": "#9a9f92",
+      "borderFocus": "#a67278"
     },
     "toggle": {
-      "bg": "#dcfce7",
+      "bg": "#d8dcd0",
       "active": "color.neutral.0"
     }
   },
   "dark": {
     "surface": {
-      "canvas": "#052e16",
-      "base": "#064e3b",
-      "subtle": "#065f46",
+      "canvas": "#1a1c24",
+      "base": "#252830",
+      "subtle": "#2d3038",
       "elevated": {
-        "1": "#047857",
-        "2": "#047857",
-        "3": "#047857"
+        "1": "#353840",
+        "2": "#3d4048",
+        "3": "#454850"
       },
-      "sidebar": "#064e3b",
-      "header": "#052e16"
+      "sidebar": "#252830",
+      "header": "#1a1c24"
     },
     "content": {
-      "primary": "#86efac",
-      "secondary": "#4ade80",
-      "muted": "#22c55e",
+      "primary": "#e8e9e4",
+      "secondary": "#b8b9c4",
+      "muted": "#7a7d8f",
       "disabled": "color.neutral.500",
       "inverse": {
-        "primary": "#052e16"
+        "primary": "#1a1c24"
       }
     },
     "border": {
-      "default": "#166534",
-      "subtle": "#065f46",
-      "strong": "#22c55e"
+      "default": "#4f5173",
+      "subtle": "#3d3f52",
+      "strong": "#6a6c8a"
     },
     "brand": {
-      "primary": "#4ade80",
-      "secondary": "#86efac",
-      "accent": "#4ade80",
-      "onPrimary": "#052e16",
-      "onAccent": "#052e16"
+      "primary": "#c99096",
+      "secondary": "#a67278",
+      "accent": "#c99096",
+      "onPrimary": "color.neutral.0",
+      "onAccent": "color.neutral.0"
     },
     "action": {
       "primary": {
-        "bg": "#22c55e",
-        "fg": "#052e16",
-        "hover": { "bg": "#4ade80" },
-        "active": { "bg": "#86efac" }
+        "bg": "#a67278",
+        "fg": "color.neutral.0",
+        "hover": { "bg": "#c99096" },
+        "active": { "bg": "#8a5e63" }
       },
       "secondary": {
-        "bg": "#065f46",
-        "fg": "#86efac",
-        "hover": { "bg": "#047857" },
-        "active": { "bg": "#059669" }
+        "bg": "#353840",
+        "fg": "#e8e9e4",
+        "hover": { "bg": "#3d4048" },
+        "active": { "bg": "#454850" }
       },
       "destructive": {
         "bg": "color.status.error.500",
@@ -159,16 +159,16 @@
       },
       "ghost": {
         "bg": "transparent",
-        "fg": "#86efac",
-        "hover": { "bg": "#065f46" },
-        "active": { "bg": "#047857" }
+        "fg": "#e8e9e4",
+        "hover": { "bg": "#353840" },
+        "active": { "bg": "#3d4048" }
       },
       "outline": {
         "bg": "transparent",
-        "fg": "#86efac",
-        "border": "#166534",
-        "hover": { "bg": "#065f46" },
-        "active": { "bg": "#047857" }
+        "fg": "#e8e9e4",
+        "border": "#4f5173",
+        "hover": { "bg": "#353840" },
+        "active": { "bg": "#3d4048" }
       }
     },
     "status": {
@@ -194,17 +194,17 @@
       }
     },
     "focus": {
-      "ring": "#4ade80",
-      "ringOffset": "#052e16"
+      "ring": "#c99096",
+      "ringOffset": "#1a1c24"
     },
     "input": {
-      "bg": "#064e3b",
-      "border": "#166534",
-      "borderFocus": "#4ade80"
+      "bg": "#252830",
+      "border": "#4f5173",
+      "borderFocus": "#c99096"
     },
     "toggle": {
-      "bg": "#065f46",
-      "active": "#047857"
+      "bg": "#353840",
+      "active": "#4f5173"
     }
   }
 }
