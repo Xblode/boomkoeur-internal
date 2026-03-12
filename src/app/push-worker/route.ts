@@ -36,13 +36,17 @@ self.addEventListener('notificationclick', (event) => {
       }
     })
   );
-});
+ });
 `;
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'edge';
 
 export async function GET() {
   return new NextResponse(SW_SCRIPT, {
+    status: 200,
     headers: {
-      'Content-Type': 'application/javascript',
+      'Content-Type': 'application/javascript; charset=utf-8',
       'Cache-Control': 'public, max-age=0, must-revalidate',
       'Service-Worker-Allowed': '/',
     },
