@@ -5,27 +5,66 @@ import { ThemeProvider as NextThemesProvider, useTheme as useNextTheme } from 'n
 
 const THEME_STORAGE_KEY = 'theme-dashboard';
 const PALETTE_STORAGE_KEY = 'theme-palette';
-const THEME_OPTIONS = ['light', 'dark', 'system', 'custom'] as const;
-export type ThemeOption = (typeof THEME_OPTIONS)[number];
 
-function CustomThemeEffect({ storageKey }: { storageKey: string }) {
-  const { theme, resolvedTheme } = useNextTheme();
+export const PALETTE_OPTIONS = ['neutral', 'brand'] as const;
+export type PaletteOption = (typeof PALETTE_OPTIONS)[number];
+
+export const MODE_OPTIONS = ['light', 'dark', 'system'] as const;
+export type ModeOption = (typeof MODE_OPTIONS)[number];
+
+const PaletteStateContext = React.createContext<{
+  palette: PaletteOption;
+  setPalette: (value: PaletteOption) => void;
+} | null>(null);
+
+function migrateStoredPalette(stored: string | null): PaletteOption | null {
+  if (!stored) return null;
+  if (stored === 'custom') return 'brand';
+  if (PALETTE_OPTIONS.includes(stored as PaletteOption)) return stored as PaletteOption;
+  return null;
+}
+
+function ThemeStateSync({
+  storageKey,
+  defaultPalette,
+}: {
+  storageKey: string;
+  defaultPalette?: PaletteOption;
+}) {
+  const { theme: nextTheme, resolvedTheme } = useNextTheme();
+  const { setPalette } = React.useContext(PaletteStateContext)!;
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
     setMounted(true);
   }, []);
 
+  // Sync data-theme on document (brand = custom theme)
   React.useEffect(() => {
     if (!mounted || typeof document === 'undefined') return;
-    const palette = localStorage.getItem(PALETTE_STORAGE_KEY) as ThemeOption | null;
-    const effectivePalette = palette && THEME_OPTIONS.includes(palette) ? palette : null;
-    if (effectivePalette === 'custom') {
+    const raw = localStorage.getItem(PALETTE_STORAGE_KEY);
+    const palette = migrateStoredPalette(raw) ?? defaultPalette ?? 'neutral';
+    if (palette === 'brand') {
       document.documentElement.setAttribute('data-theme', 'custom');
     } else {
       document.documentElement.removeAttribute('data-theme');
     }
-  }, [mounted, storageKey, theme, resolvedTheme]);
+  }, [mounted, storageKey, nextTheme, resolvedTheme, defaultPalette]);
+
+  // Sync palette state from localStorage on mount (and when storage changes from another tab)
+  // Migration: 'custom' -> 'brand' (migrateStoredPalette convertit à la lecture)
+  React.useEffect(() => {
+    if (!mounted) return;
+    const readPalette = () => {
+      const raw = localStorage.getItem(PALETTE_STORAGE_KEY);
+      const palette = migrateStoredPalette(raw) ?? defaultPalette ?? 'neutral';
+      if (raw === 'custom') localStorage.setItem(PALETTE_STORAGE_KEY, 'brand');
+      setPalette(palette);
+    };
+    readPalette();
+    window.addEventListener('storage', readPalette);
+    return () => window.removeEventListener('storage', readPalette);
+  }, [mounted, defaultPalette, setPalette]);
 
   return null;
 }
@@ -33,53 +72,93 @@ function CustomThemeEffect({ storageKey }: { storageKey: string }) {
 export function ThemeProvider({
   children,
   storageKey = THEME_STORAGE_KEY,
+  defaultPalette,
   ...props
-}: React.ComponentProps<typeof NextThemesProvider> & { storageKey?: string }) {
+}: React.ComponentProps<typeof NextThemesProvider> & {
+  storageKey?: string;
+  defaultPalette?: PaletteOption;
+}) {
+  const [palette, setPaletteState] = React.useState<PaletteOption>(defaultPalette ?? 'neutral');
+
+  const setPalette = React.useCallback((value: PaletteOption) => {
+    setPaletteState(value);
+    localStorage.setItem(PALETTE_STORAGE_KEY, value);
+    if (value === 'brand') {
+      document.documentElement.setAttribute('data-theme', 'custom');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+  }, []);
+
   return (
-    <NextThemesProvider
-      {...props}
-      storageKey={storageKey}
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-      themes={['light', 'dark', 'system']}
-    >
-      <CustomThemeEffect storageKey={storageKey} />
-      {children}
-    </NextThemesProvider>
+    <PaletteStateContext.Provider value={{ palette, setPalette }}>
+      <NextThemesProvider
+        {...props}
+        storageKey={storageKey}
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+        themes={['light', 'dark', 'system']}
+      >
+        <ThemeStateSync storageKey={storageKey} defaultPalette={defaultPalette} />
+        {children}
+      </NextThemesProvider>
+    </PaletteStateContext.Provider>
   );
 }
 
 export function useTheme() {
   const nextTheme = useNextTheme();
+  const paletteContext = React.useContext(PaletteStateContext);
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
     setMounted(true);
   }, []);
 
-  const theme = React.useMemo(() => {
-    if (!mounted || typeof window === 'undefined') return nextTheme.theme ?? 'system';
-    const palette = localStorage.getItem(PALETTE_STORAGE_KEY) as ThemeOption | null;
-    if (palette === 'custom') return 'custom';
-    return nextTheme.theme ?? 'system';
-  }, [mounted, nextTheme.theme]);
+  const palette = React.useMemo((): PaletteOption => {
+    if (!mounted || typeof window === 'undefined') {
+      return paletteContext?.palette ?? 'neutral';
+    }
+    const raw = localStorage.getItem(PALETTE_STORAGE_KEY);
+    return migrateStoredPalette(raw) ?? paletteContext?.palette ?? 'neutral';
+  }, [mounted, paletteContext?.palette]);
 
-  const setTheme = React.useCallback(
-    (value: ThemeOption) => {
-      if (value === 'custom') {
-        localStorage.setItem(PALETTE_STORAGE_KEY, 'custom');
-        nextTheme.setTheme('system');
+  const mode = React.useMemo((): ModeOption => {
+    return (nextTheme.theme ?? 'system') as ModeOption;
+  }, [nextTheme.theme]);
+
+  const setPalette = React.useCallback(
+    (value: PaletteOption) => {
+      localStorage.setItem(PALETTE_STORAGE_KEY, value);
+      if (value === 'brand') {
+        document.documentElement.setAttribute('data-theme', 'custom');
       } else {
-        localStorage.removeItem(PALETTE_STORAGE_KEY);
-        nextTheme.setTheme(value);
+        document.documentElement.removeAttribute('data-theme');
       }
+      paletteContext?.setPalette(value);
+    },
+    [paletteContext]
+  );
+
+  const setMode = React.useCallback(
+    (value: ModeOption) => {
+      nextTheme.setTheme(value);
     },
     [nextTheme]
   );
 
-  return { ...nextTheme, theme, setTheme };
+  return {
+    ...nextTheme,
+    palette,
+    mode,
+    setPalette,
+    setMode,
+    // Rétrocompatibilité : theme = mode pour les usages legacy
+    theme: mode,
+    setTheme: setMode,
+  };
 }
 
-export { PALETTE_STORAGE_KEY, THEME_OPTIONS };
+export { PALETTE_STORAGE_KEY };

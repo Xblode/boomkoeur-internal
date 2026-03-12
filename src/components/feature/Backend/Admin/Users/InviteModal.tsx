@@ -27,7 +27,11 @@ export default function InviteModal({ isOpen, onClose, orgId }: InviteModalProps
       setInviteLink(null);
       createInviteLink(orgId)
         .then((invite) => {
-          setInviteLink(`${typeof window !== 'undefined' ? window.location.origin : ''}/onboarding?invite=${invite.token}`);
+          const baseUrl =
+            typeof window !== 'undefined' && window.location.origin && !window.location.origin.includes('localhost')
+              ? window.location.origin
+              : (process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : ''));
+          setInviteLink(`${baseUrl}/onboarding?invite=${invite.token}`);
         })
         .catch((err) => {
           toast.error(getErrorMessage(err));

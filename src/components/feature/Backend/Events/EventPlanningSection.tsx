@@ -569,9 +569,10 @@ export const EventPlanningSection: React.FC = () => {
         variant="fullBleed"
       >
         <ModalThreeColumnLayout
+          minHeight="500px"
           sidebar={
             <>
-              <div className="p-3 border-b border-border-custom">
+              <div className="p-3 border-b border-border-custom bg-zinc-50/90 dark:bg-zinc-900/90 backdrop-blur-sm shrink-0 sticky top-0 z-[1] md:static">
                 <div className="relative">
                   <Search
                     size={12}
@@ -586,7 +587,7 @@ export const EventPlanningSection: React.FC = () => {
                   />
                 </div>
               </div>
-              <nav className="p-2 space-y-0.5">
+              <nav className="p-2 flex gap-1 overflow-x-auto md:flex-col md:overflow-visible scrollbar-none shrink-0 w-full relative z-[2]">
                 {(
                   [
                     { id: 'benevoles' as const, label: 'Bénévoles', Icon: Users },
@@ -602,7 +603,7 @@ export const EventPlanningSection: React.FC = () => {
                       setSelectedVolunteerId(null);
                     }}
                     className={cn(
-                      'flex items-center gap-2 w-full text-left px-2 py-1.5 text-sm rounded-md transition-colors h-auto font-normal justify-start',
+                      'flex items-center gap-2 w-auto md:w-full text-left px-3 py-1.5 text-sm rounded-md transition-colors h-auto font-normal justify-start whitespace-nowrap',
                       activeTab === id
                         ? 'bg-zinc-100 dark:bg-zinc-800 text-foreground font-medium'
                         : 'text-zinc-500 hover:text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
@@ -616,7 +617,7 @@ export const EventPlanningSection: React.FC = () => {
             </>
           }
           list={
-            <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+            <div className="p-2 space-y-0.5">
               {activeTab === 'benevoles' ? (
                 <>
                   {isCreating && (

@@ -16,6 +16,7 @@ export default function FrontendLayout({
       enableSystem
       disableTransitionOnChange
       storageKey="theme-frontend"
+      defaultPalette="brand"
     >
       <div className="min-h-screen flex flex-col">
         <Header navigation={frontendNavigation} />

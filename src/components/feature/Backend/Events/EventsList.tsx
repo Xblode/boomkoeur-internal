@@ -8,6 +8,8 @@ import { CalendarDays } from 'lucide-react';
 
 interface EventsListProps {
   events: Event[];
+  expandedIds?: Set<string>;
+  onToggleExpand?: (event: Event) => void;
   onEdit: (event: Event) => void;
   onDelete: (event: Event) => void;
   onDuplicate: (id: string) => void;
@@ -16,6 +18,8 @@ interface EventsListProps {
 
 export const EventsList: React.FC<EventsListProps> = ({
   events,
+  expandedIds = new Set(),
+  onToggleExpand,
   onEdit,
   onDelete,
   onDuplicate,
@@ -38,6 +42,8 @@ export const EventsList: React.FC<EventsListProps> = ({
         <EventCard
           key={event.id}
           event={event}
+          isExpanded={expandedIds.has(event.id)}
+          onToggleExpand={onToggleExpand}
           onEdit={onEdit}
           onDelete={onDelete}
           onDuplicate={onDuplicate}

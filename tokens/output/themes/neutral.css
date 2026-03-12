@@ -3,7 +3,7 @@
 :root {
   --background: var(--color-neutral-0);
   --foreground: var(--color-neutral-900);
-  --bg-backend: var(--color-neutral-50);
+  --bg-backend: var(--color-neutral-0);
   --bg-card: var(--color-neutral-0);
   --bg-toggle: var(--color-neutral-100);
   --bg-toggle-active: var(--color-neutral-0);
@@ -14,8 +14,8 @@
   --color-secondary: var(--color-neutral-600);
   --color-accent: var(--color-brand-accent-500);
   --color-bg-primary: var(--color-neutral-0);
-  --color-bg-secondary: var(--color-neutral-50);
-  --color-bg-tertiary: var(--color-neutral-100);
+  --color-bg-secondary: var(--color-neutral-0);
+  --color-bg-tertiary: var(--color-neutral-50);
   --color-text-primary: var(--color-neutral-900);
   --color-text-secondary: var(--color-neutral-600);
   --color-text-tertiary: var(--color-neutral-500);
@@ -27,12 +27,12 @@
   --color-error: var(--color-status-error-700);
   --color-info: var(--color-status-info-700);
   --surface-canvas: var(--color-neutral-0);
-  --surface-base: var(--color-neutral-50);
-  --surface-subtle: var(--color-neutral-100);
+  --surface-base: var(--color-neutral-0);
+  --surface-subtle: var(--color-neutral-50);
   --surface-elevated-1: var(--color-neutral-0);
   --surface-elevated-2: var(--color-neutral-0);
   --surface-elevated-3: var(--color-neutral-0);
-  --surface-sidebar: var(--color-neutral-100);
+  --surface-sidebar: var(--color-neutral-0);
   --surface-header: var(--color-neutral-0);
   --content-primary: var(--color-neutral-900);
   --content-secondary: var(--color-neutral-600);

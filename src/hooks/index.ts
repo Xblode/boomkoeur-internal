@@ -13,4 +13,6 @@ export * from './useBudgetProjects';
 export * from './useInvoices';
 export * from './useTreasuryForecasts';
 export * from './useFinanceKPIs';
+export * from './useMessages';
+export * from './useMessagesUnreadCount';
 export { useOrg } from '@/components/providers/OrgProvider';

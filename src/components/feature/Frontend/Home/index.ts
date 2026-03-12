@@ -1,6 +1,11 @@
 export { Hero } from './Hero';
+export { HeroDashboardPreview } from './HeroDashboardPreview';
 export { LogosSection } from './LogosSection';
+export { EventPreviewSection } from './EventPreviewSection';
+export { EventPagePreview } from './EventPagePreview';
+export { CampaignPagePreview } from './CampaignPagePreview';
 export { FeaturesSection } from './FeaturesSection';
 export { CampaignSection } from './CampaignSection';
 export { IntegrationsSection } from './IntegrationsSection';
+export { FinanceSection } from './FinanceSection';
 export { CTASection } from './CTASection';

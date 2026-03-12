@@ -8,6 +8,8 @@ interface PageLayoutContextType {
   setMaxWidth: (maxWidth: PageContentMaxWidth) => void;
   fullBleed: boolean;
   setFullBleed: (fullBleed: boolean) => void;
+  noPadding: boolean;
+  setNoPadding: (noPadding: boolean) => void;
 }
 
 const PageLayoutContext = createContext<PageLayoutContextType | undefined>(undefined);
@@ -18,9 +20,10 @@ const PageLayoutContext = createContext<PageLayoutContextType | undefined>(undef
 export function PageLayoutProvider({ children }: { children: ReactNode }) {
   const [maxWidth, setMaxWidth] = useState<PageContentMaxWidth>('6xl');
   const [fullBleed, setFullBleed] = useState(false);
+  const [noPadding, setNoPadding] = useState(false);
 
   return (
-    <PageLayoutContext.Provider value={{ maxWidth, setMaxWidth, fullBleed, setFullBleed }}>
+    <PageLayoutContext.Provider value={{ maxWidth, setMaxWidth, fullBleed, setFullBleed, noPadding, setNoPadding }}>
       {children}
     </PageLayoutContext.Provider>
   );

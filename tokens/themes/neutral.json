@@ -4,14 +4,14 @@
   "light": {
     "surface": {
       "canvas": "color.neutral.0",
-      "base": "color.neutral.50",
-      "subtle": "color.neutral.100",
+      "base": "color.neutral.0",
+      "subtle": "color.neutral.50",
       "elevated": {
         "1": "color.neutral.0",
         "2": "color.neutral.0",
         "3": "color.neutral.0"
       },
-      "sidebar": "color.neutral.100",
+      "sidebar": "color.neutral.0",
       "header": "color.neutral.0"
     },
     "content": {

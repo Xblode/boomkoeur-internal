@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { FlaskConical, Plug2, CircleDot, Layers2, Layers3, BookOpen, Table2 } from 'lucide-react';
+import { FlaskConical, Plug2, CircleDot, Layers2, Layers3, BookOpen, Table2, MessageSquare } from 'lucide-react';
 import { SidebarCard } from '@/components/ui';
 import { siteConfig } from '@/config/site';
 import { Select } from '@/components/ui/atoms';
@@ -12,7 +12,7 @@ import { useAlert } from '@/components/providers/AlertProvider';
 import { useChatPanel } from '@/components/providers/ChatPanelProvider';
 import { usePageLayout } from '@/components/providers/PageLayoutProvider';
 
-export type DocsSectionId = 'introduction' | 'stack' | 'docs-table' | 'atoms' | 'molecules' | 'organisms' | 'reference';
+export type DocsSectionId = 'introduction' | 'stack' | 'docs-table' | 'docs-chat' | 'atoms' | 'molecules' | 'organisms' | 'reference';
 
 export interface DocsSectionConfig {
   id: DocsSectionId;
@@ -54,6 +54,13 @@ export const DOCS_SECTIONS: DocsSectionConfig[] = [
     headerIcon: <Table2 size={28} />,
     subtitle: 'Documentation du composant Table : options, exemples et référence.',
   },
+  {
+    id: 'docs-chat',
+    label: 'Chat',
+    icon: <MessageSquare size={16} />,
+    headerIcon: <MessageSquare size={28} />,
+    subtitle: 'Documentation du module Messages : structure, composants et référence.',
+  },
 ];
 
 interface DocsLayoutContextType {
@@ -76,6 +83,7 @@ const SLUG_MAP: Record<DocsSectionId, string> = {
   stack: '/presentation/stack',
   reference: '/presentation/reference',
   'docs-table': '/table',
+  'docs-chat': '/chat',
   atoms: '/design-system/atoms',
   molecules: '/design-system/molecules',
   organisms: '/design-system/organisms',
@@ -96,7 +104,7 @@ const PAGE_SIDEBAR_SECTION_GROUPS = [
   },
   {
     title: 'Docs',
-    sections: DOCS_SECTIONS.filter((s) => s.id === 'docs-table').map(toSidebarSection),
+    sections: DOCS_SECTIONS.filter((s) => s.id === 'docs-table' || s.id === 'docs-chat').map(toSidebarSection),
   },
   {
     title: 'Design System',
@@ -111,6 +119,7 @@ function getActiveSectionFromPath(pathname: string): DocsSectionId {
   if (pathname?.includes('/presentation/stack')) return 'stack';
   if (pathname?.includes('/presentation/reference')) return 'reference';
   if (pathname?.includes('/table')) return 'docs-table';
+  if (pathname?.includes('/chat')) return 'docs-chat';
   if (pathname?.includes('/design-system/atoms')) return 'atoms';
   if (pathname?.includes('/design-system/molecules')) return 'molecules';
   if (pathname?.includes('/design-system/organisms')) return 'organisms';
@@ -125,7 +134,7 @@ export function DocsLayoutConfig({ children }: { children: React.ReactNode }) {
   const { setMaxWidth } = usePageLayout();
 
   const activeSection = getActiveSectionFromPath(pathname ?? '');
-  const { theme, setTheme } = useTheme();
+  const { palette, mode, setPalette, setMode } = useTheme();
   const [pageAlert, setPageAlert] = useState<DocsLayoutContextType['pageAlert']>(null);
 
   useEffect(() => {
@@ -133,22 +142,38 @@ export function DocsLayoutConfig({ children }: { children: React.ReactNode }) {
     setPageSidebarConfig({
       backLink: { href: '/dashboard', label: 'Retour au dashboard' },
       entitySelector: (
-        <div>
-          <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">
-            Thème
-          </label>
-          <Select
-            value={theme}
-            onChange={(e) => setTheme(e.target.value as 'light' | 'dark' | 'system' | 'custom')}
-            size="sm"
-            className="w-full"
-            options={[
-              { value: 'light', label: 'Clair' },
-              { value: 'dark', label: 'Sombre' },
-              { value: 'system', label: 'Système' },
-              { value: 'custom', label: 'Custom' },
-            ]}
-          />
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">
+              Palette
+            </label>
+            <Select
+              value={palette}
+              onChange={(e) => setPalette(e.target.value as 'neutral' | 'brand')}
+              size="sm"
+              className="w-full"
+              options={[
+                { value: 'neutral', label: 'Neutre' },
+                { value: 'brand', label: 'Brand' },
+              ]}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">
+              Mode
+            </label>
+            <Select
+              value={mode}
+              onChange={(e) => setMode(e.target.value as 'light' | 'dark' | 'system')}
+              size="sm"
+              className="w-full"
+              options={[
+                { value: 'light', label: 'Clair' },
+                { value: 'dark', label: 'Sombre' },
+                { value: 'system', label: 'Système' },
+              ]}
+            />
+          </div>
         </div>
       ),
       sectionGroups: PAGE_SIDEBAR_SECTION_GROUPS,
@@ -165,7 +190,7 @@ export function DocsLayoutConfig({ children }: { children: React.ReactNode }) {
       ),
     });
     return () => setPageSidebarConfig(null);
-  }, [activeSection, theme, setPageSidebarConfig, setMaxWidth, pathname]);
+  }, [activeSection, palette, mode, setPalette, setMode, setPageSidebarConfig, setMaxWidth, pathname]);
 
   useEffect(() => {
     setAlert(

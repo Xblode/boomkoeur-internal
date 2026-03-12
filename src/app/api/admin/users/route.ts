@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getAppUrl } from '@/lib/app-url';
 import type { UserInput } from '@/types/user';
 
 async function ensureAdmin() {
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
   const admin = createAdminClient();
 
   try {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://dashboard.perret.app';
+    const appUrl = getAppUrl(request);
     const { data, error } = await admin.auth.admin.inviteUserByEmail(email.trim(), {
       data: {
         first_name: firstName?.trim() ?? '',

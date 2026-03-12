@@ -45,6 +45,7 @@ export const EventsView: React.FC = () => {
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
   const [mounted, setMounted] = useState(false);
   const [pastEventsPage, setPastEventsPage] = useState(1);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const PAST_EVENTS_PER_PAGE = 3;
 
@@ -332,6 +333,15 @@ export const EventsView: React.FC = () => {
     router.push(`/dashboard/events/${event.id}`);
   };
 
+  const handleToggleExpand = (event: Event) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(event.id)) next.delete(event.id);
+      else next.add(event.id);
+      return next;
+    });
+  };
+
   const handleSortChange = (field: SortField, order: SortOrder) => {
     setSortField(field);
     setSortOrder(order);
@@ -383,6 +393,8 @@ export const EventsView: React.FC = () => {
       {activeEvents.length > 0 && (
         <EventsList
           events={activeEvents}
+          expandedIds={expandedIds}
+          onToggleExpand={handleToggleExpand}
           onEdit={handleEditEvent}
           onDelete={handleDeleteClick}
           onDuplicate={handleDuplicateEvent}
@@ -425,6 +437,8 @@ export const EventsView: React.FC = () => {
       {activeEvents.length === 0 && pastEvents.length === 0 && (
         <EventsList
           events={[]}
+          expandedIds={expandedIds}
+          onToggleExpand={handleToggleExpand}
           onEdit={handleEditEvent}
           onDelete={handleDeleteClick}
           onDuplicate={handleDuplicateEvent}
