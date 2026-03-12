@@ -21,6 +21,7 @@ interface MessageDateSeparatorProps {
 }
 
 const summaryCache = new Map<string, string>();
+const notifiedSummaryDays = new Set<string>();
 const MIN_DELAY_MS = 12000;
 let lastSummarizeAt = 0;
 
@@ -168,8 +169,22 @@ export function MessageDateSeparator({
     };
   }, [hasSummary, cacheKey, previousDayMessages.length, isVisible, orgId, onSummarySaved, regenerateTrigger]);
 
+  // Notification push quand on change de jour et que la synthèse est disponible
+  useEffect(() => {
+    if (!summary || summaryLoading || !isVisible || !cacheKey || !orgId || notifiedSummaryDays.has(cacheKey)) return;
+    notifiedSummaryDays.add(cacheKey);
+    fetch('/api/push/notify-summary-ready', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orgId, dateLabel: prevDateLabel }),
+    }).catch(() => {});
+  }, [summary, summaryLoading, isVisible, cacheKey, prevDateLabel, orgId]);
+
   const handleRegenerate = () => {
-    if (cacheKey) summaryCache.delete(cacheKey);
+    if (cacheKey) {
+      summaryCache.delete(cacheKey);
+      notifiedSummaryDays.delete(cacheKey);
+    }
     setSummary(null);
     setSummaryError(null);
     setRegenerateTrigger((t) => t + 1);

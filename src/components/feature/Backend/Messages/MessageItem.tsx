@@ -266,7 +266,7 @@ export function MessageItem({
 
           {/* Link previews */}
           {!isPoll && !isQuickVote && !isEntityCard && (message.metadata?.linkPreviews as Array<{ url: string; title?: string; description?: string; image?: string; siteName?: string }>)?.length > 0 && (
-            <div className={cn('mb-1 space-y-1.5 min-w-[300px] max-w-[300px] sm:min-w-0 sm:max-w-[85%]', isOwnMessage ? 'self-end' : 'w-full')}>
+            <div className={cn('mb-1 space-y-1.5 min-w-0 w-full max-w-full sm:max-w-[85%]', isOwnMessage ? 'self-end' : 'w-full')}>
               {(message.metadata.linkPreviews as Array<{ url: string; title?: string; description?: string; image?: string; siteName?: string }>).map((p, i) => (
                 <LinkPreview key={`${p.url}-${i}`} preview={p} />
               ))}
@@ -297,7 +297,7 @@ export function MessageItem({
               />
             ) : isEntityCard && message.relatedEntityType && entityConf ? (
               <div className={cn(
-                'inline-block min-w-[300px] sm:min-w-[385px] max-w-[300px] sm:max-w-[85%] border overflow-hidden',
+                'inline-block min-w-0 sm:min-w-[385px] w-full max-w-full sm:max-w-[85%] border overflow-hidden',
                 cardBubbleRadius,
                 entityConf.borderColor,
               )}>

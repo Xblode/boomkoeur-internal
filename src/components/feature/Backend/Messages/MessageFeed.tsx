@@ -159,7 +159,7 @@ export function MessageFeed({
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto min-h-0 min-w-0"
+        className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 min-w-0"
       >
         {isLoading ? (
           <div className="flex items-center justify-center h-full py-20">
@@ -174,7 +174,7 @@ export function MessageFeed({
             className="h-full border-0 min-h-0"
           />
         ) : (
-          <div className="py-2">
+          <div className="py-2 min-w-0">
             {buildFeedItems(messages, pinnedMessages).map((item, idx) =>
               item.type === 'date' ? (
                 <MessageDateSeparator
