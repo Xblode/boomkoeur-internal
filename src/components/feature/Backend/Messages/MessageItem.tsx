@@ -238,19 +238,21 @@ export function MessageItem({
       className={className}
     >
       <div className={cn('flex items-end gap-2', isOwnMessage && 'flex-row-reverse justify-end')}>
-        <MessageAvatarSlot
-          show={isLast}
-          avatarSrc={message.author?.avatar}
-          avatarAlt={message.author?.name}
-          fallback={initials}
-          entityIcon={
-            message.type === 'system' && entityConf && EntityIcon && !message.author?.avatar && !message.author?.name
-              ? EntityIcon
-              : undefined
-          }
-          entityAvatarBg={entityConf?.avatarBg}
-          entityIconColor={entityConf?.iconColor}
-        />
+        <div className={cn(isOwnMessage && 'hidden sm:block')}>
+          <MessageAvatarSlot
+            show={isLast}
+            avatarSrc={message.author?.avatar}
+            avatarAlt={message.author?.name}
+            fallback={initials}
+            entityIcon={
+              message.type === 'system' && entityConf && EntityIcon && !message.author?.avatar && !message.author?.name
+                ? EntityIcon
+                : undefined
+            }
+            entityAvatarBg={entityConf?.avatarBg}
+            entityIconColor={entityConf?.iconColor}
+          />
+        </div>
 
         <div className={cn('min-w-0 flex-1', isOwnMessage && 'flex flex-col items-end')}>
           {isFirst && (
@@ -264,7 +266,7 @@ export function MessageItem({
 
           {/* Link previews */}
           {!isPoll && !isQuickVote && !isEntityCard && (message.metadata?.linkPreviews as Array<{ url: string; title?: string; description?: string; image?: string; siteName?: string }>)?.length > 0 && (
-            <div className={cn('mb-1 space-y-1.5 max-w-[85%] min-w-0', isOwnMessage ? 'self-end' : 'w-full')}>
+            <div className={cn('mb-1 space-y-1.5 min-w-[300px] max-w-[300px] sm:min-w-0 sm:max-w-[85%]', isOwnMessage ? 'self-end' : 'w-full')}>
               {(message.metadata.linkPreviews as Array<{ url: string; title?: string; description?: string; image?: string; siteName?: string }>).map((p, i) => (
                 <LinkPreview key={`${p.url}-${i}`} preview={p} />
               ))}
@@ -295,7 +297,7 @@ export function MessageItem({
               />
             ) : isEntityCard && message.relatedEntityType && entityConf ? (
               <div className={cn(
-                'inline-block min-w-[385px] max-w-[85%] border overflow-hidden',
+                'inline-block min-w-[300px] sm:min-w-[385px] max-w-[300px] sm:max-w-[85%] border overflow-hidden',
                 cardBubbleRadius,
                 entityConf.borderColor,
               )}>
@@ -385,7 +387,7 @@ export function MessageItem({
 
           {/* MessageEntityCard below text for messages with entity + text content */}
           {message.relatedEntityType && !isEntityCard && (
-            <div className={cn('inline-block min-w-[385px] max-w-[85%]', isOwnMessage && 'ml-auto')}>
+            <div className={cn('inline-block min-w-[300px] sm:min-w-[385px] max-w-[300px] sm:max-w-[85%]', isOwnMessage && 'ml-auto')}>
               <MessageEntityCard entityType={message.relatedEntityType} metadata={message.metadata} />
             </div>
           )}

@@ -90,7 +90,7 @@ export function PollDisplay({
   votes,
   currentUserId,
   onVote,
-  bubbleRadius = 'rounded-lg rounded-bl-md',
+  bubbleRadius = 'rounded-xl rounded-bl-md',
   className,
 }: PollDisplayProps) {
   const totalVotes = Object.keys(votes).length;
@@ -103,7 +103,7 @@ export function PollDisplay({
   return (
     <div
       className={cn(
-        'flex-1 min-w-[260px] max-w-[85%] border overflow-hidden',
+        'flex-1 min-w-[300px] sm:min-w-[385px] max-w-[300px] sm:max-w-[85%] border overflow-hidden',
         'border-zinc-200 dark:border-zinc-700',
         'bg-zinc-50/50 dark:bg-zinc-900/30',
         bubbleRadius,
@@ -183,7 +183,7 @@ export function QuickVoteDisplay({
   no,
   currentUserId,
   onVote,
-  bubbleRadius = 'rounded-lg rounded-bl-md',
+  bubbleRadius = 'rounded-xl rounded-bl-md',
   className,
 }: QuickVoteDisplayProps) {
   const total = yes.length + no.length;
@@ -193,7 +193,7 @@ export function QuickVoteDisplay({
   return (
     <div
       className={cn(
-        'flex-1 min-w-[260px] max-w-[85%] border overflow-hidden',
+        'flex-1 min-w-[300px] sm:min-w-[385px] max-w-[300px] sm:max-w-[85%] border overflow-hidden',
         'border-zinc-200 dark:border-zinc-700',
         'bg-zinc-50/50 dark:bg-zinc-900/30',
         bubbleRadius,

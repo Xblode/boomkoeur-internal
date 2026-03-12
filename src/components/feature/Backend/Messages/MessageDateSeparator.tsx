@@ -208,7 +208,7 @@ export function MessageDateSeparator({
                 className={cn(
                   'inline-block max-w-[85%] min-w-0 px-2.5 sm:px-3.5 py-2 text-sm leading-relaxed',
                   'bg-surface-elevated text-zinc-800 dark:text-zinc-200',
-                  'rounded-lg rounded-bl-md',
+                  'rounded-xl rounded-bl-md',
                 )}
               >
                 {summaryLoading && (
@@ -273,7 +273,7 @@ export function MessageDateSeparator({
                 className={cn(
                   'inline-block max-w-[85%] min-w-0 px-2.5 sm:px-3.5 py-2 text-sm leading-relaxed',
                   'bg-surface-elevated text-zinc-800 dark:text-zinc-200',
-                  'rounded-lg rounded-bl-md',
+                  'rounded-xl rounded-bl-md',
                 )}
               >
                 <div className="space-y-2">

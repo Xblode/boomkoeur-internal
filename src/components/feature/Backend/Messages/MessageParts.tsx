@@ -216,7 +216,7 @@ export const MENU_TRIGGER_CLASSES = [
 
 export function getBubbleRadius(isFirst: boolean, isLast: boolean, isPinned: boolean) {
   return cn(
-    'rounded-lg',
+    'rounded-xl',
     isPinned
       ? cn(
           isFirst && isLast && 'rounded-br-md',
@@ -234,7 +234,7 @@ export function getBubbleRadius(isFirst: boolean, isLast: boolean, isPinned: boo
 }
 
 export function getCardBubbleRadius(isPinned: boolean) {
-  return cn('rounded-lg', isPinned ? 'rounded-br-md' : 'rounded-bl-md');
+  return cn('rounded-xl', isPinned ? 'rounded-br-md' : 'rounded-bl-md');
 }
 
 // ── HorizontalSeparator ─────────────────────────────────────────────────────

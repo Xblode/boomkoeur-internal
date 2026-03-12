@@ -464,7 +464,7 @@ export function MessageComposer({
               onKeyDown={handleKeyDown}
               rows={1}
               disabled={disabled}
-              className="flex-1 min-w-0 resize-none bg-transparent border-0 focus-visible:ring-0 shadow-none min-h-[34px] max-h-[132px] overflow-y-auto text-sm py-1.5 pl-1 pr-0"
+              className="flex-1 min-w-0 resize-none bg-transparent border-0 focus-visible:ring-0 shadow-none min-h-[34px] max-h-[132px] overflow-y-auto text-sm py-1.5 pl-1 pr-0 placeholder:truncate"
               style={{ minHeight: '34px', maxHeight: '132px' }}
             />
             <div className="flex items-center gap-0.5 shrink-0">
