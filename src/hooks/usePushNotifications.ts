@@ -21,7 +21,7 @@ export function usePushNotifications(orgId: string | null) {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
     try {
-      const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      const reg = await navigator.serviceWorker.register('/push-worker', { scope: '/' });
       if ('ready' in reg && reg.ready instanceof Promise) {
         await reg.ready;
       }

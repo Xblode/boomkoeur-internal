@@ -87,7 +87,7 @@ export function PushNotificationToggle() {
           return;
         }
         toast.loading('Enregistrement du service worker…', { id: toastId });
-        const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+        const reg = await navigator.serviceWorker.register('/push-worker', { scope: '/' });
         if ('ready' in reg && reg.ready instanceof Promise) {
           await reg.ready;
         }
