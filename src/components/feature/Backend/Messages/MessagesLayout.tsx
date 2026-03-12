@@ -11,9 +11,9 @@ import { updateMessageMetadata } from '@/lib/supabase/messages';
 import { extractUrls } from '@/lib/url-utils';
 import { MessagesSidebar } from './MessagesSidebar';
 import { MessageFeed } from './MessageFeed';
-import { JournalView } from './JournalView';
-import type { PickedEntity } from './EntityPickerModal';
-import type { PollData } from './PollModal';
+import { MessageJournal } from './MessageJournal';
+import type { PickedEntity } from './MessageComposerModals';
+import type { PollData } from './MessageComposerModals';
 
 function entityLabel(type: string) {
   return type === 'event' ? 'événement' : 'réunion';
@@ -218,7 +218,7 @@ export function MessagesLayout({ className }: MessagesLayoutProps) {
       />
       {isJournalPage ? (
         <div className="flex-1 min-w-0 overflow-y-auto p-3 sm:p-6">
-          <JournalView />
+          <MessageJournal />
         </div>
       ) : (
         <MessageFeed

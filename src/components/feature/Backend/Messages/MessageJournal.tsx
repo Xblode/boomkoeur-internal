@@ -23,7 +23,7 @@ function SummaryContent({ summary }: { summary: string }) {
               key={i}
               className={cn(
                 'text-sm text-zinc-600 dark:text-zinc-300 break-words',
-                isBullet && 'flex gap-2'
+                isBullet && 'flex gap-2',
               )}
             >
               {isBullet && (
@@ -37,7 +37,7 @@ function SummaryContent({ summary }: { summary: string }) {
   );
 }
 
-export function JournalView() {
+export function MessageJournal() {
   const orgContext = useOrgOptional();
   const orgId = orgContext?.activeOrg?.id ?? null;
   const [entries, setEntries] = useState<DaySummary[]>([]);
@@ -114,3 +114,6 @@ export function JournalView() {
     </div>
   );
 }
+
+/** @deprecated Use MessageJournal instead */
+export const JournalView = MessageJournal;

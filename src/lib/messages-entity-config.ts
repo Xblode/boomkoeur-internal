@@ -46,7 +46,7 @@ export function getEntityMissingCount(
 
 export const ENTITY_CONFIG: Record<
   RelatedEntityType | 'system',
-  { icon: LucideIcon; label: string; avatarBg: string; borderColor: string; iconColor: string }
+  { icon: LucideIcon; label: string; avatarBg: string; borderColor: string; iconColor: string; cardColor: string; basePath: string }
 > = {
   post: {
     icon: FileText,
@@ -54,6 +54,8 @@ export const ENTITY_CONFIG: Record<
     avatarBg: 'bg-blue-100 dark:bg-blue-950/50',
     borderColor: 'border-blue-300 dark:border-blue-700',
     iconColor: 'text-blue-600 dark:text-blue-400',
+    cardColor: 'text-blue-500 bg-blue-50 dark:bg-blue-950/30',
+    basePath: '/dashboard/communication',
   },
   event: {
     icon: CalendarIcon,
@@ -61,6 +63,8 @@ export const ENTITY_CONFIG: Record<
     avatarBg: 'bg-purple-100 dark:bg-purple-950/50',
     borderColor: 'border-purple-300 dark:border-purple-700',
     iconColor: 'text-purple-600 dark:text-purple-400',
+    cardColor: 'text-purple-500 bg-purple-50 dark:bg-purple-950/30',
+    basePath: '/dashboard/events',
   },
   meeting: {
     icon: Video,
@@ -68,6 +72,8 @@ export const ENTITY_CONFIG: Record<
     avatarBg: 'bg-amber-100 dark:bg-amber-950/50',
     borderColor: 'border-amber-300 dark:border-amber-700',
     iconColor: 'text-amber-600 dark:text-amber-400',
+    cardColor: 'text-amber-500 bg-amber-50 dark:bg-amber-950/30',
+    basePath: '/dashboard/meetings',
   },
   system: {
     icon: Bot,
@@ -75,6 +81,8 @@ export const ENTITY_CONFIG: Record<
     avatarBg: 'bg-zinc-100 dark:bg-zinc-800',
     borderColor: 'border-zinc-300 dark:border-zinc-600',
     iconColor: 'text-zinc-500 dark:text-zinc-400',
+    cardColor: 'text-zinc-500 bg-zinc-50 dark:bg-zinc-950/30',
+    basePath: '/dashboard',
   },
 };
 

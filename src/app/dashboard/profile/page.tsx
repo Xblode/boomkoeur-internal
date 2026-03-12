@@ -39,6 +39,7 @@ export default function ProfilePage() {
           role: 'Utilisateur',
           avatar: user.avatar,
         }}
+        userId={user.id}
       />
     </div>
   );

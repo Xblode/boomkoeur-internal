@@ -6,12 +6,12 @@ import { EmptyState } from '@/components/ui/molecules';
 import { Spinner } from '@/components/ui/atoms';
 import { cn } from '@/lib/utils';
 import { MessageItem } from './MessageItem';
-import { PinnedMessages } from './PinnedMessages';
+import { MessagePinnedBar } from './MessagePinnedBar';
 import { MessageComposer } from './MessageComposer';
-import { DateSeparator } from './DateSeparator';
+import { MessageDateSeparator } from './MessageDateSeparator';
 import type { Message } from '@/types/messages';
-import type { PickedEntity } from './EntityPickerModal';
-import type { PollData } from './PollModal';
+import type { PickedEntity } from './MessageComposerModals';
+import type { PollData } from './MessageComposerModals';
 
 function isSameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -153,7 +153,7 @@ export function MessageFeed({
   return (
     <div className={cn('flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden', className)}>
       {/* Pinned messages */}
-      <PinnedMessages messages={pinnedMessages} onNavigateToMessage={handleNavigateToMessage} />
+      <MessagePinnedBar messages={pinnedMessages} onNavigateToMessage={handleNavigateToMessage} />
 
       {/* Messages feed */}
       <div
@@ -177,7 +177,7 @@ export function MessageFeed({
           <div className="py-2">
             {buildFeedItems(messages, pinnedMessages).map((item, idx) =>
               item.type === 'date' ? (
-                <DateSeparator
+                <MessageDateSeparator
                   key={`date-${item.date.toISOString().slice(0, 10)}-${idx}`}
                   date={item.date}
                   previousDayMessages={item.previousDayMessages}

@@ -7,13 +7,13 @@ import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { Message } from '@/types/messages';
 
-interface PinnedMessagesProps {
+interface MessagePinnedBarProps {
   messages: Message[];
   onNavigateToMessage?: (messageId: string) => void;
   className?: string;
 }
 
-export function PinnedMessages({ messages, onNavigateToMessage, className }: PinnedMessagesProps) {
+export function MessagePinnedBar({ messages, onNavigateToMessage, className }: MessagePinnedBarProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   if (messages.length === 0) return null;
@@ -70,3 +70,6 @@ export function PinnedMessages({ messages, onNavigateToMessage, className }: Pin
     </div>
   );
 }
+
+/** @deprecated Use MessagePinnedBar instead */
+export const PinnedMessages = MessagePinnedBar;

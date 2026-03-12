@@ -5,9 +5,7 @@ import { Send, Plus, Image as ImageIcon, FileText, CalendarDays, Video, Loader2,
 import { IconButton, Textarea } from '@/components/ui/atoms';
 import { MenuPicker } from '@/components/ui/molecules';
 import { DrivePickerModal } from '@/components/feature/Backend/Events/DrivePickerModal';
-import { EntityPickerModal, type PickedEntity } from './EntityPickerModal';
-import { PollModal, type PollData } from './PollModal';
-import { QuickVoteModal, type QuickVoteData } from './QuickVoteModal';
+import { EntityPickerModal, PollModal, QuickVoteModal, type PickedEntity, type PollData, type QuickVoteData } from './MessageComposerModals';
 import { supabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -457,7 +455,7 @@ export function MessageComposer({
             </div>
           )}
 
-          <div className="flex rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 transition-colors focus-within:ring-1 focus-within:ring-zinc-400 dark:focus-within:ring-zinc-600">
+          <div className="flex items-end gap-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-2 transition-colors focus-within:ring-1 focus-within:ring-zinc-400 dark:focus-within:ring-zinc-600">
             <Textarea
               ref={textareaRef}
               placeholder="Envoyer un message… (@ pour mentionner)"
@@ -466,9 +464,111 @@ export function MessageComposer({
               onKeyDown={handleKeyDown}
               rows={1}
               disabled={disabled}
-              className="flex-1 min-w-0 resize-none bg-transparent border-0 focus-visible:ring-0 shadow-none min-h-[38px] max-h-[140px] overflow-y-auto text-sm"
-              style={{ minHeight: '38px', maxHeight: '140px' }}
+              className="flex-1 min-w-0 resize-none bg-transparent border-0 focus-visible:ring-0 shadow-none min-h-[34px] max-h-[132px] overflow-y-auto text-sm py-1.5 pl-1 pr-0"
+              style={{ minHeight: '34px', maxHeight: '132px' }}
             />
+            <div className="flex items-center gap-0.5 shrink-0">
+              {onSendImage && (
+                <>
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageChange}
+                    aria-label="Envoyer une image"
+                  />
+                  <IconButton
+                    icon={<ImageIcon size={18} />}
+                    ariaLabel="Envoyer une image"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => imageInputRef.current?.click()}
+                    disabled={disabled}
+                    className="flex items-center justify-center w-9 h-9 rounded-lg shrink-0 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                  />
+                </>
+              )}
+              {orgId && (
+                <MenuPicker
+                  trigger={
+                    <IconButton
+                      icon={<Plus size={18} />}
+                      ariaLabel="Pièces jointes"
+                      variant="ghost"
+                      size="sm"
+                      disabled={disabled}
+                      className="flex items-center justify-center w-9 h-9 rounded-lg shrink-0 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                    />
+                  }
+                  items={[
+                    ...(onSendDriveFile
+                      ? [
+                          {
+                            id: 'drive-image',
+                            label: 'Image depuis Drive',
+                            icon: ImageIcon,
+                            onClick: () => {
+                              setDrivePickerMode('image');
+                              setDrivePickerOpen(true);
+                            },
+                          },
+                          {
+                            id: 'drive-doc',
+                            label: 'Document depuis Drive',
+                            icon: FileText,
+                            onClick: () => {
+                              setDrivePickerMode('document');
+                              setDrivePickerOpen(true);
+                            },
+                          },
+                        ]
+                      : []),
+                    ...(onSendEntity
+                      ? [
+                          {
+                            id: 'tag-entity',
+                            label: 'Tagger un événement / réunion',
+                            icon: CalendarDays,
+                            onClick: () => setEntityPickerOpen(true),
+                          },
+                        ]
+                      : []),
+                    ...(onSendPoll
+                      ? [
+                          {
+                            id: 'poll',
+                            label: 'Créer un sondage',
+                            icon: BarChart3,
+                            onClick: () => setPollModalOpen(true),
+                          },
+                        ]
+                      : []),
+                    ...(onSendQuickVote
+                      ? [
+                          {
+                            id: 'quick-vote',
+                            label: 'Vote oui / non',
+                            icon: ThumbsUp,
+                            onClick: () => setQuickVoteModalOpen(true),
+                          },
+                        ]
+                      : []),
+                  ]}
+                  align="end"
+                  side="top"
+                />
+              )}
+              <IconButton
+                icon={<Send size={16} />}
+                ariaLabel="Envoyer"
+                variant="primary"
+                size="sm"
+                onClick={handleSend}
+                disabled={disabled || (!content.trim() && pendingMentions.length === 0 && pendingMemberMentions.length === 0)}
+                className="flex items-center justify-center w-9 h-9 rounded-lg shrink-0 disabled:opacity-30"
+              />
+            </div>
           </div>
 
           {/* Pending mentions badges */}
@@ -504,111 +604,6 @@ export function MessageComposer({
           )}
         </div>
 
-        {/* Image button */}
-        {onSendImage && (
-          <>
-            <input
-              ref={imageInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleImageChange}
-              aria-label="Envoyer une image"
-            />
-            <IconButton
-              icon={<ImageIcon size={18} />}
-              ariaLabel="Envoyer une image"
-              variant="ghost"
-              size="sm"
-              onClick={() => imageInputRef.current?.click()}
-              disabled={disabled}
-              className="flex items-center justify-center w-9 h-9 rounded-lg shrink-0 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-            />
-          </>
-        )}
-
-        {/* + menu */}
-        {orgId && (
-          <MenuPicker
-            trigger={
-              <IconButton
-                icon={<Plus size={18} />}
-                ariaLabel="Pièces jointes"
-                variant="ghost"
-                size="sm"
-                disabled={disabled}
-                className="flex items-center justify-center w-9 h-9 rounded-lg shrink-0 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-              />
-            }
-            items={[
-              ...(onSendDriveFile
-                ? [
-                    {
-                      id: 'drive-image',
-                      label: 'Image depuis Drive',
-                      icon: ImageIcon,
-                      onClick: () => {
-                        setDrivePickerMode('image');
-                        setDrivePickerOpen(true);
-                      },
-                    },
-                    {
-                      id: 'drive-doc',
-                      label: 'Document depuis Drive',
-                      icon: FileText,
-                      onClick: () => {
-                        setDrivePickerMode('document');
-                        setDrivePickerOpen(true);
-                      },
-                    },
-                  ]
-                : []),
-              ...(onSendEntity
-                ? [
-                    {
-                      id: 'tag-entity',
-                      label: 'Tagger un événement / réunion',
-                      icon: CalendarDays,
-                      onClick: () => setEntityPickerOpen(true),
-                    },
-                  ]
-                : []),
-              ...(onSendPoll
-                ? [
-                    {
-                      id: 'poll',
-                      label: 'Créer un sondage',
-                      icon: BarChart3,
-                      onClick: () => setPollModalOpen(true),
-                    },
-                  ]
-                : []),
-              ...(onSendQuickVote
-                ? [
-                    {
-                      id: 'quick-vote',
-                      label: 'Vote oui / non',
-                      icon: ThumbsUp,
-                      onClick: () => setQuickVoteModalOpen(true),
-                    },
-                  ]
-                : []),
-            ]}
-            align="end"
-            side="top"
-          />
-        )}
-
-        {/* Send */}
-        <IconButton
-          icon={<Send size={16} />}
-          ariaLabel="Envoyer"
-          variant="primary"
-          size="sm"
-          onClick={handleSend}
-          disabled={disabled || (!content.trim() && pendingMentions.length === 0 && pendingMemberMentions.length === 0)}
-          className="flex items-center justify-center w-9 h-9 rounded-lg shrink-0 disabled:opacity-30"
-        />
       </div>
 
       {orgId && onSendDriveFile && (
@@ -643,7 +638,7 @@ export function MessageComposer({
         />
       )}
 
-      <p className="text-[10px] text-zinc-400 mt-1.5 pl-1">
+      <p className="text-[10px] text-zinc-400 mt-1.5 pl-1 hidden sm:block">
         Ctrl+Enter pour envoyer · @ pour mentionner
       </p>
     </div>

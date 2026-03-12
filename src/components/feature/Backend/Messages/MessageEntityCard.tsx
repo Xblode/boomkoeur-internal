@@ -2,24 +2,24 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { FileText, Calendar as CalendarIcon, Video, ArrowUpRight, ChevronRight, ChevronDown, Clock, MapPin, Users, CheckSquare, Ticket, AlertCircle } from 'lucide-react';
+import { ChevronRight, ChevronDown, Clock, MapPin, Users, CheckSquare, Ticket, AlertCircle } from 'lucide-react';
+import { FileText, Calendar as CalendarIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/atoms';
-import { getEntityMissingCount } from '@/lib/messages-entity-config';
+import { ArrowUpRight } from 'lucide-react';
+import { getEntityConfig, getEntityMissingCount } from '@/lib/messages-entity-config';
 import { cn } from '@/lib/utils';
 import type { RelatedEntityType } from '@/types/messages';
 
 type AgendaItemInput = string | { title: string; duration?: number; description?: string; responsible?: string };
 type EventStatusType = 'idea' | 'preparation' | 'confirmed' | 'completed' | 'archived';
 
-interface BusinessCardProps {
+interface MessageEntityCardProps {
   entityType: RelatedEntityType;
   metadata: Record<string, unknown>;
-  /** Intégré dans une bulle (message système) : pas de border, pas de marge */
   embedded?: boolean;
   className?: string;
 }
 
-/** scheduledAt ISO string pour savoir si la réunion est passée */
 function isMeetingPassed(scheduledAt: string | undefined): boolean {
   if (!scheduledAt) return false;
   return new Date(scheduledAt) < new Date();
@@ -101,18 +101,11 @@ function EventExpandContent({
   );
 }
 
-const entityConfig: Record<RelatedEntityType, { icon: React.ElementType; label: string; color: string; basePath: string }> = {
-  post: { icon: FileText, label: 'Post', color: 'text-blue-500 bg-blue-50 dark:bg-blue-950/30', basePath: '/dashboard/communication' },
-  event: { icon: CalendarIcon, label: 'Événement', color: 'text-purple-500 bg-purple-50 dark:bg-purple-950/30', basePath: '/dashboard/events' },
-  meeting: { icon: Video, label: 'Réunion', color: 'text-amber-500 bg-amber-50 dark:bg-amber-950/30', basePath: '/dashboard/meetings' },
-};
-
-export function BusinessCard({ entityType, metadata, embedded, className }: BusinessCardProps) {
-  const config = entityConfig[entityType];
-  if (!config) return null;
+export function MessageEntityCard({ entityType, metadata, embedded, className }: MessageEntityCardProps) {
+  const config = getEntityConfig(entityType);
+  const Icon = config.icon;
 
   const [expanded, setExpanded] = useState(false);
-  const Icon = config.icon;
   const title = (metadata.title as string) || 'Sans titre';
   const status = metadata.status as string | undefined;
   const date = metadata.date as string | undefined;
@@ -129,7 +122,7 @@ export function BusinessCard({ entityType, metadata, embedded, className }: Busi
 
   const rawOrderItems = (Array.isArray(orderOfDay) ? orderOfDay : orderOfDay ? [orderOfDay] : []) as AgendaItemInput[];
   const hasOrderOfDay = rawOrderItems.length > 0 && rawOrderItems.some((item) =>
-    typeof item === 'string' ? item.trim() !== '' : item.title?.trim() !== ''
+    typeof item === 'string' ? item.trim() !== '' : item.title?.trim() !== '',
   );
   const orderItems: Array<{ title: string; duration?: number; description?: string; responsible?: string }> = rawOrderItems
     .map((item) => typeof item === 'string' ? { title: item } : { title: item.title, duration: item.duration, description: item.description, responsible: item.responsible })
@@ -147,14 +140,14 @@ export function BusinessCard({ entityType, metadata, embedded, className }: Busi
 
   const hasExpandableContent = isMeeting || isEvent;
 
-  const cardContent = (
+  return (
     <div
       className={cn(
         'flex overflow-hidden transition-colors group w-full min-w-0',
         !embedded && 'mt-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50',
         embedded && 'rounded-lg',
         (isMeeting || isEvent) && 'flex-col',
-        className
+        className,
       )}
     >
       <Link
@@ -163,7 +156,7 @@ export function BusinessCard({ entityType, metadata, embedded, className }: Busi
           'flex items-center gap-2.5 text-sm',
           !embedded && 'px-3 py-2',
           embedded && 'px-4 py-2 rounded-md hover:bg-zinc-100/80 dark:hover:bg-zinc-800/50',
-          (isMeeting || isEvent) && 'flex-1'
+          (isMeeting || isEvent) && 'flex-1',
         )}
       >
         {(isMeeting || isEvent) && hasExpandableContent && (
@@ -180,7 +173,7 @@ export function BusinessCard({ entityType, metadata, embedded, className }: Busi
             {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           </button>
         )}
-        <div className={cn('flex items-center justify-center w-7 h-7 rounded-md shrink-0', config.color)}>
+        <div className={cn('flex items-center justify-center w-7 h-7 rounded-md shrink-0', config.cardColor)}>
           <Icon size={14} />
         </div>
         <div className="flex-1 min-w-0">
@@ -212,7 +205,7 @@ export function BusinessCard({ entityType, metadata, embedded, className }: Busi
       {(isMeeting || isEvent) && hasExpandableContent && expanded && (
         <div className={cn(
           'border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30',
-          embedded ? 'px-4 py-2' : 'px-3 py-2.5'
+          embedded ? 'px-4 py-2' : 'px-3 py-2.5',
         )}>
           {isMeeting ? meetingPassed ? (
             <div>
@@ -235,7 +228,7 @@ export function BusinessCard({ entityType, metadata, embedded, className }: Busi
                       key={i}
                       className={cn(
                         'flex items-start gap-2 rounded-lg border border-zinc-200 dark:border-zinc-700',
-                        'bg-white dark:bg-zinc-800/50 px-2.5 py-2'
+                        'bg-white dark:bg-zinc-800/50 px-2.5 py-2',
                       )}
                     >
                       <div className="flex-shrink-0 w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 flex items-center justify-center font-semibold text-[10px]">
@@ -289,6 +282,7 @@ export function BusinessCard({ entityType, metadata, embedded, className }: Busi
       )}
     </div>
   );
-
-  return cardContent;
 }
+
+/** @deprecated Use MessageEntityCard instead */
+export const BusinessCard = MessageEntityCard;
