@@ -101,13 +101,13 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Header Content */}
         <div className="flex-1 flex items-center justify-between px-3 overflow-visible min-w-0">
-          {/* Mobile : centre = OrgSelect (main) ou entitySelector (sub) */}
+          {/* Mobile : centre = OrgSelect (main) ou mobileHeaderSelector / entitySelector (sub) */}
           <div className="lg:hidden flex-1 flex items-center justify-center min-w-0">
             {isMainPage ? (
               <OrgSelect className="min-w-0" maxLabelWidth={140} />
-            ) : pageSidebarConfig?.entitySelector ? (
+            ) : (pageSidebarConfig?.mobileHeaderSelector ?? pageSidebarConfig?.entitySelector) ? (
               <div className="min-w-0 flex justify-center [&>*]:max-w-full">
-                {pageSidebarConfig.entitySelector}
+                {pageSidebarConfig.mobileHeaderSelector ?? pageSidebarConfig.entitySelector}
               </div>
             ) : (
               <OrgSelect className="min-w-0" maxLabelWidth={140} />

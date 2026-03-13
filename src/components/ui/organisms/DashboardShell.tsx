@@ -90,16 +90,16 @@ export function DashboardShell({ children, className, showMobileToolbar }: Dashb
         {(alertNode || toolbar || (hasStandardSidebar && pageSidebarConfig && (pageSidebarConfig.backLink || pageSidebarConfig.sectionGroups?.some((g) => g.sections.length > 0) || (pageSidebarConfig.sections?.length ?? 0) > 0))) && (
           <div className="shrink-0 flex flex-col z-20">
             {alertNode}
-            {(toolbar || (hasStandardSidebar && pageSidebarConfig && (pageSidebarConfig.backLink || pageSidebarConfig.sectionGroups?.some((g) => g.sections.length > 0) || (pageSidebarConfig.sections?.length ?? 0) > 0))) && (
+            {(toolbar || (hasStandardSidebar && pageSidebarConfig && !pageSidebarConfig.mobileHeaderSelector && (pageSidebarConfig.backLink || pageSidebarConfig.sectionGroups?.some((g) => g.sections.length > 0) || (pageSidebarConfig.sections?.length ?? 0) > 0))) && (
             <div className="flex items-center w-full border-b border-border-custom bg-backend text-foreground min-h-10">
-              {hasStandardSidebar && pageSidebarConfig && (() => {
+              {/* Icônes sous-pages : masquées quand mobileHeaderSelector (ex: events) — le select est dans le header */}
+              {hasStandardSidebar && pageSidebarConfig && !pageSidebarConfig.mobileHeaderSelector && (() => {
                 const groups = pageSidebarConfig.sectionGroups ?? (pageSidebarConfig.sections?.length ? [{ sections: pageSidebarConfig.sections }] : []);
                 const allSections = groups.flatMap((g) => g.sections);
                 const hasContent = pageSidebarConfig.backLink || allSections.length > 0;
                 if (!hasContent) return null;
                 return (
                   <div className="lg:hidden flex items-center gap-1 px-2 py-1.5 border-r border-border-custom shrink-0">
-                    {/* Chevron back déplacé dans le header mobile */}
                     {allSections.map((section) => {
                       const href = section.href ?? (pageSidebarConfig!.basePath ? (section.slug ? `${pageSidebarConfig!.basePath}${section.slug}` : pageSidebarConfig!.basePath) : undefined);
                       const active = pageSidebarConfig!.activeSectionId === section.id;
@@ -126,7 +126,11 @@ export function DashboardShell({ children, className, showMobileToolbar }: Dashb
                   </div>
                 );
               })()}
-              {toolbar}
+              {toolbar && (
+                <div className="flex-1 min-w-0 flex justify-end overflow-x-auto">
+                  {toolbar}
+                </div>
+              )}
             </div>
             )}
           </div>

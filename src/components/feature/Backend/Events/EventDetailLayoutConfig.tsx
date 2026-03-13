@@ -75,6 +75,7 @@ function EventDetailLayoutConfigInner({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     const { event: ev, allEvents: evs, router: r, basePath: bp, activeSection: sec } = sidebarConfigRef.current;
+    const activeSectionData = SIDEBAR_SECTIONS.find((s) => s.id === sec);
     setMaxWidth('5xl');
     setPageSidebarConfig({
       backLink: { href: '/dashboard/events', label: 'Retour aux événements' },
@@ -91,6 +92,17 @@ function EventDetailLayoutConfigInner({ children }: { children: React.ReactNode 
             </>
           )}
           placeholder="Sélectionner un événement"
+        />
+      ),
+      mobileHeaderSelector: (
+        <EntitySelectorDropdown<typeof SIDEBAR_SECTIONS[number]>
+          value={activeSectionData ?? null}
+          options={SIDEBAR_SECTIONS}
+          onSelect={(s) => r.push(bp + (s.slug || ''))}
+          renderValue={(s) => s.label}
+          renderOption={(s) => s.label}
+          placeholder="Sous-page"
+          className="max-w-[180px]"
         />
       ),
       sections: SIDEBAR_SECTIONS,

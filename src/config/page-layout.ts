@@ -6,6 +6,8 @@ export type PageContentMaxWidth = '4xl' | '5xl' | '6xl' | '7xl';
 export interface PageSidebarConfig {
   backLink?: { href: string; label: string };
   entitySelector?: ReactNode;
+  /** Sélecteur affiché dans le header mobile (ex: sous-pages). Si absent, utilise entitySelector. */
+  mobileHeaderSelector?: ReactNode;
   sectionGroups?: PageSidebarSectionGroup[];
   sections?: PageSidebarSection[];
   basePath?: string;
