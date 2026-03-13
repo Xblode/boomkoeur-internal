@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -37,6 +37,9 @@ export interface SearchResultItem {
   href: string;
 }
 
+const EMPTY_RESULTS: SearchResultItem[] = [];
+const EMPTY_CAMPAIGNS: Campaign[] = [];
+
 interface GlobalSearchModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -50,6 +53,8 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [mounted, setMounted] = useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   const { events, isLoading: eventsLoading } = useEvents({ enabled: isOpen });
   const { transactions, isLoading: transactionsLoading } = useTransactions(undefined, { enabled: isOpen });
@@ -69,7 +74,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
   });
 
   const campaigns = useMemo(
-    () => (isOpen && typeof window !== 'undefined' ? getCampaigns() : []),
+    () => (isOpen && typeof window !== 'undefined' ? getCampaigns() : EMPTY_CAMPAIGNS),
     [isOpen]
   );
 
@@ -88,13 +93,18 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
   }, [isOpen]);
 
   useEffect(() => {
+    if (!isOpen) setResults((prev) => (prev.length === 0 ? prev : EMPTY_RESULTS));
+  }, [isOpen]);
+
+  useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query), DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [query]);
 
   useEffect(() => {
+    if (!isOpen) return;
     if (!debouncedQuery.trim()) {
-      setResults([]);
+      setResults((prev) => (prev.length === 0 ? prev : EMPTY_RESULTS));
       return;
     }
     const q = debouncedQuery.toLowerCase().trim();
@@ -238,6 +248,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
 
     setResults(items);
   }, [
+    isOpen,
     debouncedQuery,
     events,
     campaigns,
@@ -250,11 +261,11 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onCloseRef.current();
     };
     if (isOpen) window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   const handleSelect = (href: string) => {
     router.push(href);

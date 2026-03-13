@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Sidebar, Header, DashboardShell, MobileBottomToolbar } from '@/components/ui/organisms';
+import { Sidebar, Header, DashboardShell, MobileBottomToolbar, MOBILE_TOOLBAR_HEIGHT_PX } from '@/components/ui/organisms';
 import { backendNavigation } from '@/config/navigation';
 import { SearchModalProvider } from '@/components/providers/SearchModalProvider';
 import { isDetailPage, isMainDashboardPage, usesDashboardShell } from '@/config/layout';
@@ -73,7 +73,7 @@ function BackendLayoutContent({
           (toolbar && !isDetail) ? "pt-[97px]" : "pt-[52px]",
           "pl-0 lg:pl-[52px]",
           sidebarMode === 'expanded' && "lg:pl-[200px]",
-          showMobileToolbar && "pb-[calc(64px+env(safe-area-inset-bottom))] lg:pb-0"
+          showMobileToolbar && `pb-[calc(${MOBILE_TOOLBAR_HEIGHT_PX}px+env(safe-area-inset-bottom))] lg:pb-0`
         )}>
           {useShell ? (
             <DashboardShell showMobileToolbar={showMobileToolbar}>{children}</DashboardShell>
