@@ -24,7 +24,7 @@ export function PagePaddedContent({
     return <div className={cn('flex-1 min-w-0', className)}>{children}</div>;
   }
   return (
-    <div className={cn('flex-1 min-w-0 p-6 md:p-8', className)}>
+    <div className={cn('flex-1 min-w-0 px-4 py-6 md:p-8', className)}>
       <div className="max-w-7xl mx-auto">{children}</div>
     </div>
   );

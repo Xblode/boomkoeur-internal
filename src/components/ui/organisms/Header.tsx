@@ -72,7 +72,7 @@ export const Header: React.FC<HeaderProps> = ({
         className
       )}>
         {/* Zone gauche : Logo (desktop) | Chevron back (mobile sub) | Vide (mobile main) */}
-        <div className="w-[52px] min-w-[52px] h-full flex items-center justify-center border-r border-border-custom shrink-0">
+        <div className="w-[52px] min-w-[52px] h-full flex items-center justify-center shrink-0">
           {/* Mobile sous-page : chevron retour */}
           {!isMainPage && backHref && (
             <Link

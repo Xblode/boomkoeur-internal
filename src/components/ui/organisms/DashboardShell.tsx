@@ -25,6 +25,8 @@ const maxWidthClasses: Record<PageContentMaxWidth, string> = {
 export interface DashboardShellProps {
   children: React.ReactNode;
   className?: string;
+  /** Sur mobile avec bottom toolbar : utilise flex pour une seule zone de scroll */
+  showMobileToolbar?: boolean;
 }
 
 /**
@@ -32,7 +34,7 @@ export interface DashboardShellProps {
  * Lit les providers (PageSidebar, Toolbar, Alert, ChatPanel) et affiche les slots.
  * Alert : slot toujours présent (contenu optionnel).
  */
-export function DashboardShell({ children, className }: DashboardShellProps) {
+export function DashboardShell({ children, className, showMobileToolbar }: DashboardShellProps) {
   const { toolbar } = useToolbar();
   const { alert } = useAlert();
   const { config: pageSidebarConfig } = usePageSidebar();
@@ -54,7 +56,10 @@ export function DashboardShell({ children, className }: DashboardShellProps) {
     ) : null;
 
   return (
-    <div className={cn('flex h-[calc(100vh-52px)] min-h-0 overflow-hidden', className)}>
+    <div className={cn(
+      'flex min-h-0 overflow-hidden',
+      showMobileToolbar ? 'flex-1 lg:h-[calc(100vh-52px)]' : 'h-[calc(100vh-52px)]'
+    )}>
       {/* PageSidebar — standard ou custom */}
       {hasPageSidebar && (
         <>
@@ -127,7 +132,7 @@ export function DashboardShell({ children, className }: DashboardShellProps) {
           </div>
         )}
 
-        <div className={cn('flex-1 min-h-0 min-w-0 scrollbar-gutter-stable', noPadding ? 'overflow-hidden' : 'overflow-y-auto', noPadding ? '' : fullBleed ? 'p-6' : 'p-6 md:p-8 lg:p-12')}>
+        <div className={cn('flex-1 min-h-0 min-w-0 scrollbar-gutter-stable', noPadding ? 'overflow-hidden' : 'overflow-y-auto', noPadding ? '' : fullBleed ? 'px-4 py-6' : 'px-4 py-6 md:p-8 lg:p-12')}>
           <div className={cn(!fullBleed && !noPadding && 'mx-auto', !fullBleed && !noPadding && maxWidthClasses[maxWidth], noPadding && 'h-full min-w-0')}>
             {children}
           </div>
