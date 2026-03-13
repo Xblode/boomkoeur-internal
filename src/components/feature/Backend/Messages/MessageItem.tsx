@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Pin, PinOff, MoreVertical, Copy, Trash2, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -10,6 +10,7 @@ import { MessageEntityCard } from './MessageEntityCard';
 import { MessageAttachment, PollDisplay, QuickVoteDisplay, LinkPreview } from './MessageContent';
 import { PollModal } from './MessageComposerModals';
 import { MessageReactions, MessageReactionAddButton } from './MessageReactions';
+import { MessageMobileOverlay } from './MessageMobileOverlay';
 import {
   MessageWrapper,
   MessageAvatarSlot,
@@ -95,6 +96,24 @@ export function MessageItem({
   className,
 }: MessageItemProps) {
   const [editPollOpen, setEditPollOpen] = useState(false);
+  const [mobileCtxRect, setMobileCtxRect] = useState<DOMRect | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const messageRowRef = useRef<HTMLDivElement>(null);
+
+  const handleTouchStart = useCallback(() => {
+    longPressTimerRef.current = setTimeout(() => {
+      const el = messageRowRef.current;
+      if (!el) return;
+      window.getSelection()?.removeAllRanges();
+      setMobileCtxRect(el.getBoundingClientRect());
+      try { navigator.vibrate?.(10); } catch { /* vibrate not supported */ }
+    }, 500);
+  }, []);
+
+  const cancelLongPress = useCallback(() => {
+    clearTimeout(longPressTimerRef.current);
+  }, []);
+
   const variant = getVariant(message);
   const isFirst = !isSameGroup(previousMessage, message);
   const isLast = !isSameGroup(nextMessage, message);
@@ -235,6 +254,38 @@ export function MessageItem({
 
   // ── Full message layout ────────────────────────────────────────────────────
 
+  const mobileActions = [
+    {
+      id: 'pin',
+      label: message.isPinned ? 'Désépingler' : 'Épingler',
+      icon: message.isPinned ? PinOff : Pin,
+      onClick: () => onTogglePin(message.id, !message.isPinned),
+    },
+    ...(onToggleImportant
+      ? [{
+          id: 'important',
+          label: isImportant ? "Retirer l'importance" : 'Marquer comme important',
+          icon: Zap,
+          onClick: () => onToggleImportant(message.id),
+        }]
+      : []),
+    {
+      id: 'copy',
+      label: 'Copier le message',
+      icon: Copy,
+      onClick: () => navigator.clipboard?.writeText(message.content),
+    },
+    ...(onDelete && (message.type !== 'system' || canDeleteSystemMessage)
+      ? [{
+          id: 'delete',
+          label: 'Supprimer',
+          icon: Trash2,
+          onClick: () => onDelete(message.id),
+          variant: 'destructive' as const,
+        }]
+      : []),
+  ];
+
   return (
     <MessageWrapper
       messageId={message.id}
@@ -244,7 +295,14 @@ export function MessageItem({
       compactBelow={compactBelow}
       className={className}
     >
-      <div className={cn('flex items-end gap-2', isOwnMessage && 'flex-row-reverse justify-end')}>
+      <div
+        ref={messageRowRef}
+        className={cn('flex items-end gap-2', isOwnMessage && 'flex-row-reverse justify-end')}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={cancelLongPress}
+        onTouchMove={cancelLongPress}
+        onContextMenu={(e) => e.preventDefault()}
+      >
         <div className={cn(isOwnMessage && 'hidden sm:block')}>
           <MessageAvatarSlot
             show={isLast}
@@ -427,6 +485,21 @@ export function MessageItem({
           )}
         </div>
       </div>
+
+      {/* Mobile long-press overlay (touch devices only, portal into body) */}
+      {mobileCtxRect && typeof document !== 'undefined' && (
+        <MessageMobileOverlay
+          rect={mobileCtxRect}
+          isOwnMessage={isOwnMessage}
+          header={format(msgDate, "EEEE d MMMM 'à' HH:mm", { locale: fr })}
+          actions={mobileActions}
+          onClose={() => setMobileCtxRect(null)}
+          onReaction={(emoji) => {
+            onToggleReaction?.(message.id, emoji);
+            setMobileCtxRect(null);
+          }}
+        />
+      )}
     </MessageWrapper>
   );
 }

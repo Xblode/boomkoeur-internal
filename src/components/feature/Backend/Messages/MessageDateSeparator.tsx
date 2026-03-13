@@ -57,6 +57,7 @@ export function MessageDateSeparator({
   const cacheKey = format(prevDate, 'yyyy-MM-dd');
   const showSummaryBlock = true;
 
+  // Observer uniquement pour les notifications push
   useEffect(() => {
     const el = containerRef.current;
     const root = scrollContainerRef?.current ?? null;
@@ -70,15 +71,13 @@ export function MessageDateSeparator({
   }, [scrollContainerRef]);
 
   // Si aucun message : RAS sans appel API
+  // Le chargement se fait immédiatement (sans attendre la visibilité)
+  // pour éviter le layout shift quand l'utilisateur scrolle jusqu'au séparateur
   useEffect(() => {
     if (!hasMessages) {
       setSummary('RAS');
       setSummaryError(null);
       setSummaryLoading(false);
-      return;
-    }
-    if (!isVisible) {
-      if (summaryLoading) setSummaryLoading(false);
       return;
     }
     const cached = cacheKey && regenerateTrigger === 0 ? summaryCache.get(cacheKey) : undefined;
@@ -195,7 +194,7 @@ export function MessageDateSeparator({
       cancelled = true;
       clearTimeoutFn?.();
     };
-  }, [hasMessages, cacheKey, previousDayMessages.length, isVisible, orgId, onSummarySaved, regenerateTrigger]);
+  }, [hasMessages, cacheKey, previousDayMessages.length, orgId, onSummarySaved, regenerateTrigger]);
 
   // Notification push une seule fois par jour quand la synthèse est disponible
   // Ne notifie pas si l'utilisateur a l'app au premier plan (évite overlay/notification gênante au scroll)
