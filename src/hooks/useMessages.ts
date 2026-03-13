@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import {
   getOrCreateGeneralConversation,
-  getMessages as fetchMessages,
+  getMessagesRecent,
+  getMessagesNewerThan,
+  getMessagesOlderThan,
   getReactionsForMessages,
   sendMessage as sendMessageApi,
   togglePin as togglePinApi,
@@ -28,6 +30,8 @@ export function useMessages() {
   const [pinnedMessages, setPinnedMessages] = useState<Message[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+  const [hasMoreOlder, setHasMoreOlder] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const authorCacheRef = useRef<Map<string, MessageAuthor>>(new Map());
@@ -55,7 +59,7 @@ export function useMessages() {
         if (cancelled) return;
         setConversation(conv);
 
-        const msgs = await fetchMessages(conv.id);
+        const msgs = await getMessagesRecent(conv.id, 3);
         if (cancelled) return;
 
         const { data: { user } } = await supabase.auth.getUser();
@@ -187,6 +191,43 @@ export function useMessages() {
     };
   }, [conversation, refreshPinned]);
 
+  // Polling fallback quand l'onglet est visible (au cas où realtime rate un événement)
+  useEffect(() => {
+    if (!conversation || typeof document === 'undefined') return;
+
+    const poll = async () => {
+      if (document.visibilityState !== 'visible') return;
+      const msgs = messagesRef.current;
+      if (msgs.length === 0) return;
+      const last = msgs[msgs.length - 1];
+      const after = new Date(last.createdAt.getTime() + 1);
+      const newer = await getMessagesNewerThan(conversation.id, after);
+      if (newer.length === 0) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      const reactionsMap = await getReactionsForMessages(newer.map((m) => m.id), user?.id ?? null);
+      const withReactions = newer.map((m) => ({
+        ...m,
+        reactions: reactionsMap.get(m.id) ?? [],
+      }));
+      withReactions.forEach((m) => {
+        if (m.author && m.authorId) authorCacheRef.current.set(m.authorId, m.author);
+      });
+      setMessages((prev) => {
+        const existingIds = new Set(prev.map((m) => m.id));
+        const toAdd = withReactions.filter((m) => !existingIds.has(m.id));
+        if (toAdd.length === 0) return prev;
+        const next = [...prev, ...toAdd].sort(
+          (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+        );
+        refreshPinned(next);
+        return next;
+      });
+    };
+
+    const id = setInterval(poll, 5000);
+    return () => clearInterval(id);
+  }, [conversation, refreshPinned]);
+
   // Realtime reactions
   useEffect(() => {
     if (!conversation) return;
@@ -217,21 +258,30 @@ export function useMessages() {
     async (input: SendMessageInput): Promise<Message | undefined> => {
       if (!conversation) return undefined;
       const msg = await sendMessageApi(conversation.id, input);
-      if (msg && orgId) {
-        fetch('/api/push/notify-new-message', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            orgId,
-            authorId: msg.authorId,
-            authorName: msg.author?.name,
-            content: msg.content,
-          }),
-        }).catch(() => {});
+      if (msg) {
+        // Ajout immédiat pour l'expéditeur (fallback si realtime tarde)
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === msg.id)) return prev;
+          const next = [...prev, { ...msg, reactions: msg.reactions ?? [] }];
+          refreshPinned(next);
+          return next;
+        });
+        if (orgId) {
+          fetch('/api/push/notify-new-message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orgId,
+              authorId: msg.authorId,
+              authorName: msg.author?.name,
+              content: msg.content,
+            }),
+          }).catch(() => {});
+        }
       }
       return msg;
     },
-    [conversation, orgId]
+    [conversation, orgId, refreshPinned]
   );
 
   const togglePin = useCallback(
@@ -276,8 +326,13 @@ export function useMessages() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const current = messagesRef.current.find((m) => m.id === messageId);
-      const poll = current?.metadata?.poll as { votes?: Record<string, string> } | undefined;
-      const newVotes = { ...(poll?.votes ?? {}), [user.id]: optionId };
+      const poll = current?.metadata?.poll as { votes?: Record<string, string | string[]> } | undefined;
+      const rawVotes = poll?.votes ?? {};
+      const currentUserVotes = rawVotes[user.id];
+      const currentArr = Array.isArray(currentUserVotes) ? currentUserVotes : currentUserVotes ? [currentUserVotes] : [];
+      const hasOption = currentArr.includes(optionId);
+      const newArr = hasOption ? currentArr.filter((id) => id !== optionId) : [...currentArr, optionId];
+      const newVotes = { ...rawVotes, [user.id]: newArr };
       setMessages((prev) =>
         prev.map((m) =>
           m.id === messageId
@@ -295,6 +350,33 @@ export function useMessages() {
     },
     []
   );
+
+  const loadMoreOlder = useCallback(async () => {
+    if (!conversation || isLoadingOlder || !hasMoreOlder) return;
+    const current = messagesRef.current;
+    const oldest = current[0];
+    if (!oldest) return;
+    setIsLoadingOlder(true);
+    try {
+      const older = await getMessagesOlderThan(conversation.id, oldest.createdAt, 50);
+      if (older.length < 50) setHasMoreOlder(false);
+      if (older.length > 0) {
+        const { data: { user } } = await supabase.auth.getUser();
+        const reactionsMap = await getReactionsForMessages(older.map((m) => m.id), user?.id ?? null);
+        const withReactions = older.map((m) => ({
+          ...m,
+          reactions: reactionsMap.get(m.id) ?? [],
+        }));
+        withReactions.forEach((m) => {
+          if (m.author && m.authorId) authorCacheRef.current.set(m.authorId, m.author);
+        });
+        setMessages((prev) => [...withReactions, ...prev]);
+        refreshPinned([...withReactions, ...messagesRef.current]);
+      }
+    } finally {
+      setIsLoadingOlder(false);
+    }
+  }, [conversation, isLoadingOlder, hasMoreOlder, refreshPinned]);
 
   const voteQuick = useCallback(
     async (messageId: string, vote: 'yes' | 'no') => {
@@ -325,6 +407,9 @@ export function useMessages() {
     pinnedMessages,
     unreadCount,
     isLoading,
+    isLoadingOlder,
+    hasMoreOlder,
+    loadMoreOlder,
     error,
     currentUserId,
     sendMessage,

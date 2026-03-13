@@ -48,7 +48,7 @@ export function MessagesLayout({ className }: MessagesLayoutProps) {
   const orgName = orgContext?.activeOrg?.name;
   const orgId = orgContext?.activeOrg?.id ?? null;
   const canDeleteSystemMessages = orgContext?.isAdmin ?? false;
-  const { conversation, messages, pinnedMessages, isLoading, error, currentUserId, sendMessage, togglePin, toggleReaction, toggleImportant, votePoll, voteQuick, deleteMessage } = useMessages();
+  const { conversation, messages, pinnedMessages, isLoading, isLoadingOlder, hasMoreOlder, loadMoreOlder, error, currentUserId, sendMessage, togglePin, toggleReaction, toggleImportant, votePoll, voteQuick, deleteMessage } = useMessages();
   const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : null;
   const [journalRefreshKey, setJournalRefreshKey] = useState(0);
   const refreshJournal = useCallback(() => setJournalRefreshKey((k) => k + 1), []);
@@ -147,6 +147,29 @@ export function MessagesLayout({ className }: MessagesLayoutProps) {
     await togglePin(messageId, pinned);
   };
 
+  const handleEditPoll = useCallback(
+    async (messageId: string, newPoll: PollData) => {
+      const msg = messages.find((m) => m.id === messageId);
+      const currentPoll = msg?.metadata?.poll as { votes?: Record<string, string | string[]> } | undefined;
+      const existingVotes = currentPoll?.votes ?? {};
+      const validOptionIds = new Set(newPoll.options.map((o) => o.id));
+      const filteredVotes: Record<string, string[]> = {};
+      for (const [uid, v] of Object.entries(existingVotes)) {
+        const arr = Array.isArray(v) ? v : v ? [v] : [];
+        const kept = arr.filter((id) => validOptionIds.has(id));
+        if (kept.length > 0) filteredVotes[uid] = kept;
+      }
+      await updateMessageMetadata(messageId, {
+        poll: {
+          question: newPoll.question,
+          options: newPoll.options,
+          votes: filteredVotes,
+        },
+      });
+    },
+    [messages]
+  );
+
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const handleSendImage = async (file: File) => {
@@ -225,6 +248,9 @@ export function MessagesLayout({ className }: MessagesLayoutProps) {
           messages={messages}
           pinnedMessages={pinnedMessages}
           isLoading={isLoading}
+          isLoadingOlder={isLoadingOlder}
+          hasMoreOlder={hasMoreOlder}
+          onLoadMoreOlder={loadMoreOlder}
           error={error}
           onSend={handleSend}
           onSendImage={handleSendImage}
@@ -238,8 +264,10 @@ export function MessagesLayout({ className }: MessagesLayoutProps) {
           onToggleImportant={toggleImportant}
           onVotePoll={votePoll}
           onVoteQuick={voteQuick}
+          onEditPoll={handleEditPoll}
           onSendQuickVote={handleSendQuickVote}
           onDelete={deleteMessage}
+          canEditPoll={canDeleteSystemMessages}
           canDeleteSystemMessages={canDeleteSystemMessages}
           canRegenerateSummary={canDeleteSystemMessages}
           onSummarySaved={refreshJournal}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { format } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Pin, PinOff, Sparkles, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -49,10 +49,13 @@ export function MessageDateSeparator({
   const label = format(date, "EEEE d MMMM", { locale: fr });
   const capitalizedLabel = label.charAt(0).toUpperCase() + label.slice(1);
 
-  const hasSummary = previousDayMessages.length > 0;
-  const prevDate = previousDayMessages[0] ? new Date(previousDayMessages[0].createdAt) : null;
-  const prevDateLabel = prevDate ? format(prevDate, "EEEE d MMMM", { locale: fr }) : '';
-  const cacheKey = prevDate ? format(prevDate, 'yyyy-MM-dd') : '';
+  const hasMessages = previousDayMessages.length > 0;
+  const prevDate = hasMessages
+    ? new Date(previousDayMessages[0].createdAt)
+    : subDays(date, 1);
+  const prevDateLabel = format(prevDate, "EEEE d MMMM", { locale: fr });
+  const cacheKey = format(prevDate, 'yyyy-MM-dd');
+  const showSummaryBlock = true;
 
   useEffect(() => {
     const el = containerRef.current;
@@ -66,9 +69,16 @@ export function MessageDateSeparator({
     return () => obs.disconnect();
   }, [scrollContainerRef]);
 
+  // Si aucun message : RAS sans appel API
   useEffect(() => {
-    if (!hasSummary || previousDayMessages.length === 0 || !isVisible) {
-      if (!isVisible && summaryLoading) setSummaryLoading(false);
+    if (!hasMessages) {
+      setSummary('RAS');
+      setSummaryError(null);
+      setSummaryLoading(false);
+      return;
+    }
+    if (!isVisible) {
+      if (summaryLoading) setSummaryLoading(false);
       return;
     }
     const cached = cacheKey && regenerateTrigger === 0 ? summaryCache.get(cacheKey) : undefined;
@@ -92,7 +102,7 @@ export function MessageDateSeparator({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             messages: previousDayMessages.map((m) => {
-              const poll = m.metadata?.poll as { question?: string; options?: { id: string; label: string }[]; votes?: Record<string, string> } | undefined;
+              const poll = m.metadata?.poll as { question?: string; options?: { id: string; label: string }[]; votes?: Record<string, string | string[]> } | undefined;
               const quickVote = m.metadata?.quickVote as { question?: string; yes?: string[]; no?: string[] } | undefined;
               const base: Record<string, unknown> = {
                 author: m.author?.name ?? 'Système',
@@ -105,12 +115,19 @@ export function MessageDateSeparator({
               }
               if (poll?.question && poll.options) {
                 const votes = poll.votes ?? {};
-                const totalVotes = Object.keys(votes).length;
+                const totalVotes = Object.keys(votes).filter((uid) => {
+                  const v = votes[uid];
+                  const arr = Array.isArray(v) ? v : v ? [v] : [];
+                  return arr.length > 0;
+                }).length;
                 base.poll = {
                   question: poll.question,
                   results: poll.options.map((o) => ({
                     label: o.label,
-                    votes: Object.values(votes).filter((v) => v === o.id).length,
+                    votes: Object.values(votes).reduce((acc, v) => {
+                      const arr = Array.isArray(v) ? v : v ? [v] : [];
+                      return acc + (arr.includes(o.id) ? 1 : 0);
+                    }, 0),
                   })),
                   totalVotes,
                 };
@@ -178,12 +195,12 @@ export function MessageDateSeparator({
       cancelled = true;
       clearTimeoutFn?.();
     };
-  }, [hasSummary, cacheKey, previousDayMessages.length, isVisible, orgId, onSummarySaved, regenerateTrigger]);
+  }, [hasMessages, cacheKey, previousDayMessages.length, isVisible, orgId, onSummarySaved, regenerateTrigger]);
 
   // Notification push une seule fois par jour quand la synthèse est disponible
   // Ne notifie pas si l'utilisateur a l'app au premier plan (évite overlay/notification gênante au scroll)
   useEffect(() => {
-    if (!summary || summaryLoading || !isVisible || !cacheKey || !orgId || notifiedSummaryDays.has(cacheKey)) return;
+    if (!summary || summary === 'RAS' || summaryLoading || !isVisible || !cacheKey || !orgId || notifiedSummaryDays.has(cacheKey)) return;
     notifiedSummaryDays.add(cacheKey);
     if (typeof document !== 'undefined' && document.visibilityState === 'visible') return;
     fetch('/api/push/notify-summary-ready', {
@@ -205,7 +222,7 @@ export function MessageDateSeparator({
 
   return (
     <div ref={containerRef} className={cn('w-full', className)}>
-      {hasSummary && (
+      {showSummaryBlock && (
         <div className="mb-3 px-2 sm:px-4 pt-3">
           <div className="flex items-end gap-2">
             <MessageAvatarSlot
@@ -219,7 +236,7 @@ export function MessageDateSeparator({
                 <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
                   {prevDateLabel} · {previousDayMessages.length} message{previousDayMessages.length > 1 ? 's' : ''}
                 </span>
-                {canRegenerateSummary && (summary || summaryError) && !summaryLoading && (
+                {canRegenerateSummary && hasMessages && (summary || summaryError) && !summaryLoading && summary !== 'RAS' && (
                   <button
                     type="button"
                     onClick={handleRegenerate}
@@ -246,7 +263,7 @@ export function MessageDateSeparator({
                     <span className="animate-typing-dot-delay-2">.</span>
                   </span>
                 )}
-                {summary && !summaryLoading && (
+                {(summary === 'RAS' || (summary && !summaryLoading)) && (
                   <div className="space-y-1.5 min-w-0">
                     {summary
                       .split(/\n+/)
@@ -283,7 +300,7 @@ export function MessageDateSeparator({
         </div>
       )}
 
-      {hasSummary && previousDayPinned.length > 0 && (
+      {showSummaryBlock && hasMessages && previousDayPinned.length > 0 && (
         <div className="mb-3 px-2 sm:px-4 pt-px">
           <div className="flex items-end gap-2">
             <MessageAvatarSlot

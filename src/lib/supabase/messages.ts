@@ -112,6 +112,68 @@ export async function getMessages(conversationId: string): Promise<Message[]> {
   return (data ?? []).map((row) => mapDbMessage(row as unknown as DbMessage));
 }
 
+/** Charge les messages récents (derniers N jours, ex: aujourd'hui + 2 jours = 3 jours) */
+export async function getMessagesRecent(
+  conversationId: string,
+  days = 3
+): Promise<Message[]> {
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+  since.setHours(0, 0, 0, 0);
+  const sinceIso = since.toISOString();
+
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*, profiles:author_id(id, first_name, last_name, avatar)')
+    .eq('conversation_id', conversationId)
+    .gte('created_at', sinceIso)
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []).map((row) => mapDbMessage(row as unknown as DbMessage));
+}
+
+/** Charge les messages plus récents qu'une date donnée (pour polling / fallback realtime) */
+export async function getMessagesNewerThan(
+  conversationId: string,
+  afterDate: Date,
+  limit = 50
+): Promise<Message[]> {
+  const afterIso = afterDate.toISOString();
+
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*, profiles:author_id(id, first_name, last_name, avatar)')
+    .eq('conversation_id', conversationId)
+    .gt('created_at', afterIso)
+    .order('created_at', { ascending: true })
+    .limit(limit);
+
+  if (error) throw error;
+  return (data ?? []).map((row) => mapDbMessage(row as unknown as DbMessage));
+}
+
+/** Charge les messages plus anciens qu'une date donnée (pour pagination vers le haut) */
+export async function getMessagesOlderThan(
+  conversationId: string,
+  beforeDate: Date,
+  limit = 50
+): Promise<Message[]> {
+  const beforeIso = beforeDate.toISOString();
+
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*, profiles:author_id(id, first_name, last_name, avatar)')
+    .eq('conversation_id', conversationId)
+    .lt('created_at', beforeIso)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  const msgs = (data ?? []).map((row) => mapDbMessage(row as unknown as DbMessage));
+  return msgs.reverse();
+}
+
 export async function getPinnedMessages(conversationId: string): Promise<Message[]> {
   const { data, error } = await supabase
     .from('messages')
@@ -265,11 +327,18 @@ export async function votePoll(messageId: string, optionId: string): Promise<voi
   const meta = (data?.metadata as Record<string, unknown>) ?? {};
   const poll = (meta.poll as Record<string, unknown>) ?? {};
   const options = (poll.options as { id: string; label: string }[]) ?? [];
-  const votes = (poll.votes as Record<string, string>) ?? {};
+  const rawVotes = (poll.votes as Record<string, string | string[]>) ?? {};
 
   if (!options.some((o) => o.id === optionId)) return;
 
-  const newVotes = { ...votes, [user.id]: optionId };
+  const current = rawVotes[user.id];
+  const currentArr = Array.isArray(current) ? current : current ? [current] : [];
+  const hasOption = currentArr.includes(optionId);
+  const newArr = hasOption
+    ? currentArr.filter((id) => id !== optionId)
+    : [...currentArr, optionId];
+
+  const newVotes = { ...rawVotes, [user.id]: newArr };
   await supabase
     .from('messages')
     .update({ metadata: { ...meta, poll: { ...poll, votes: newVotes } } })

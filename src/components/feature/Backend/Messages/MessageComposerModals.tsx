@@ -21,17 +21,41 @@ interface PollModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (poll: PollData) => void;
+  /** Données initiales pour le mode édition */
+  initialData?: PollData | null;
 }
 
 const MIN_OPTIONS = 2;
 const MAX_OPTIONS = 10;
 
-export function PollModal({ isOpen, onClose, onSubmit }: PollModalProps) {
+export function PollModal({ isOpen, onClose, onSubmit, initialData }: PollModalProps) {
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState<{ id: string; label: string }[]>([
     { id: 'opt_0', label: '' },
     { id: 'opt_1', label: '' },
   ]);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialData) {
+        setQuestion(initialData.question);
+        setOptions(
+          initialData.options.length >= MIN_OPTIONS
+            ? initialData.options
+            : [
+                ...initialData.options,
+                ...Array.from({ length: MIN_OPTIONS - initialData.options.length }, (_, i) => ({
+                  id: `opt_${Date.now()}_${i}`,
+                  label: '',
+                })),
+              ]
+        );
+      } else {
+        setQuestion('');
+        setOptions([{ id: 'opt_0', label: '' }, { id: 'opt_1', label: '' }]);
+      }
+    }
+  }, [isOpen, initialData]);
 
   const reset = () => {
     setQuestion('');
@@ -77,8 +101,10 @@ export function PollModal({ isOpen, onClose, onSubmit }: PollModalProps) {
     handleClose();
   };
 
+  const isEdit = !!initialData;
+
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Créer un sondage" size="md">
+    <Modal isOpen={isOpen} onClose={handleClose} title={isEdit ? 'Modifier le sondage' : 'Créer un sondage'} size="md">
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
@@ -155,7 +181,7 @@ export function PollModal({ isOpen, onClose, onSubmit }: PollModalProps) {
           className="flex items-center gap-2"
         >
           <BarChart3 size={14} />
-          Créer le sondage
+          {isEdit ? 'Enregistrer' : 'Créer le sondage'}
         </Button>
       </ModalFooter>
     </Modal>

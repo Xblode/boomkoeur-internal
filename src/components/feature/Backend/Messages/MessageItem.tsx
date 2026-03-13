@@ -1,5 +1,6 @@
- 'use client';
+'use client';
 
+import { useState } from 'react';
 import { Pin, PinOff, MoreVertical, Copy, Trash2, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -7,6 +8,7 @@ import { MenuPicker } from '@/components/ui/molecules';
 import { cn } from '@/lib/utils';
 import { MessageEntityCard } from './MessageEntityCard';
 import { MessageAttachment, PollDisplay, QuickVoteDisplay, LinkPreview } from './MessageContent';
+import { PollModal } from './MessageComposerModals';
 import { MessageReactions, MessageReactionAddButton } from './MessageReactions';
 import {
   MessageWrapper,
@@ -66,8 +68,10 @@ interface MessageItemProps {
   onToggleImportant?: (messageId: string) => void;
   onVotePoll?: (messageId: string, optionId: string) => void;
   onVoteQuick?: (messageId: string, vote: 'yes' | 'no') => void;
+  onEditPoll?: (messageId: string, poll: { question: string; options: { id: string; label: string }[] }) => void;
   onDelete?: (messageId: string) => void;
   canDeleteSystemMessage?: boolean;
+  canEditPoll?: boolean;
   className?: string;
 }
 
@@ -84,10 +88,13 @@ export function MessageItem({
   onToggleImportant,
   onVotePoll,
   onVoteQuick,
+  onEditPoll,
   onDelete,
   canDeleteSystemMessage,
+  canEditPoll = false,
   className,
 }: MessageItemProps) {
+  const [editPollOpen, setEditPollOpen] = useState(false);
   const variant = getVariant(message);
   const isFirst = !isSameGroup(previousMessage, message);
   const isLast = !isSameGroup(nextMessage, message);
@@ -284,18 +291,31 @@ export function MessageItem({
             isOwnMessage && (isPoll || isQuickVote) && 'w-full',
           )}>
             {isPoll && pollData ? (
-              <PollDisplay
-                question={pollData.question}
-                options={pollData.options}
-                votes={pollData.votes ?? {}}
-                currentUserId={currentUserId ?? null}
-                onVote={onVotePoll ? (optId) => onVotePoll(message.id, optId) : undefined}
-                bubbleRadius={cardBubbleRadius}
-                className={cn(
-                  isOwnMessage && 'min-w-[260px] sm:min-w-[385px] max-w-full sm:max-w-[385px]',
-                  isOwnMessage && 'bg-[#495ef3] border-[#495ef3]/80 [&_p]:text-white [&_span]:text-white/90 [&_.text-zinc-500]:text-white/80',
-                )}
-              />
+              <>
+                <PollDisplay
+                  question={pollData.question}
+                  options={pollData.options}
+                  votes={pollData.votes ?? {}}
+                  currentUserId={currentUserId ?? null}
+                  onVote={onVotePoll ? (optId) => onVotePoll(message.id, optId) : undefined}
+                  onEditPoll={onEditPoll && (isOwnMessage || canEditPoll) ? () => setEditPollOpen(true) : undefined}
+                  canEdit={isOwnMessage || canEditPoll}
+                  bubbleRadius={cardBubbleRadius}
+                  className={cn(
+                    isOwnMessage && 'min-w-[260px] sm:min-w-[385px] max-w-full sm:max-w-[385px]',
+                    isOwnMessage && 'bg-[#495ef3] border-[#495ef3]/80 [&_p]:text-white [&_span]:text-white/90 [&_.text-zinc-500]:text-white/80',
+                  )}
+                />
+                <PollModal
+                  isOpen={editPollOpen}
+                  onClose={() => setEditPollOpen(false)}
+                  initialData={{ question: pollData.question, options: pollData.options }}
+                  onSubmit={(newPoll) => {
+                    onEditPoll?.(message.id, newPoll);
+                    setEditPollOpen(false);
+                  }}
+                />
+              </>
             ) : isQuickVote && quickVoteData ? (
               <QuickVoteDisplay
                 question={quickVoteData.question}

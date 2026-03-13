@@ -75,7 +75,7 @@ export function MessageReactionPills({
   if (reactions.length === 0) return null;
 
   return (
-    <div className={cn('flex items-center gap-0.5 -mt-3 mb-2 flex-wrap', className)}>
+    <div className={cn('flex items-center gap-0.5 -mt-1 mb-2 flex-wrap', className)}>
       {reactions.map((r) => (
         <button
           key={r.emoji}

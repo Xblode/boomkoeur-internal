@@ -73,6 +73,9 @@ interface MessageFeedProps {
   messages: Message[];
   pinnedMessages: Message[];
   isLoading: boolean;
+  isLoadingOlder?: boolean;
+  hasMoreOlder?: boolean;
+  onLoadMoreOlder?: () => void;
   error: string | null;
   onSend: (content: string, mentions?: PickedEntity[], memberMentions?: { id: string; name: string }[]) => void;
   onSendImage?: (file: File) => void;
@@ -86,9 +89,11 @@ interface MessageFeedProps {
   onToggleImportant?: (messageId: string) => void;
   onVotePoll?: (messageId: string, optionId: string) => void;
   onVoteQuick?: (messageId: string, vote: 'yes' | 'no') => void;
+  onEditPoll?: (messageId: string, poll: { question: string; options: { id: string; label: string }[] }) => void;
   onSendQuickVote?: (quickVote: { question?: string; yes: string[]; no: string[] }) => void;
   onDelete?: (messageId: string) => void;
   canDeleteSystemMessages?: boolean;
+  canEditPoll?: boolean;
   canRegenerateSummary?: boolean;
   onSummarySaved?: () => void;
   className?: string;
@@ -98,6 +103,9 @@ export function MessageFeed({
   messages,
   pinnedMessages,
   isLoading,
+  isLoadingOlder = false,
+  hasMoreOlder = false,
+  onLoadMoreOlder,
   error,
   onSend,
   onSendImage,
@@ -111,9 +119,11 @@ export function MessageFeed({
   onToggleImportant,
   onVotePoll,
   onVoteQuick,
+  onEditPoll,
   onSendQuickVote,
   onDelete,
   canDeleteSystemMessages,
+  canEditPoll = false,
   canRegenerateSummary = false,
   onSummarySaved,
   className,
@@ -122,6 +132,9 @@ export function MessageFeed({
   const isAtBottomRef = useRef(true);
   const prevLengthRef = useRef(messages.length);
   const initialScrollDoneRef = useRef(false);
+  const scrollHeightBeforeLoadRef = useRef(0);
+  const scrollTopBeforeLoadRef = useRef(0);
+  const loadMoreTriggeredRef = useRef(false);
 
   // Mise à jour à minuit pour afficher le séparateur "aujourd'hui" automatiquement
   const [now, setNow] = useState(() => new Date());
@@ -163,10 +176,29 @@ export function MessageFeed({
   }, [messages.length, scrollToBottom]);
 
   const handleScroll = () => {
-    if (!scrollRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+    const el = scrollRef.current;
+    if (!el) return;
+    const { scrollTop, scrollHeight, clientHeight } = el;
     isAtBottomRef.current = scrollHeight - scrollTop - clientHeight < 60;
+    if (scrollTop < 150 && hasMoreOlder && !isLoadingOlder && !loadMoreTriggeredRef.current && onLoadMoreOlder) {
+      scrollHeightBeforeLoadRef.current = el.scrollHeight;
+      scrollTopBeforeLoadRef.current = el.scrollTop;
+      loadMoreTriggeredRef.current = true;
+      onLoadMoreOlder();
+    }
   };
+
+  // Restaure la position du scroll après chargement des messages plus anciens
+  useEffect(() => {
+    if (loadMoreTriggeredRef.current && !isLoadingOlder && scrollRef.current) {
+      loadMoreTriggeredRef.current = false;
+      const el = scrollRef.current;
+      const heightDiff = el.scrollHeight - scrollHeightBeforeLoadRef.current;
+      if (heightDiff > 0) {
+        el.scrollTop = scrollTopBeforeLoadRef.current + heightDiff;
+      }
+    }
+  }, [isLoadingOlder, messages.length]);
 
   const handleNavigateToMessage = (messageId: string) => {
     const el = document.getElementById(`msg-${messageId}`);
@@ -195,6 +227,7 @@ export function MessageFeed({
         ref={scrollRef}
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 min-w-0"
+        style={{ overflowAnchor: 'none' } as React.CSSProperties}
       >
         {isLoading ? (
           <div className="flex items-center justify-center h-full py-20">
@@ -210,6 +243,11 @@ export function MessageFeed({
           />
         ) : (
           <div className="py-2 min-w-0">
+            {isLoadingOlder && (
+              <div className="flex justify-center py-3">
+                <Spinner size="sm" />
+              </div>
+            )}
             {buildFeedItems(messages, pinnedMessages, now).map((item, idx) =>
               item.type === 'date' ? (
                 <MessageDateSeparator
@@ -237,8 +275,10 @@ export function MessageFeed({
                   onToggleImportant={onToggleImportant}
                   onVotePoll={onVotePoll}
                   onVoteQuick={onVoteQuick}
+                  onEditPoll={onEditPoll}
                   onDelete={onDelete}
                   canDeleteSystemMessage={canDeleteSystemMessages}
+                  canEditPoll={canEditPoll}
                 />
               )
             )}
