@@ -286,6 +286,191 @@ export function MessageItem({
       : []),
   ];
 
+  // ── Contenu du row (utilisé à la fois dans le rendu normal et dans le clone de l'overlay) ──
+
+  const rowInnerContent = (
+    <>
+      <div className={cn(isOwnMessage && 'hidden sm:block')}>
+        <MessageAvatarSlot
+          show={isLast}
+          avatarSrc={message.author?.avatar}
+          avatarAlt={message.author?.name}
+          fallback={initials}
+          entityIcon={
+            message.type === 'system' && entityConf && EntityIcon && !message.author?.avatar && !message.author?.name
+              ? EntityIcon
+              : undefined
+          }
+          entityAvatarBg={entityConf?.avatarBg}
+          entityIconColor={entityConf?.iconColor}
+        />
+      </div>
+
+      <div className={cn('min-w-0 flex-1', isOwnMessage && 'flex flex-col items-end')}>
+        {isFirst && (
+          <MessageHeader
+            label={headerLabel}
+            labelColor={headerLabelColor}
+            highlightStates={highlightStates}
+            alignEnd={isOwnMessage}
+          />
+        )}
+
+        {/* Link previews */}
+        {!isPoll && !isQuickVote && !isEntityCard && (message.metadata?.linkPreviews as Array<{ url: string; title?: string; description?: string; image?: string; siteName?: string }>)?.length > 0 && (
+          <div className={cn('mb-1 space-y-1.5 min-w-0 w-full max-w-full sm:max-w-[385px]', isOwnMessage ? 'self-end' : 'w-full')}>
+            {(message.metadata.linkPreviews as Array<{ url: string; title?: string; description?: string; image?: string; siteName?: string }>).map((p, i) => (
+              <LinkPreview key={`${p.url}-${i}`} preview={p} />
+            ))}
+          </div>
+        )}
+
+        {/* Bubble + reaction button + menu */}
+        <div className={cn(
+          'flex items-center gap-1',
+          isOwnMessage && 'flex-row-reverse',
+          isOwnMessage && !isPoll && !isQuickVote && 'w-fit max-w-full',
+          isOwnMessage && (isPoll || isQuickVote) && 'w-full',
+        )}>
+          {isPoll && pollData ? (
+            <>
+              <PollDisplay
+                question={pollData.question}
+                options={pollData.options}
+                votes={pollData.votes ?? {}}
+                currentUserId={currentUserId ?? null}
+                onVote={onVotePoll ? (optId) => onVotePoll(message.id, optId) : undefined}
+                onEditPoll={onEditPoll && (isOwnMessage || canEditPoll) ? () => setEditPollOpen(true) : undefined}
+                canEdit={isOwnMessage || canEditPoll}
+                bubbleRadius={cardBubbleRadius}
+                className={cn(
+                  isOwnMessage && 'min-w-[260px] sm:min-w-[385px] max-w-full sm:max-w-[385px]',
+                  isOwnMessage && 'bg-[#495ef3] border-[#495ef3]/80 [&_p]:text-white [&_span]:text-white/90 [&_.text-zinc-500]:text-white/80',
+                )}
+              />
+              <PollModal
+                isOpen={editPollOpen}
+                onClose={() => setEditPollOpen(false)}
+                initialData={{ question: pollData.question, options: pollData.options }}
+                onSubmit={(newPoll) => {
+                  onEditPoll?.(message.id, newPoll);
+                  setEditPollOpen(false);
+                }}
+              />
+            </>
+          ) : isQuickVote && quickVoteData ? (
+            <QuickVoteDisplay
+              question={quickVoteData.question}
+              yes={quickVoteData.yes ?? []}
+              no={quickVoteData.no ?? []}
+              currentUserId={currentUserId ?? null}
+              onVote={onVoteQuick ? (vote) => onVoteQuick(message.id, vote) : undefined}
+              bubbleRadius={cardBubbleRadius}
+              className={cn(
+                isOwnMessage && 'min-w-[260px] sm:min-w-[385px] max-w-full sm:max-w-[385px]',
+                isOwnMessage && 'bg-[#495ef3] border-[#495ef3]/80 [&_p]:text-white [&_span]:text-white/90 [&_.text-zinc-500]:text-white/80',
+              )}
+            />
+          ) : isEntityCard && message.relatedEntityType && entityConf ? (
+            <div className={cn(
+              'inline-block min-w-0 sm:min-w-[385px] w-full max-w-full sm:max-w-[385px] border overflow-hidden',
+              cardBubbleRadius,
+              entityConf.borderColor,
+            )}>
+              <MessageEntityCard
+                entityType={message.relatedEntityType}
+                metadata={message.metadata ?? {}}
+                embedded
+                className={cardBubbleRadius}
+              />
+            </div>
+          ) : !isEntityCard ? (
+            (message.metadata?.attachmentType as string) ? (
+              <MessageAttachment message={message} orgId={orgId ?? null} />
+            ) : (
+              <div className={cn(
+                'inline-block max-w-[85%] min-w-0 px-2.5 sm:px-3.5 py-2 text-sm leading-relaxed whitespace-pre-wrap',
+                isOwnMessage && 'w-max max-w-[85%] shrink-0',
+                isOwnMessage ? 'bg-[#495ef3] text-white' : 'bg-surface-elevated text-zinc-800 dark:text-zinc-200',
+                bubbleRadius,
+              )}>
+                {renderWithMentions(message.content)}
+              </div>
+            )
+          ) : null}
+
+          {onToggleReaction && (
+            <MessageReactionAddButton
+              messageId={message.id}
+              onToggleReaction={onToggleReaction}
+            />
+          )}
+
+          <MenuPicker
+            align="end"
+            side="bottom"
+            header={format(msgDate, "EEEE d MMMM 'à' HH:mm", { locale: fr })}
+            trigger={
+              <button
+                type="button"
+                className={MENU_TRIGGER_CLASSES}
+                aria-label="Actions du message"
+              >
+                <MoreVertical size={16} />
+              </button>
+            }
+            items={[
+              {
+                id: 'pin',
+                label: message.isPinned ? 'Désépingler' : 'Épingler',
+                icon: message.isPinned ? PinOff : Pin,
+                onClick: () => onTogglePin(message.id, !message.isPinned),
+              },
+              ...(onToggleImportant
+                ? [{
+                    id: 'important',
+                    label: isImportant ? 'Retirer l\'importance' : 'Marquer comme important',
+                    icon: Zap,
+                    onClick: () => onToggleImportant(message.id),
+                  }]
+                : []),
+              {
+                id: 'copy',
+                label: 'Copier le message',
+                icon: Copy,
+                onClick: () => navigator.clipboard?.writeText(message.content),
+              },
+              ...(onDelete && (message.type !== 'system' || canDeleteSystemMessage)
+                ? [{
+                    id: 'delete',
+                    label: 'Supprimer',
+                    icon: Trash2,
+                    onClick: () => onDelete(message.id),
+                    variant: 'destructive' as const,
+                  }]
+                : []),
+            ]}
+          />
+        </div>
+
+        {onToggleReaction && (
+          <MessageReactions
+            messageId={message.id}
+            reactions={message.reactions ?? []}
+            onToggleReaction={onToggleReaction}
+          />
+        )}
+
+        {/* MessageEntityCard below text for messages with entity + text content */}
+        {message.relatedEntityType && !isEntityCard && (
+          <div className={cn('inline-block min-w-0 sm:min-w-[385px] w-full max-w-full sm:max-w-[385px]', isOwnMessage && 'ml-auto')}>
+            <MessageEntityCard entityType={message.relatedEntityType} metadata={message.metadata} />
+          </div>
+        )}
+      </div>
+    </>
+  );
+
   return (
     <MessageWrapper
       messageId={message.id}
@@ -295,198 +480,24 @@ export function MessageItem({
       compactBelow={compactBelow}
       className={className}
     >
+      {/* Row principal — invisible (mais garde son espace) quand l'overlay est actif */}
       <div
         ref={messageRowRef}
         className={cn('flex items-end gap-2', isOwnMessage && 'flex-row-reverse justify-end')}
+        style={{ visibility: mobileCtxRect ? 'hidden' : undefined }}
         onTouchStart={handleTouchStart}
         onTouchEnd={cancelLongPress}
         onTouchMove={cancelLongPress}
         onContextMenu={(e) => e.preventDefault()}
+        onDoubleClick={onToggleReaction ? () => {
+          try { navigator.vibrate?.(10); } catch { /* not supported */ }
+          onToggleReaction(message.id, '👍');
+        } : undefined}
       >
-        <div className={cn(isOwnMessage && 'hidden sm:block')}>
-          <MessageAvatarSlot
-            show={isLast}
-            avatarSrc={message.author?.avatar}
-            avatarAlt={message.author?.name}
-            fallback={initials}
-            entityIcon={
-              message.type === 'system' && entityConf && EntityIcon && !message.author?.avatar && !message.author?.name
-                ? EntityIcon
-                : undefined
-            }
-            entityAvatarBg={entityConf?.avatarBg}
-            entityIconColor={entityConf?.iconColor}
-          />
-        </div>
-
-        <div
-          className={cn('min-w-0 flex-1', isOwnMessage && 'flex flex-col items-end')}
-          onDoubleClick={onToggleReaction ? () => onToggleReaction(message.id, '👍') : undefined}
-        >
-          {isFirst && (
-            <MessageHeader
-              label={headerLabel}
-              labelColor={headerLabelColor}
-              highlightStates={highlightStates}
-              alignEnd={isOwnMessage}
-            />
-          )}
-
-          {/* Link previews */}
-          {!isPoll && !isQuickVote && !isEntityCard && (message.metadata?.linkPreviews as Array<{ url: string; title?: string; description?: string; image?: string; siteName?: string }>)?.length > 0 && (
-            <div className={cn('mb-1 space-y-1.5 min-w-0 w-full max-w-full sm:max-w-[385px]', isOwnMessage ? 'self-end' : 'w-full')}>
-              {(message.metadata.linkPreviews as Array<{ url: string; title?: string; description?: string; image?: string; siteName?: string }>).map((p, i) => (
-                <LinkPreview key={`${p.url}-${i}`} preview={p} />
-              ))}
-            </div>
-          )}
-
-          {/* Bubble + reaction + menu row */}
-          <div className={cn(
-            'flex items-center gap-1',
-            isOwnMessage && 'flex-row-reverse',
-            isOwnMessage && !isPoll && !isQuickVote && 'w-fit max-w-full',
-            isOwnMessage && (isPoll || isQuickVote) && 'w-full',
-          )}>
-            {isPoll && pollData ? (
-              <>
-                <PollDisplay
-                  question={pollData.question}
-                  options={pollData.options}
-                  votes={pollData.votes ?? {}}
-                  currentUserId={currentUserId ?? null}
-                  onVote={onVotePoll ? (optId) => onVotePoll(message.id, optId) : undefined}
-                  onEditPoll={onEditPoll && (isOwnMessage || canEditPoll) ? () => setEditPollOpen(true) : undefined}
-                  canEdit={isOwnMessage || canEditPoll}
-                  bubbleRadius={cardBubbleRadius}
-                  className={cn(
-                    isOwnMessage && 'min-w-[260px] sm:min-w-[385px] max-w-full sm:max-w-[385px]',
-                    isOwnMessage && 'bg-[#495ef3] border-[#495ef3]/80 [&_p]:text-white [&_span]:text-white/90 [&_.text-zinc-500]:text-white/80',
-                  )}
-                />
-                <PollModal
-                  isOpen={editPollOpen}
-                  onClose={() => setEditPollOpen(false)}
-                  initialData={{ question: pollData.question, options: pollData.options }}
-                  onSubmit={(newPoll) => {
-                    onEditPoll?.(message.id, newPoll);
-                    setEditPollOpen(false);
-                  }}
-                />
-              </>
-            ) : isQuickVote && quickVoteData ? (
-              <QuickVoteDisplay
-                question={quickVoteData.question}
-                yes={quickVoteData.yes ?? []}
-                no={quickVoteData.no ?? []}
-                currentUserId={currentUserId ?? null}
-                onVote={onVoteQuick ? (vote) => onVoteQuick(message.id, vote) : undefined}
-                bubbleRadius={cardBubbleRadius}
-                className={cn(
-                  isOwnMessage && 'min-w-[260px] sm:min-w-[385px] max-w-full sm:max-w-[385px]',
-                  isOwnMessage && 'bg-[#495ef3] border-[#495ef3]/80 [&_p]:text-white [&_span]:text-white/90 [&_.text-zinc-500]:text-white/80',
-                )}
-              />
-            ) : isEntityCard && message.relatedEntityType && entityConf ? (
-              <div className={cn(
-                'inline-block min-w-0 sm:min-w-[385px] w-full max-w-full sm:max-w-[385px] border overflow-hidden',
-                cardBubbleRadius,
-                entityConf.borderColor,
-              )}>
-                <MessageEntityCard
-                  entityType={message.relatedEntityType}
-                  metadata={message.metadata ?? {}}
-                  embedded
-                  className={cardBubbleRadius}
-                />
-              </div>
-            ) : !isEntityCard ? (
-              (message.metadata?.attachmentType as string) ? (
-                <MessageAttachment message={message} orgId={orgId ?? null} />
-              ) : (
-                <div className={cn(
-                  'inline-block max-w-[85%] min-w-0 px-2.5 sm:px-3.5 py-2 text-sm leading-relaxed whitespace-pre-wrap',
-                  isOwnMessage && 'w-max max-w-[85%] shrink-0',
-                  isOwnMessage ? 'bg-[#495ef3] text-white' : 'bg-surface-elevated text-zinc-800 dark:text-zinc-200',
-                  bubbleRadius,
-                )}>
-                  {renderWithMentions(message.content)}
-                </div>
-              )
-            ) : null}
-
-            {onToggleReaction && (
-              <MessageReactionAddButton
-                messageId={message.id}
-                onToggleReaction={onToggleReaction}
-              />
-            )}
-
-            <MenuPicker
-              align="end"
-              side="bottom"
-              header={format(msgDate, "EEEE d MMMM 'à' HH:mm", { locale: fr })}
-              trigger={
-                <button
-                  type="button"
-                  className={MENU_TRIGGER_CLASSES}
-                  aria-label="Actions du message"
-                >
-                  <MoreVertical size={16} />
-                </button>
-              }
-              items={[
-                {
-                  id: 'pin',
-                  label: message.isPinned ? 'Désépingler' : 'Épingler',
-                  icon: message.isPinned ? PinOff : Pin,
-                  onClick: () => onTogglePin(message.id, !message.isPinned),
-                },
-                ...(onToggleImportant
-                  ? [{
-                      id: 'important',
-                      label: isImportant ? 'Retirer l\'importance' : 'Marquer comme important',
-                      icon: Zap,
-                      onClick: () => onToggleImportant(message.id),
-                    }]
-                  : []),
-                {
-                  id: 'copy',
-                  label: 'Copier le message',
-                  icon: Copy,
-                  onClick: () => navigator.clipboard?.writeText(message.content),
-                },
-                ...(onDelete && (message.type !== 'system' || canDeleteSystemMessage)
-                  ? [{
-                      id: 'delete',
-                      label: 'Supprimer',
-                      icon: Trash2,
-                      onClick: () => onDelete(message.id),
-                      variant: 'destructive' as const,
-                    }]
-                  : []),
-              ]}
-            />
-          </div>
-
-          {onToggleReaction && (
-            <MessageReactions
-              messageId={message.id}
-              reactions={message.reactions ?? []}
-              onToggleReaction={onToggleReaction}
-            />
-          )}
-
-          {/* MessageEntityCard below text for messages with entity + text content */}
-          {message.relatedEntityType && !isEntityCard && (
-            <div className={cn('inline-block min-w-0 sm:min-w-[385px] w-full max-w-full sm:max-w-[385px]', isOwnMessage && 'ml-auto')}>
-              <MessageEntityCard entityType={message.relatedEntityType} metadata={message.metadata} />
-            </div>
-          )}
-        </div>
+        {rowInnerContent}
       </div>
 
-      {/* Mobile long-press overlay (touch devices only, portal into body) */}
+      {/* Mobile long-press overlay */}
       {mobileCtxRect && typeof document !== 'undefined' && (
         <MessageMobileOverlay
           rect={mobileCtxRect}
@@ -498,7 +509,12 @@ export function MessageItem({
             onToggleReaction?.(message.id, emoji);
             setMobileCtxRect(null);
           }}
-        />
+        >
+          {/* Clone visuel du message (sans interactions) */}
+          <div className={cn('flex items-end gap-2', isOwnMessage && 'flex-row-reverse justify-end')}>
+            {rowInnerContent}
+          </div>
+        </MessageMobileOverlay>
       )}
     </MessageWrapper>
   );

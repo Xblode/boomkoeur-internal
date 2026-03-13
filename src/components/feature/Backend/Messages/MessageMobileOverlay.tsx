@@ -16,12 +16,15 @@ export interface MobileOverlayAction {
 }
 
 interface MessageMobileOverlayProps {
+  /** Bounding rect du message dans sa position originale */
   rect: DOMRect;
   isOwnMessage: boolean;
   header?: string;
   actions: MobileOverlayAction[];
   onClose: () => void;
   onReaction: (emoji: string) => void;
+  /** Contenu visuel du message à afficher dans l'overlay (clone sans interactions) */
+  children?: React.ReactNode;
 }
 
 export function MessageMobileOverlay({
@@ -31,94 +34,89 @@ export function MessageMobileOverlay({
   actions,
   onClose,
   onReaction,
+  children,
 }: MessageMobileOverlayProps) {
-  // Lock scroll while open
+  // Lock body scroll
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
+    return () => { document.body.style.overflow = prev; };
   }, []);
 
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
-  const EMOJI_H = 62;
-  const MENU_ITEM_H = 50;
-  const HEADER_H = header ? 38 : 0;
-  const GAP = 10;
-  const SIDE = 16;
+  const EMOJI_H  = 62;
+  const ITEM_H   = 50;
+  const HEADER_H = header ? 40 : 0;
+  const GAP      = 10;
+  const SIDE     = 16;
+  const SAFE     = 8;
 
-  // Emoji bar: above message if space, else below
-  const emojiTop =
-    rect.top >= EMOJI_H + GAP + 8
-      ? rect.top - EMOJI_H - GAP
-      : rect.bottom + GAP;
+  const menuH = HEADER_H + actions.length * ITEM_H;
 
-  // Action menu: below message if space, else above
-  const menuH = HEADER_H + actions.length * MENU_ITEM_H;
-  const actionsTop =
-    rect.bottom + GAP + menuH <= vh - 8
-      ? rect.bottom + GAP
-      : Math.max(8, rect.top - menuH - GAP);
+  // ── Position verticale du message ─────────────────────────────────────────
+  // On remonte le message si nécessaire pour que le menu d'actions tienne en dessous
+  const maxTop     = vh - rect.height - GAP - menuH - SAFE;
+  const adjustedTop = Math.min(rect.top, Math.max(SAFE, maxTop));
+  const adjustedBottom = adjustedTop + rect.height;
 
-  // Horizontal anchor: right for own messages, left for others
+  // ── Emoji bar : au-dessus du message (peut chevaucher si pas de place) ────
+  const emojiBarTop = Math.max(SAFE, adjustedTop - EMOJI_H - GAP);
+
+  // ── Menu d'actions : toujours en dessous du message ───────────────────────
+  const actionsTop = adjustedBottom + GAP;
+
+  // Ancrage horizontal du menu
   const actionsStyle: React.CSSProperties = isOwnMessage
     ? { top: actionsTop, right: SIDE }
     : { top: actionsTop, left: SIDE };
 
   return createPortal(
     <>
-      {/* 4-part backdrop — leaves a transparent window over the message */}
+      {/* Backdrop plein écran */}
       <div
-        className="fixed z-[60] bg-black/72"
-        style={{ top: 0, left: 0, right: 0, height: rect.top }}
+        className="fixed inset-0 z-[60] bg-black/72"
         onClick={onClose}
       />
-      <div
-        className="fixed z-[60] bg-black/72"
-        style={{ top: rect.bottom, left: 0, right: 0, bottom: 0 }}
-        onClick={onClose}
-      />
-      {rect.left > 0 && (
+
+      {/* Clone du message à la position ajustée + animation bouing */}
+      {children && (
         <div
-          className="fixed z-[60] bg-black/72"
-          style={{ top: rect.top, left: 0, width: rect.left, height: rect.height }}
-          onClick={onClose}
-        />
-      )}
-      {rect.right < vw && (
-        <div
-          className="fixed z-[60] bg-black/72"
-          style={{ top: rect.top, left: rect.right, right: 0, height: rect.height }}
-          onClick={onClose}
-        />
+          className="fixed z-[62] pointer-events-none animate-mobile-ctx-pop"
+          style={{
+            top: adjustedTop,
+            left: rect.left,
+            width: rect.width,
+          }}
+        >
+          {children}
+        </div>
       )}
 
       {/* Emoji picker */}
       <div
-        className="fixed z-[61] flex items-center bg-zinc-900 border border-zinc-700/80 rounded-full px-2 py-1.5 shadow-2xl"
-        style={{ top: emojiTop, left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap' }}
+        className="fixed z-[63] flex items-center bg-zinc-900 border border-zinc-700/80 rounded-full px-2 py-1.5 shadow-2xl"
+        style={{ top: emojiBarTop, left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap' }}
       >
         {QUICK_EMOJIS.map((emoji) => (
           <button
             key={emoji}
             type="button"
             className="text-[26px] p-1.5 rounded-full active:scale-125 transition-transform leading-none select-none"
-            onClick={() => {
-              onReaction(emoji);
-              onClose();
-            }}
+            onClick={() => { onReaction(emoji); onClose(); }}
           >
             {emoji}
           </button>
         ))}
       </div>
 
-      {/* Action menu */}
+      {/* Menu d'actions */}
       <div
-        className="fixed z-[61] min-w-[220px] max-w-[300px] rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-700/80 shadow-2xl"
+        className={cn(
+          'fixed z-[63] min-w-[220px] max-w-[300px] rounded-2xl overflow-hidden',
+          'bg-zinc-900 border border-zinc-700/80 shadow-2xl',
+        )}
         style={actionsStyle}
       >
         {header && (
@@ -133,14 +131,11 @@ export function MessageMobileOverlay({
               key={action.id}
               type="button"
               className={cn(
-                'w-full flex items-center justify-between gap-4 px-4 py-3.5 text-sm text-left active:bg-white/5 transition-colors',
+                'w-full flex items-center justify-between gap-4 px-4 py-3.5 text-sm text-left active:bg-white/5',
                 i > 0 && 'border-t border-zinc-700/40',
                 action.variant === 'destructive' ? 'text-red-400' : 'text-zinc-100',
               )}
-              onClick={() => {
-                action.onClick();
-                onClose();
-              }}
+              onClick={() => { action.onClick(); onClose(); }}
             >
               <span>{action.label}</span>
               <Icon size={16} className="opacity-60 shrink-0" />
