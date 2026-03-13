@@ -46,26 +46,27 @@ export function MessageMobileOverlay({
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
-  const EMOJI_H  = 62;
-  const ITEM_H   = 50;
-  const HEADER_H = header ? 40 : 0;
-  const GAP      = 10;
-  const SIDE     = 16;
-  const SAFE     = 8;
+  const EMOJI_H     = 62;
+  const ITEM_H      = 50;
+  const HEADER_H    = header ? 40 : 0;
+  const MENU_GAP    = 10;   // distance message → menu d'actions
+  const EMOJI_GAP   = 4;    // distance message → emoji bar (plus proche)
+  const SIDE        = 16;
+  const SAFE        = 8;
 
   const menuH = HEADER_H + actions.length * ITEM_H;
 
   // ── Position verticale du message ─────────────────────────────────────────
   // On remonte le message si nécessaire pour que le menu d'actions tienne en dessous
-  const maxTop     = vh - rect.height - GAP - menuH - SAFE;
+  const maxTop      = vh - rect.height - MENU_GAP - menuH - SAFE;
   const adjustedTop = Math.min(rect.top, Math.max(SAFE, maxTop));
   const adjustedBottom = adjustedTop + rect.height;
 
   // ── Emoji bar : au-dessus du message (peut chevaucher si pas de place) ────
-  const emojiBarTop = Math.max(SAFE, adjustedTop - EMOJI_H - GAP);
+  const emojiBarTop = Math.max(SAFE, adjustedTop - EMOJI_H - EMOJI_GAP);
 
   // ── Menu d'actions : toujours en dessous du message ───────────────────────
-  const actionsTop = adjustedBottom + GAP;
+  const actionsTop = adjustedBottom + MENU_GAP;
 
   // Ancrage horizontal du menu
   const actionsStyle: React.CSSProperties = isOwnMessage
@@ -114,7 +115,7 @@ export function MessageMobileOverlay({
       {/* Menu d'actions */}
       <div
         className={cn(
-          'fixed z-[63] min-w-[220px] max-w-[300px] rounded-2xl overflow-hidden',
+          'fixed z-[63] min-w-[220px] max-w-[300px] rounded-xl overflow-hidden',
           'bg-zinc-900 border border-zinc-700/80 shadow-2xl',
         )}
         style={actionsStyle}

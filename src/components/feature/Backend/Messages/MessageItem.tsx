@@ -510,9 +510,69 @@ export function MessageItem({
             setMobileCtxRect(null);
           }}
         >
-          {/* Clone visuel du message (sans interactions) */}
-          <div className={cn('flex items-end gap-2', isOwnMessage && 'flex-row-reverse justify-end')}>
-            {rowInnerContent}
+          {/* Clone visuel du message sans avatar */}
+          <div className={cn(
+            'flex items-end gap-2 px-2',
+            isOwnMessage ? 'justify-end' : 'justify-start',
+          )}>
+            <div className={cn('min-w-0 flex-1', isOwnMessage && 'flex flex-col items-end')}>
+              {isFirst && (
+                <MessageHeader
+                  label={headerLabel}
+                  labelColor={headerLabelColor}
+                  highlightStates={highlightStates}
+                  alignEnd={isOwnMessage}
+                />
+              )}
+              <div className={cn(
+                'flex items-center gap-1',
+                isOwnMessage && 'flex-row-reverse',
+                isOwnMessage && !isPoll && !isQuickVote && 'w-fit max-w-full',
+              )}>
+                {isPoll && pollData ? (
+                  <PollDisplay
+                    question={pollData.question}
+                    options={pollData.options}
+                    votes={pollData.votes ?? {}}
+                    currentUserId={currentUserId ?? null}
+                    bubbleRadius={cardBubbleRadius}
+                    className={cn(
+                      isOwnMessage && 'min-w-[260px] max-w-full',
+                      isOwnMessage && 'bg-[#495ef3] border-[#495ef3]/80 [&_p]:text-white [&_span]:text-white/90',
+                    )}
+                  />
+                ) : isQuickVote && quickVoteData ? (
+                  <QuickVoteDisplay
+                    question={quickVoteData.question}
+                    yes={quickVoteData.yes ?? []}
+                    no={quickVoteData.no ?? []}
+                    currentUserId={currentUserId ?? null}
+                    bubbleRadius={cardBubbleRadius}
+                    className={cn(
+                      isOwnMessage && 'min-w-[260px] max-w-full',
+                      isOwnMessage && 'bg-[#495ef3] border-[#495ef3]/80 [&_p]:text-white [&_span]:text-white/90',
+                    )}
+                  />
+                ) : isEntityCard && message.relatedEntityType && entityConf ? (
+                  <div className={cn('inline-block min-w-0 w-full max-w-full border overflow-hidden', cardBubbleRadius, entityConf.borderColor)}>
+                    <MessageEntityCard entityType={message.relatedEntityType} metadata={message.metadata ?? {}} embedded className={cardBubbleRadius} />
+                  </div>
+                ) : !isEntityCard ? (
+                  (message.metadata?.attachmentType as string) ? (
+                    <MessageAttachment message={message} orgId={orgId ?? null} />
+                  ) : (
+                    <div className={cn(
+                      'inline-block max-w-[85%] min-w-0 px-2.5 py-2 text-sm leading-relaxed whitespace-pre-wrap',
+                      isOwnMessage && 'w-max max-w-[85%] shrink-0',
+                      isOwnMessage ? 'bg-[#495ef3] text-white' : 'bg-surface-elevated text-zinc-800 dark:text-zinc-200',
+                      bubbleRadius,
+                    )}>
+                      {renderWithMentions(message.content)}
+                    </div>
+                  )
+                ) : null}
+              </div>
+            </div>
           </div>
         </MessageMobileOverlay>
       )}
