@@ -1,5 +1,6 @@
 export { MessagesLayout } from './MessagesLayout';
 export { MessagesLayoutConfig } from './MessagesLayoutConfig';
+export { MessagesDrawer } from './MessagesDrawer';
 export { MessagesSidebar } from './MessagesSidebar';
 export { MessageFeed } from './MessageFeed';
 export { MessageItem } from './MessageItem';

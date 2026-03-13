@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSearchModal } from '@/components/providers/SearchModalProvider';
+import { useMessagesDrawer } from '@/components/providers/MessagesDrawerProvider';
 import { useMessagesUnreadCount } from '@/hooks';
 
 /** Hauteur totale de la toolbar (sync avec le padding du layout) — pt-3 + contenu + pb-8 ≈ 88px */
@@ -20,6 +21,7 @@ export const MOBILE_TOOLBAR_HEIGHT_PX = 88;
 export function MobileBottomToolbar() {
   const pathname = usePathname();
   const { open } = useSearchModal();
+  const { open: openMessagesDrawer, isOpen: isMessagesDrawerOpen } = useMessagesDrawer();
   const { count: messagesUnreadCount } = useMessagesUnreadCount();
 
   const isActive = (href: string) => {
@@ -66,12 +68,13 @@ export function MobileBottomToolbar() {
           <Search size={22} className="shrink-0" />
         </button>
 
-        <Link
-          href="/dashboard/messages"
+        <button
+          type="button"
+          onClick={openMessagesDrawer}
           aria-label="Messages"
           className={cn(
             'relative flex items-center justify-center flex-1 py-2 transition-colors',
-            isActive('/dashboard/messages')
+            isMessagesDrawerOpen
               ? 'text-zinc-900 dark:text-zinc-50'
               : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50'
           )}
@@ -79,15 +82,15 @@ export function MobileBottomToolbar() {
           <MessageSquare
             size={22}
             className="shrink-0"
-            fill={isActive('/dashboard/messages') ? 'currentColor' : 'none'}
-            strokeWidth={isActive('/dashboard/messages') ? 2.5 : 1.5}
+            fill={isMessagesDrawerOpen ? 'currentColor' : 'none'}
+            strokeWidth={isMessagesDrawerOpen ? 2.5 : 1.5}
           />
           {messagesUnreadCount > 0 && (
             <span className="absolute top-1 right-1/2 translate-x-2 flex min-w-[18px] h-[18px] items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1">
               {messagesUnreadCount > 99 ? '99+' : messagesUnreadCount}
             </span>
           )}
-        </Link>
+        </button>
 
         <Link
           href="/dashboard/events"

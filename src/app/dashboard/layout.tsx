@@ -17,6 +17,8 @@ import { DetailPanelProvider } from '@/components/providers/DetailPanelProvider'
 import { PageLayoutProvider } from '@/components/providers/PageLayoutProvider';
 import { OrgProvider } from '@/components/providers/OrgProvider';
 import { HeaderActionProvider } from '@/components/providers/HeaderActionProvider';
+import { MessagesDrawerProvider } from '@/components/providers/MessagesDrawerProvider';
+import { MessagesDrawer } from '@/components/feature/Backend/Messages/MessagesDrawer';
 
 function BackendLayoutContent({
   children,
@@ -105,6 +107,7 @@ export default function BackendLayout({
         storageKey="theme-dashboard"
       >
         <OrgProvider>
+        <MessagesDrawerProvider>
         <HeaderActionProvider>
         <ToolbarProvider>
           <AlertProvider>
@@ -122,6 +125,8 @@ export default function BackendLayout({
           </AlertProvider>
         </ToolbarProvider>
         </HeaderActionProvider>
+        <MessagesDrawer />
+        </MessagesDrawerProvider>
         </OrgProvider>
       </ThemeProvider>
   );

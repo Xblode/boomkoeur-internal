@@ -39,10 +39,13 @@ async function fetchLinkPreviews(urls: string[]): Promise<Array<{ url: string; t
 
 interface MessagesLayoutProps {
   className?: string;
+  /** Override pour le pathname (ex: drawer mobile) */
+  pathnameOverride?: string;
 }
 
-export function MessagesLayout({ className }: MessagesLayoutProps) {
-  const pathname = usePathname();
+export function MessagesLayout({ className, pathnameOverride }: MessagesLayoutProps) {
+  const routerPathname = usePathname();
+  const pathname = pathnameOverride ?? routerPathname;
   const isJournalPage = pathname?.endsWith('/journal') ?? false;
   const orgContext = useOrgOptional();
   const orgName = orgContext?.activeOrg?.name;
