@@ -36,3 +36,9 @@ export function usePageSidebar() {
   }
   return context;
 }
+
+/** Version optionnelle : retourne config null quand hors PageSidebarProvider */
+export function usePageSidebarOptional() {
+  const context = useContext(PageSidebarContext);
+  return context ?? { config: null, setPageSidebarConfig: () => {} };
+}

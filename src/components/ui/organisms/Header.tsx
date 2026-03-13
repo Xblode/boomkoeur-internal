@@ -4,18 +4,20 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Button, IconButton } from '@/components/ui/atoms';
 import { cn } from '@/lib/utils';
-import { LogOut, User, Settings, Search, Calendar, Shield, Menu, X, MessageSquare } from 'lucide-react';
-import { Breadcrumb } from '../molecules/Breadcrumb';
+import { LogOut, User, Settings, Search, Calendar, Shield, Menu, X, MessageSquare, ChevronLeft } from 'lucide-react';
+import { Breadcrumb, OrgSelect } from '../molecules';
 import { GlobalSearchModal } from './GlobalSearchModal';
-import { useMobileNav } from '@/components/providers/MobileNavProvider';
+import { useSearchModal } from '@/components/providers/SearchModalProvider';
+import { usePageSidebarOptional } from '@/components/providers/PageSidebarProvider';
 import { supabase } from '@/lib/supabase/client';
 import { ROUTES } from '@/lib/constants';
 import { useUser, useMessagesUnreadCount } from '@/hooks';
 import { useOrgOptional } from '@/components/providers/OrgProvider';
 import { siteConfig } from '@/config/site';
+import { isMainDashboardPage, getBackHrefForSubPage } from '@/config/layout';
 
 export interface HeaderProps {
   navigation?: Array<{ label: string; href: string }>;
@@ -42,24 +44,17 @@ export const Header: React.FC<HeaderProps> = ({
     ? { name: sessionUser.name, email: sessionUser.email, avatar: sessionUser.avatar }
     : { name: 'Utilisateur', email: '' });
   const router = useRouter();
+  const pathname = usePathname();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const { isOpen: isSearchOpen, open: openSearch, close: closeSearch } = useSearchModal();
+  const { config: pageSidebarConfig } = usePageSidebarOptional();
+  const isMainPage = isMainDashboardPage(pathname);
+  const backHref = pageSidebarConfig?.backLink?.href ?? getBackHrefForSubPage(pathname);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setIsSearchOpen(true);
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
   }, []);
 
   const handleSignOut = async () => {
@@ -69,8 +64,6 @@ export const Header: React.FC<HeaderProps> = ({
     router.refresh();
   };
 
-  const { toggle: toggleMobileNav } = useMobileNav();
-
   // Mode Admin (Dashboard)
   if (variant === 'admin') {
     return (
@@ -78,16 +71,19 @@ export const Header: React.FC<HeaderProps> = ({
         "fixed top-0 left-0 right-0 z-50 h-[52px] border-b border-border-custom bg-backend backdrop-blur-md flex overflow-visible",
         className
       )}>
-        {/* Logo / Hamburger Area — hamburger sur mobile, logo sur desktop */}
+        {/* Zone gauche : Logo (desktop) | Chevron back (mobile sub) | Vide (mobile main) */}
         <div className="w-[52px] min-w-[52px] h-full flex items-center justify-center border-r border-border-custom shrink-0">
-          <button
-            type="button"
-            onClick={toggleMobileNav}
-            aria-label="Ouvrir le menu de navigation"
-            className="lg:hidden p-2 -m-2 rounded-lg text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-          >
-            <Menu size={24} />
-          </button>
+          {/* Mobile sous-page : chevron retour */}
+          {!isMainPage && backHref && (
+            <Link
+              href={backHref}
+              className="lg:hidden p-2 -m-2 rounded-lg text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+              aria-label="Retour"
+            >
+              <ChevronLeft size={24} />
+            </Link>
+          )}
+          {/* Desktop : logo */}
           <Link
             href="/"
             className="hidden lg:flex items-center justify-center"
@@ -104,47 +100,52 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Header Content */}
-        <div className="flex-1 flex items-center justify-between px-3 overflow-visible">
-          <div className="flex items-center min-w-0">
+        <div className="flex-1 flex items-center justify-between px-3 overflow-visible min-w-0">
+          {/* Mobile : centre = OrgSelect (main) ou entitySelector (sub) */}
+          <div className="lg:hidden flex-1 flex items-center justify-center min-w-0">
+            {isMainPage ? (
+              <OrgSelect className="min-w-0" maxLabelWidth={140} />
+            ) : pageSidebarConfig?.entitySelector ? (
+              <div className="min-w-0 flex justify-center [&>*]:max-w-full">
+                {pageSidebarConfig.entitySelector}
+              </div>
+            ) : (
+              <OrgSelect className="min-w-0" maxLabelWidth={140} />
+            )}
+          </div>
+
+          {/* Desktop : Breadcrumb complet */}
+          <div className="hidden lg:flex items-center min-w-0 flex-1">
             <Breadcrumb variant="navigation" className="min-w-0" />
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-2">
-            {/* Search — icône sur mobile, barre complète sur desktop */}
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            {/* Search — masqué sur mobile (dans bottom toolbar), visible desktop */}
             <Button
               type="button"
               variant="ghost"
-              onClick={() => setIsSearchOpen(true)}
+              onClick={openSearch}
               aria-label="Rechercher"
-              className="hidden sm:flex items-center gap-2 px-2.5 py-1 text-sm text-zinc-500 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700/50 rounded-full w-44 lg:w-56 border-0 h-8"
+              className="hidden lg:flex items-center gap-2 px-2.5 py-1 text-sm text-zinc-500 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700/50 rounded-full w-44 xl:w-56 border-0 h-8"
             >
               <Search size={14} />
               <span className="flex-1 text-left">Rechercher...</span>
-              <kbd className="hidden lg:inline-flex h-5 items-center gap-1 rounded border border-zinc-200 bg-zinc-50 px-1.5 font-mono text-[10px] font-medium text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 ml-auto opacity-50">
+              <kbd className="hidden xl:inline-flex h-5 items-center gap-1 rounded border border-zinc-200 bg-zinc-50 px-1.5 font-mono text-[10px] font-medium text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 ml-auto opacity-50">
                 <span className="text-xs">⌘</span>K
               </kbd>
             </Button>
-            <IconButton
-              icon={Search}
-              ariaLabel="Rechercher"
-              variant="ghost"
-              onClick={() => setIsSearchOpen(true)}
-              className="sm:hidden p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full h-auto w-auto"
-            />
 
-            {/* Calendrier */}
+            {/* Calendrier + Messages — masqués sur mobile (dans bottom toolbar) */}
             <Link
               href="/dashboard/calendar"
-              className="p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
+              className="hidden lg:flex p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
               title="Calendrier"
             >
               <Calendar size={18} />
             </Link>
-
-            {/* Messages */}
             <Link
               href="/dashboard/messages"
-              className="relative p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
+              className="hidden lg:flex relative p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
               title="Messages"
             >
               <MessageSquare size={18} />
@@ -253,9 +254,9 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Search Modal */}
-        {isSearchOpen && mounted && (
-          <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+        {/* Search Modal — partagé avec MobileBottomToolbar via SearchModalProvider */}
+        {mounted && (
+          <GlobalSearchModal isOpen={isSearchOpen} onClose={closeSearch} />
         )}
       </header>
     );

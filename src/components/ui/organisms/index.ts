@@ -12,6 +12,8 @@ export type { SidebarProps, SidebarItem } from './Sidebar';
 export { MobileNavDrawer } from './MobileNavDrawer';
 export type { MobileNavDrawerProps } from './MobileNavDrawer';
 
+export { MobileBottomToolbar, MOBILE_TOOLBAR_HEIGHT } from './MobileBottomToolbar';
+
 export { ProfileHeader } from './ProfileHeader';
 export type { ProfileHeaderProps } from './ProfileHeader';
 

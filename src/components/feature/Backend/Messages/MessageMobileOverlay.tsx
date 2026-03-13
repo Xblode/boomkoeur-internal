@@ -75,9 +75,9 @@ export function MessageMobileOverlay({
 
   return createPortal(
     <>
-      {/* Backdrop plein écran */}
+      {/* Backdrop plein écran avec flou */}
       <div
-        className="fixed inset-0 z-[60] bg-black/72"
+        className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
 

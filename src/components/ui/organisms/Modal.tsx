@@ -1,6 +1,6 @@
 'use client'
 
-import { HTMLAttributes, ReactNode, useEffect, Children, isValidElement, type ReactElement } from 'react'
+import { HTMLAttributes, ReactNode, useState, useEffect, Children, isValidElement, type ReactElement } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence, Variants } from 'framer-motion'
 import { X } from 'lucide-react'
@@ -27,27 +27,28 @@ const MODAL_HEADER_PADDING = 'p-4 sm:p-6'
 const MODAL_CONTENT_PADDING = 'p-4 sm:p-6'
 const MODAL_FOOTER_PADDING = 'p-4 sm:p-6'
 
-// Animation spécifique pour le modal
-const modalAnimation: Variants = {
+// Desktop: scale + fade centré
+const desktopAnimation: Variants = {
   hidden: { opacity: 0, scale: 0.95, y: 20 },
   visible: { 
     opacity: 1, 
     scale: 1,
     y: 0,
-    transition: { 
-      duration: 0.3,
-      ease: 'easeOut'
-    }
+    transition: { duration: 0.3, ease: 'easeOut' }
   },
   exit: { 
     opacity: 0, 
     scale: 0.95,
     y: 20,
-    transition: { 
-      duration: 0.2,
-      ease: 'easeIn'
-    }
+    transition: { duration: 0.2, ease: 'easeIn' }
   }
+}
+
+// Mobile: slide-up depuis le bas (bottom sheet)
+const bottomSheetAnimation: Variants = {
+  hidden: { y: '100%' },
+  visible: { y: 0, transition: { duration: 0.32, ease: [0.32, 0.72, 0, 1] } },
+  exit: { y: '100%', transition: { duration: 0.22, ease: 'easeIn' } },
 }
 
 /**
@@ -78,6 +79,17 @@ export function Modal({
   contentFullBleed = false,
 }: ModalProps) {
   const isFullBleed = variant === 'fullBleed' || contentFullBleed
+
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)')
+    setIsMobile(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
   // Fermer avec Escape et bloquer le scroll
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -132,32 +144,43 @@ export function Modal({
     <AnimatePresence>
       {isOpen && (
         <div className="fixed top-0 left-0 right-0 bottom-0 w-full h-full z-[2000] m-0 p-0 overflow-hidden">
-          {/* Overlay - couvre tout le viewport */}
+          {/* Overlay */}
           <motion.div
             variants={fadeIn}
             initial="hidden"
             animate="visible"
             exit="hidden"
-            className="absolute inset-0 bg-black/50"
+            className={cn('absolute inset-0', isMobile ? 'bg-black/60 backdrop-blur-sm' : 'bg-black/50')}
             onClick={onClose}
             aria-hidden="true"
           />
           
-          {/* Modal - centré au milieu de l'écran */}
-          <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
+          {/* Container : centré sur desktop, aligné en bas sur mobile */}
+          <div className={cn(
+            'absolute inset-0 pointer-events-none',
+            isMobile ? 'flex items-end' : 'flex items-center justify-center p-4',
+          )}>
             <motion.div
-              variants={modalAnimation}
+              variants={isMobile ? bottomSheetAnimation : desktopAnimation}
               initial="hidden"
               animate="visible"
               exit="exit"
               className={cn(
-                'border border-border-custom rounded-lg max-h-[95vh] pointer-events-auto flex flex-col shadow-lg bg-card-bg',
-                sizes[size],
-                'w-full overflow-hidden',
+                'pointer-events-auto flex flex-col shadow-lg bg-card-bg w-full overflow-hidden',
+                isMobile
+                  ? 'rounded-t-xl rounded-b-none max-h-[90vh] border-t border-x border-border-custom'
+                  : cn('border border-border-custom rounded-lg max-h-[95vh]', sizes[size]),
                 !isFullBleed && !scrollable && 'overflow-auto'
               )}
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Drag indicator (mobile only) */}
+              {isMobile && (
+                <div className="flex justify-center pt-3 pb-1 shrink-0">
+                  <div className="w-10 h-1 rounded-full bg-zinc-300 dark:bg-zinc-600" />
+                </div>
+              )}
+
               {/* Header */}
               {hasExplicitHeader ? (
                 headerElement

@@ -1,6 +1,9 @@
 export { Breadcrumb } from './Breadcrumb';
 export type { BreadcrumbProps } from './Breadcrumb';
 
+export { OrgSelect } from './OrgSelect';
+export type { OrgSelectProps } from './OrgSelect';
+
 export { EmptyState } from './EmptyState';
 export type { EmptyStateProps, EmptyStateVariant } from './EmptyState';
 

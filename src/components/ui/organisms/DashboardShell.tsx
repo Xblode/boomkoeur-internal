@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ChevronLeft, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PageSidebar, PageAlert } from '@/components/ui';
 import { useToolbar } from '@/components/providers/ToolbarProvider';
@@ -94,15 +94,7 @@ export function DashboardShell({ children, className }: DashboardShellProps) {
                 if (!hasContent) return null;
                 return (
                   <div className="lg:hidden flex items-center gap-1 px-2 py-1.5 border-r border-border-custom shrink-0">
-                    {pageSidebarConfig.backLink && (
-                      <Link
-                        href={pageSidebarConfig.backLink.href}
-                        className="p-2 rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 shrink-0 flex items-center justify-center"
-                        title={pageSidebarConfig.backLink.label}
-                      >
-                        <ChevronLeft size={18} />
-                      </Link>
-                    )}
+                    {/* Chevron back déplacé dans le header mobile */}
                     {allSections.map((section) => {
                       const href = section.href ?? (pageSidebarConfig!.basePath ? (section.slug ? `${pageSidebarConfig!.basePath}${section.slug}` : pageSidebarConfig!.basePath) : undefined);
                       const active = pageSidebarConfig!.activeSectionId === section.id;

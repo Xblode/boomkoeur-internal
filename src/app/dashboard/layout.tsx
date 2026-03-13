@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import { Sidebar, Header, DashboardShell, MobileNavDrawer } from '@/components/ui/organisms';
+import { Sidebar, Header, DashboardShell, MobileBottomToolbar } from '@/components/ui/organisms';
 import { backendNavigation } from '@/config/navigation';
-import { MobileNavProvider } from '@/components/providers/MobileNavProvider';
-import { isDetailPage, usesDashboardShell } from '@/config/layout';
+import { SearchModalProvider } from '@/components/providers/SearchModalProvider';
+import { isDetailPage, isMainDashboardPage, usesDashboardShell } from '@/config/layout';
 import { useSidebarMode } from '@/hooks';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
@@ -36,8 +36,10 @@ function BackendLayoutContent({
     return <>{children}</>;
   }
 
+  const showMobileToolbar = isMainDashboardPage(pathname);
+
   return (
-    <MobileNavProvider>
+    <SearchModalProvider>
       <div className="min-h-screen bg-backend">
         {/* Header Fixed Top */}
         <Header variant="admin" />
@@ -55,18 +57,19 @@ function BackendLayoutContent({
           </div>
         )}
 
-        {/* Sidebar Fixed Left — masquée sur mobile (remplacée par MobileNavDrawer) */}
+        {/* Sidebar Fixed Left — masquée sur mobile (remplacée par MobileBottomToolbar) */}
         <Sidebar items={backendNavigation} mode={sidebarMode} className="hidden lg:flex" />
         
-        {/* Mobile Nav Drawer */}
-        <MobileNavDrawer items={backendNavigation} />
+        {/* Mobile Bottom Toolbar — pages principales uniquement */}
+        {showMobileToolbar && <MobileBottomToolbar />}
         
-        {/* Contenu principal décalé — pas de padding gauche sur mobile */}
+        {/* Contenu principal décalé — padding bottom sur mobile quand toolbar visible */}
         <div className={cn(
           "flex flex-col min-h-screen transition-all duration-300 ease-in-out",
           (toolbar && !isDetail) ? "pt-[97px]" : "pt-[52px]",
           "pl-0 lg:pl-[52px]",
-          sidebarMode === 'expanded' && "lg:pl-[200px]"
+          sidebarMode === 'expanded' && "lg:pl-[200px]",
+          showMobileToolbar && "pb-[calc(64px+env(safe-area-inset-bottom))] lg:pb-0"
         )}>
           {useShell ? (
             <DashboardShell>{children}</DashboardShell>
@@ -79,7 +82,7 @@ function BackendLayoutContent({
           )}
         </div>
       </div>
-    </MobileNavProvider>
+    </SearchModalProvider>
   );
 }
 

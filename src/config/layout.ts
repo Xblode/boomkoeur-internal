@@ -50,3 +50,31 @@ export function usesDashboardShell(pathname: string | null | undefined): boolean
   if (pathname.startsWith('/dashboard/design-system')) return false;
   return DASHBOARD_SHELL_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
+
+/**
+ * Indique si le pathname correspond à une page principale du dashboard.
+ * Ces pages affichent la bottom toolbar mobile (style Instagram).
+ * Exclut les sous-pages : /dashboard/events/[id], /dashboard/meetings/[id], etc.
+ */
+export function isMainDashboardPage(pathname: string | null | undefined): boolean {
+  if (!pathname) return false;
+  const normalized = pathname.replace(/\/+$/, '') || '/';
+  if (normalized === '/dashboard') return true;
+  if (normalized === '/dashboard/events') return true;
+  if (normalized === '/dashboard/meetings') return true;
+  if (normalized === '/dashboard/commercial') return true;
+  if (normalized === '/dashboard/finance') return true;
+  if (normalized === '/dashboard/products') return true;
+  return false;
+}
+
+/**
+ * Retourne l'URL parente pour le bouton "retour" sur les sous-pages.
+ * Ex: /dashboard/events/xxx -> /dashboard/events
+ */
+export function getBackHrefForSubPage(pathname: string | null | undefined): string | null {
+  if (!pathname) return null;
+  const segments = pathname.split('/').filter(Boolean);
+  if (segments.length <= 2) return '/dashboard';
+  return '/' + segments.slice(0, -1).join('/');
+}
