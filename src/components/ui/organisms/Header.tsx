@@ -108,15 +108,17 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Header Content */}
         <div className="flex-1 flex items-center justify-between px-3 overflow-visible min-w-0 relative">
-          {/* Mobile : select centré par rapport à l'écran (position absolute) */}
-          <div className="lg:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(200px,70vw)]">
+          {/* Mobile : sous-pages = pleine largeur | Dashboard = OrgSelect centré */}
+          <div className="lg:hidden flex-1 min-w-0 flex items-center">
             {(pageSidebarConfig?.mobileHeaderSelector ?? pageSidebarConfig?.entitySelector) ? (
-              <div className="w-full [&>*]:max-w-full">
+              <div className="w-full min-w-0 px-2 [&>*]:w-full [&>*]:min-w-0">
                 {pageSidebarConfig.mobileHeaderSelector ?? pageSidebarConfig.entitySelector}
               </div>
-            ) : (
-              <OrgSelect className="min-w-0 w-full" maxLabelWidth={140} mobile />
-            )}
+            ) : (pathname?.replace(/\/+$/, '') || '/') === '/dashboard' ? (
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(200px,70vw)]">
+                <OrgSelect className="min-w-0 w-full" maxLabelWidth={140} mobile />
+              </div>
+            ) : null}
           </div>
 
           {/* Desktop : Breadcrumb complet */}

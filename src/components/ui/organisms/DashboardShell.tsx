@@ -42,8 +42,15 @@ export function DashboardShell({ children, className, showMobileToolbar }: Dashb
   const { config: detailPanelConfig } = useDetailPanel();
   const { maxWidth, fullBleed, noPadding } = usePageLayout();
 
-  const hasPageSidebar = pageSidebarConfig != null;
-  const hasCustomSidebar = hasPageSidebar && pageSidebarConfig.customContent != null;
+  const hasSidebarContent =
+    pageSidebarConfig != null &&
+    (pageSidebarConfig.customContent != null ||
+      (pageSidebarConfig.sections?.length ?? 0) > 0 ||
+      (pageSidebarConfig.sectionGroups?.length ?? 0) > 0 ||
+      pageSidebarConfig.backLink != null ||
+      pageSidebarConfig.entitySelector != null);
+  const hasPageSidebar = hasSidebarContent;
+  const hasCustomSidebar = hasPageSidebar && pageSidebarConfig!.customContent != null;
   const hasStandardSidebar = hasPageSidebar && !hasCustomSidebar;
 
   const alertNode =

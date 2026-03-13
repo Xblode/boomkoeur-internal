@@ -15,6 +15,8 @@ export interface EntitySelectorDropdownProps<T> {
   className?: string;
   /** variant="ghost" : pas de bordure, plus grand sur mobile (header) */
   variant?: 'default' | 'ghost';
+  /** Texte centré (pour header mobile) */
+  centerText?: boolean;
 }
 
 /**
@@ -32,6 +34,7 @@ export function EntitySelectorDropdown<T>({
   placeholder = 'Sélectionner',
   className,
   variant = 'default',
+  centerText = false,
 }: EntitySelectorDropdownProps<T>) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -57,19 +60,33 @@ export function EntitySelectorDropdown<T>({
         size="sm"
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          'w-full justify-between font-bold text-sm',
+          'w-full font-bold text-sm',
+          centerText && 'relative justify-center',
+          !centerText && 'justify-between',
           variant === 'ghost' && 'border-0 shadow-none min-h-[44px] px-3 py-2.5',
           isPlaceholder && 'text-zinc-500'
         )}
       >
-        <span className="truncate">{isPlaceholder ? placeholder : displayValue}</span>
-        <ChevronDown
-          size={14}
-          className={cn('shrink-0 text-zinc-400 transition-transform', open && 'rotate-180')}
-        />
+        {centerText ? (
+          <>
+            <span className="flex-1 text-center truncate -translate-x-[20px]">{isPlaceholder ? placeholder : displayValue}</span>
+            <ChevronDown
+              size={14}
+              className={cn('shrink-0 text-zinc-400 transition-transform absolute right-3', open && 'rotate-180')}
+            />
+          </>
+        ) : (
+          <>
+            <span className="truncate">{isPlaceholder ? placeholder : displayValue}</span>
+            <ChevronDown
+              size={14}
+              className={cn('shrink-0 text-zinc-400 transition-transform', open && 'rotate-180')}
+            />
+          </>
+        )}
       </Button>
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-30 w-full bg-card-bg border border-border-custom rounded-lg shadow-lg py-1 max-h-60 overflow-y-auto">
+        <div className="absolute left-0 top-full mt-1 z-30 w-full bg-card-bg rounded-lg shadow-md py-1 max-h-60 overflow-y-auto">
           {options.map((option, index) => (
             <Button
               key={index}
@@ -81,8 +98,9 @@ export function EntitySelectorDropdown<T>({
                 setOpen(false);
               }}
               className={cn(
-                'w-full justify-start font-normal',
-                value != null && option === value && 'bg-zinc-100 dark:bg-zinc-800'
+                'w-full justify-start font-normal min-h-[44px] px-5 py-3.5 text-base sm:min-h-0 sm:px-3 sm:py-2 sm:text-sm',
+                value != null && option === value && 'bg-zinc-100 dark:bg-zinc-800',
+                'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
               )}
             >
               {renderOption ? renderOption(option) : String(option)}

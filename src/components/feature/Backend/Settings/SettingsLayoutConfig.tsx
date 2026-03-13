@@ -44,8 +44,8 @@ export function SettingsLayoutConfig({ children }: { children: React.ReactNode }
           renderValue={(s) => s.label}
           renderOption={(s) => s.label}
           placeholder="Sous-page"
-          className="max-w-[180px]"
           variant="ghost"
+          centerText
         />
       ),
       sectionGroups: SECTION_GROUPS.map((g) => ({ title: g.title, sections: g.sections.map((s) => ({ ...s })) })),

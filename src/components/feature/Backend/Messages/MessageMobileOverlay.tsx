@@ -47,7 +47,7 @@ export function MessageMobileOverlay({
   const vh = window.innerHeight;
 
   const EMOJI_H     = 62;
-  const ITEM_H      = 50;
+  const ITEM_H      = 52;
   const HEADER_H    = header ? 40 : 0;
   const MENU_GAP    = 10;   // distance message → menu d'actions
   const EMOJI_GAP   = 4;    // distance message → emoji bar (plus proche)
@@ -97,14 +97,14 @@ export function MessageMobileOverlay({
 
       {/* Emoji picker */}
       <div
-        className="fixed z-[63] flex items-center bg-zinc-900 border border-zinc-700/80 rounded-full px-2 py-1.5 shadow-2xl"
+        className="fixed z-[63] flex items-center bg-card-bg rounded-full px-2 py-1.5 shadow-md"
         style={{ top: emojiBarTop, left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap' }}
       >
         {QUICK_EMOJIS.map((emoji) => (
           <button
             key={emoji}
             type="button"
-            className="text-[26px] p-1.5 rounded-full active:scale-125 transition-transform leading-none select-none"
+            className="text-[26px] p-1.5 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-125 transition-all leading-none select-none"
             onClick={() => { onReaction(emoji); onClose(); }}
           >
             {emoji}
@@ -116,30 +116,32 @@ export function MessageMobileOverlay({
       <div
         className={cn(
           'fixed z-[63] min-w-[220px] max-w-[300px] rounded-xl overflow-hidden',
-          'bg-zinc-900 border border-zinc-700/80 shadow-2xl',
+          'bg-card-bg shadow-md',
         )}
         style={actionsStyle}
       >
         {header && (
-          <div className="px-4 py-2.5 border-b border-zinc-700/50">
-            <p className="text-[11px] text-zinc-400 capitalize">{header}</p>
+          <div className="px-4 py-2.5">
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 capitalize">{header}</p>
           </div>
         )}
-        {actions.map((action, i) => {
+        {actions.map((action) => {
           const Icon = action.icon;
+          const isDestructive = action.variant === 'destructive';
           return (
             <button
               key={action.id}
               type="button"
               className={cn(
-                'w-full flex items-center justify-between gap-4 px-4 py-3.5 text-sm text-left active:bg-white/5',
-                i > 0 && 'border-t border-zinc-700/40',
-                action.variant === 'destructive' ? 'text-red-400' : 'text-zinc-100',
+                'w-full flex items-center gap-2.5 min-h-[44px] px-5 py-3.5 text-base text-left transition-colors',
+                isDestructive
+                  ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30'
+                  : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800',
               )}
               onClick={() => { action.onClick(); onClose(); }}
             >
+              <Icon className="shrink-0 w-[18px] h-[18px]" />
               <span>{action.label}</span>
-              <Icon size={16} className="opacity-60 shrink-0" />
             </button>
           );
         })}

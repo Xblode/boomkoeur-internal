@@ -399,8 +399,10 @@ export function EventArtistsSection() {
                 artist={selectedArtist}
                 genre={detailGenre}
                 setGenre={setDetailGenre}
+                inEvent={isInEvent(selectedArtist.id)}
                 onBack={() => setSelectedArtistId(null)}
                 onSave={handleSaveArtistField}
+                onRemove={() => handleRemoveArtist(selectedArtist.id)}
               />
             ) : (
               <ArtistsOverviewPanel
@@ -500,45 +502,65 @@ interface ArtistDetailsPanelProps {
   artist: Artist;
   genre: string;
   setGenre: (v: string) => void;
+  inEvent: boolean;
   onBack: () => void;
   onSave: (field: 'genre', value: string) => void;
+  onRemove: () => void;
 }
 
 function ArtistDetailsPanel({
   artist,
   genre,
   setGenre,
+  inEvent,
   onBack,
   onSave,
+  onRemove,
 }: ArtistDetailsPanelProps) {
   const typeLabel = ARTIST_TYPES.find((t) => t.id === (artist.type ?? TYPE_DEFAULT))?.label ?? 'DJ';
 
   return (
-    <div className="space-y-4">
-      <Button variant="ghost" size="sm" onClick={onBack} className="text-zinc-500 -ml-2">
-        <ArrowLeft size={14} className="mr-1" />
-        Retour
-      </Button>
+    <div className="flex flex-col h-full">
+      <div className="space-y-4 flex-1">
+        <Button variant="ghost" size="sm" onClick={onBack} className="text-zinc-500 -ml-2">
+          <ArrowLeft size={14} className="mr-1" />
+          Retour
+        </Button>
 
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
-          <Music size={20} className="text-zinc-400" />
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
+            <Music size={20} className="text-zinc-400" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-base text-foreground leading-tight">{artist.name}</h3>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">{typeLabel}</span>
+          </div>
         </div>
-        <div>
-          <h3 className="font-semibold text-base text-foreground leading-tight">{artist.name}</h3>
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">{typeLabel}</span>
+
+        <div className="border-t border-border-custom pt-4 space-y-3">
+          <DetailField
+            icon={<FileText size={13} />}
+            value={genre}
+            placeholder="Genre (Techno, House…)"
+            onChange={setGenre}
+            onBlur={() => onSave('genre', genre)}
+          />
         </div>
       </div>
 
-      <div className="border-t border-border-custom pt-4 space-y-3">
-        <DetailField
-          icon={<FileText size={13} />}
-          value={genre}
-          placeholder="Genre (Techno, House…)"
-          onChange={setGenre}
-          onBlur={() => onSave('genre', genre)}
-        />
-      </div>
+      {inEvent && (
+        <div className="mt-auto pt-4 border-t border-border-custom">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onRemove}
+            className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/30"
+          >
+            <Trash2 size={14} className="mr-2" />
+            Retirer de l&apos;événement
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

@@ -28,6 +28,7 @@ import {
   Mail,
   FileText,
   AlertCircle,
+  Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -715,8 +716,10 @@ export const EventPlanningSection: React.FC = () => {
                 setPhone={setDetailPhone}
                 setEmail={setDetailEmail}
                 setNotes={setDetailNotes}
+                inPlanning={isInPlanning(volunteers.find((v) => v.id === selectedVolunteerId)!.id)}
                 onBack={() => setSelectedVolunteerId(null)}
                 onSave={handleSaveVolunteerField}
+                onRemove={() => handleToggleVolunteerInPlanning(selectedVolunteerId)}
               />
             ) : (
               <PlanningOverviewPanel
@@ -837,8 +840,10 @@ interface VolunteerDetailsPanelProps {
   setPhone: (v: string) => void;
   setEmail: (v: string) => void;
   setNotes: (v: string) => void;
+  inPlanning: boolean;
   onBack: () => void;
   onSave: (field: 'phone' | 'email' | 'notes', value: string) => void;
+  onRemove: () => void;
 }
 
 function VolunteerDetailsPanel({
@@ -849,83 +854,101 @@ function VolunteerDetailsPanel({
   setPhone,
   setEmail,
   setNotes,
+  inPlanning,
   onBack,
   onSave,
+  onRemove,
 }: VolunteerDetailsPanelProps) {
   return (
-    <div className="space-y-4">
-      {/* Back */}
-      <Button variant="ghost" size="sm" onClick={onBack} className="text-zinc-500 -ml-2">
-        <ArrowLeft size={14} className="mr-1" />
-        Retour
-      </Button>
+    <div className="flex flex-col h-full">
+      <div className="space-y-4 flex-1">
+        {/* Back */}
+        <Button variant="ghost" size="sm" onClick={onBack} className="text-zinc-500 -ml-2">
+          <ArrowLeft size={14} className="mr-1" />
+          Retour
+        </Button>
 
-      {/* Identity */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
-          <UserIcon size={20} className="text-zinc-400" />
+        {/* Identity */}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
+            <UserIcon size={20} className="text-zinc-400" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-base text-foreground leading-tight">
+              {volunteer.name}
+            </h3>
+            <Badge
+              variant={volunteer.kind === 'membre' ? 'default' : 'secondary'}
+              className="text-[9px] px-1.5 py-0 mt-0.5"
+            >
+              {volunteer.kind === 'membre' ? 'Membre' : 'Bénévole'}
+            </Badge>
+          </div>
         </div>
-        <div>
-          <h3 className="font-semibold text-base text-foreground leading-tight">
-            {volunteer.name}
-          </h3>
-          <Badge
-            variant={volunteer.kind === 'membre' ? 'default' : 'secondary'}
-            className="text-[9px] px-1.5 py-0 mt-0.5"
-          >
-            {volunteer.kind === 'membre' ? 'Membre' : 'Bénévole'}
-          </Badge>
-        </div>
-      </div>
 
-      {/* Editable fields */}
-      <div className="border-t border-border-custom pt-4 space-y-3">
-        <DetailField
-          icon={<Phone size={13} />}
-          value={phone}
-          placeholder="Numéro de téléphone"
-          onChange={setPhone}
-          onBlur={() => onSave('phone', phone)}
-          type="tel"
-        />
-        <DetailField
-          icon={<Mail size={13} />}
-          value={email}
-          placeholder="Adresse email"
-          onChange={setEmail}
-          onBlur={() => onSave('email', email)}
-          type="email"
-        />
-        <div className="flex items-start gap-2.5 pt-1">
-          <FileText size={13} className="text-zinc-400 shrink-0 mt-1.5" />
-          <Textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            onBlur={() => onSave('notes', notes)}
-            placeholder="Notes..."
-            rows={3}
-            className="flex-1 bg-transparent border-b border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm py-1 resize-none transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-600 text-zinc-800 dark:text-zinc-200 border-0 rounded-none focus-visible:ring-0"
+        {/* Editable fields */}
+        <div className="border-t border-border-custom pt-4 space-y-3">
+          <DetailField
+            icon={<Phone size={13} />}
+            value={phone}
+            placeholder="Numéro de téléphone"
+            onChange={setPhone}
+            onBlur={() => onSave('phone', phone)}
+            type="tel"
+          />
+          <DetailField
+            icon={<Mail size={13} />}
+            value={email}
+            placeholder="Adresse email"
+            onChange={setEmail}
+            onBlur={() => onSave('email', email)}
+            type="email"
+          />
+          <div className="flex items-start gap-2.5 pt-1">
+            <FileText size={13} className="text-zinc-400 shrink-0 mt-1.5" />
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              onBlur={() => onSave('notes', notes)}
+              placeholder="Notes..."
+              rows={3}
+              className="flex-1 bg-transparent border-b border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm py-1 resize-none transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-600 text-zinc-800 dark:text-zinc-200 border-0 rounded-none focus-visible:ring-0"
+            />
+          </div>
+        </div>
+
+        {/* Contracts */}
+        <div className="border-t border-border-custom pt-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+              Contrats
+            </h4>
+            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-zinc-400">
+              <Plus size={11} className="mr-1" />
+              Ajouter
+            </Button>
+          </div>
+          <EmptyState
+            icon={FileText}
+            title="Aucun contrat"
+            variant="inline"
           />
         </div>
       </div>
 
-      {/* Contracts */}
-      <div className="border-t border-border-custom pt-4">
-        <div className="flex items-center justify-between mb-3">
-          <h4 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-            Contrats
-          </h4>
-          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-zinc-400">
-            <Plus size={11} className="mr-1" />
-            Ajouter
+      {inPlanning && (
+        <div className="mt-auto pt-4 border-t border-border-custom">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onRemove}
+            className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/30"
+          >
+            <Trash2 size={14} className="mr-2" />
+            Retirer du planning
           </Button>
         </div>
-        <EmptyState
-          icon={FileText}
-          title="Aucun contrat"
-          variant="inline"
-        />
-      </div>
+      )}
     </div>
   );
 }

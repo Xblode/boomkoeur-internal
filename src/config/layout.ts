@@ -39,6 +39,7 @@ const DASHBOARD_SHELL_PREFIXES = [
   '/dashboard/events/',
   '/dashboard/meetings/',
   '/dashboard/products',
+  '/dashboard/messages',
 ] as const;
 
 /**

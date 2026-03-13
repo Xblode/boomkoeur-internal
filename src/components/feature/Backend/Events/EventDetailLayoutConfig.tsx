@@ -102,8 +102,8 @@ function EventDetailLayoutConfigInner({ children }: { children: React.ReactNode 
           renderValue={(s) => s.label}
           renderOption={(s) => s.label}
           placeholder="Sous-page"
-          className="max-w-[180px]"
           variant="ghost"
+          centerText
         />
       ),
       sections: SIDEBAR_SECTIONS,

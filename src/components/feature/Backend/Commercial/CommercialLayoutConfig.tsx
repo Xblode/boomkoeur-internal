@@ -46,8 +46,8 @@ export function CommercialLayoutConfig({ children }: { children: React.ReactNode
           renderValue={(s) => s.label}
           renderOption={(s) => s.label}
           placeholder="Sous-page"
-          className="max-w-[180px]"
           variant="ghost"
+          centerText
         />
       ),
       sections: COMMERCIAL_SECTIONS.map(({ id, label, icon }) => ({ id, label, icon })),

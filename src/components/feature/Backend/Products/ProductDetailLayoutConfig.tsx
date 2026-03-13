@@ -107,8 +107,8 @@ function ProductDetailLayoutConfigInner({ children }: { children: React.ReactNod
           renderValue={(s) => s.label}
           renderOption={(s) => s.label}
           placeholder="Sous-page"
-          className="max-w-[180px]"
           variant="ghost"
+          centerText
         />
       ),
       sections: [...SIDEBAR_SECTIONS],

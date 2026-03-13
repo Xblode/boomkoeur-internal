@@ -55,16 +55,13 @@ export function MenuPicker({
         align={align}
         side={side}
         sideOffset={4}
-        className={cn('w-auto min-w-[160px] p-0', contentClassName)}
+        className={cn('w-auto min-w-[160px] p-0 border-0', contentClassName)}
       >
         <div className="flex flex-col">
           {header && (
-            <>
-              <div className="px-2.5 py-1.5 text-[11px] text-zinc-500 dark:text-zinc-400">
-                {header}
-              </div>
-              <div className="my-1 border-t border-zinc-200 dark:border-zinc-700" />
-            </>
+            <div className="px-2.5 py-1.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+              {header}
+            </div>
           )}
           {items.map((item) => {
             const Icon = item.icon;
@@ -76,13 +73,14 @@ export function MenuPicker({
                 onClick={() => handleItemClick(item)}
                 disabled={item.disabled}
                 className={cn(
-                  'w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors text-left',
+                  'w-full flex items-center gap-2.5 rounded-md transition-colors text-left',
+                  'min-h-[44px] px-5 py-3.5 text-base sm:min-h-0 sm:px-3 sm:py-2 sm:text-sm',
                   item.disabled && 'opacity-50 cursor-not-allowed',
                   !item.disabled && isDestructive && 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30',
                   !item.disabled && !isDestructive && 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
                 )}
               >
-                {Icon && <Icon size={14} className="shrink-0" />}
+                {Icon && <Icon className="shrink-0 w-[18px] h-[18px] sm:w-3.5 sm:h-3.5" />}
                 <span>{item.label}</span>
               </button>
             );
