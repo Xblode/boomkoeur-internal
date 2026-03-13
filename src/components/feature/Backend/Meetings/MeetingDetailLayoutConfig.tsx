@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -17,7 +17,7 @@ type SectionId = 'info' | 'compte-rendu';
 const SIDEBAR_SECTIONS = [
   { id: 'info' as const, label: 'Informations', icon: <AlignLeft size={16} />, slug: '' },
   { id: 'compte-rendu' as const, label: 'Compte-rendu', icon: <FileText size={16} />, slug: '/compte-rendu' },
-];
+] as const;
 
 function getActiveSectionFromPath(pathname: string, basePath: string): SectionId {
   const relative = pathname.replace(basePath, '');
@@ -35,6 +35,10 @@ function MeetingDetailLayoutConfigInner({ children }: { children: React.ReactNod
 
   const basePath = `/dashboard/meetings/${meeting.id}`;
   const activeSection = getActiveSectionFromPath(pathname ?? '', basePath);
+  const activeSectionData = SIDEBAR_SECTIONS.find((s) => s.id === activeSection);
+
+  const sidebarConfigRef = useRef({ router, basePath, activeSectionData });
+  sidebarConfigRef.current = { router, basePath, activeSectionData };
 
   const allMeetings = useMemo(
     () => [...meetings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
@@ -46,6 +50,7 @@ function MeetingDetailLayoutConfigInner({ children }: { children: React.ReactNod
   );
 
   useEffect(() => {
+    const { router: r, basePath: bp, activeSectionData: sec } = sidebarConfigRef.current;
     setMaxWidth('5xl');
     setPageSidebarConfig({
       backLink: { href: '/dashboard/meetings', label: 'Retour aux réunions' },
@@ -64,7 +69,19 @@ function MeetingDetailLayoutConfigInner({ children }: { children: React.ReactNod
           placeholder="Sélectionner une réunion"
         />
       ),
-      sections: SIDEBAR_SECTIONS,
+      mobileHeaderSelector: (
+        <EntitySelectorDropdown<(typeof SIDEBAR_SECTIONS)[number]>
+          value={sec ?? null}
+          options={[...SIDEBAR_SECTIONS]}
+          onSelect={(s) => r.push(bp + (s.slug || ''))}
+          renderValue={(s) => s.label}
+          renderOption={(s) => s.label}
+          placeholder="Sous-page"
+          className="max-w-[180px]"
+          variant="ghost"
+        />
+      ),
+      sections: [...SIDEBAR_SECTIONS],
       activeSectionId: activeSection,
       basePath,
     });

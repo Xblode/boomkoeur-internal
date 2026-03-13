@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useMemo } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Users, Globe, Plug2, FileText, ScrollText, Crown } from 'lucide-react';
+import { EntitySelectorDropdown } from '@/components/ui';
 import { usePageSidebar } from '@/components/providers/PageSidebarProvider';
 import { usePageLayout } from '@/components/providers/PageLayoutProvider';
 import { useOrg } from '@/hooks';
@@ -20,8 +21,11 @@ function getActiveSectionFromPath(pathname: string): SectionId {
   return 'general';
 }
 
+type AdminSection = { id: SectionId; label: string; icon: React.ReactNode; slug: string };
+
 export function AdminLayoutConfig({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { setPageSidebarConfig } = usePageSidebar();
   const { setMaxWidth } = usePageLayout();
   const { activeOrg, isAdmin } = useOrg();
@@ -63,16 +67,32 @@ export function AdminLayoutConfig({ children }: { children: React.ReactNode }) {
   }, [isAssociation, isAdmin]);
 
   const activeSection = getActiveSectionFromPath(pathname ?? '');
+  const allSections = useMemo(() => sectionGroups.flatMap((g) => g.sections), [sectionGroups]);
+  const activeSectionData = allSections.find((s) => s.id === activeSection);
+  const basePath = '/dashboard/admin';
 
   useEffect(() => {
     setMaxWidth('6xl');
     setPageSidebarConfig({
+      backLink: { href: '/dashboard', label: 'Retour au dashboard' },
+      mobileHeaderSelector: allSections.length > 0 ? (
+        <EntitySelectorDropdown<AdminSection>
+          value={activeSectionData ?? null}
+          options={allSections}
+          onSelect={(s) => router.push(basePath + s.slug)}
+          renderValue={(s) => s.label}
+          renderOption={(s) => s.label}
+          placeholder="Sous-page"
+          className="max-w-[180px]"
+          variant="ghost"
+        />
+      ) : undefined,
       sectionGroups,
       activeSectionId: activeSection,
-      basePath: '/dashboard/admin',
+      basePath,
     });
     return () => setPageSidebarConfig(null);
-  }, [activeSection, setPageSidebarConfig, setMaxWidth, sectionGroups]);
+  }, [activeSection, activeSectionData, allSections, basePath, router, setPageSidebarConfig, setMaxWidth, sectionGroups]);
 
   return <>{children}</>;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, IconButton } from '@/components/ui/atoms';
 import { Modal, ModalFooter, PageContentLayout } from '@/components/ui/organisms';
@@ -8,6 +8,7 @@ import { SectionHeader, Pagination } from '@/components/ui/molecules';
 import { useAlert } from '@/components/providers/AlertProvider';
 import { useOrg } from '@/components/providers/OrgProvider';
 import { usePageLayout } from '@/components/providers/PageLayoutProvider';
+import { useHeaderAction } from '@/components/providers/HeaderActionProvider';
 import { Event, EventFilters as EventFiltersType, SortField, SortOrder } from '@/types/event';
 import { ShotgunEvent } from '@/types/shotgun';
 import { EventsList } from './EventsList';
@@ -57,11 +58,13 @@ export const EventsView: React.FC = () => {
 
   const { setAlert } = useAlert();
   const { setMaxWidth } = usePageLayout();
+  const { setLeftAction } = useHeaderAction();
 
   useEffect(() => {
     setMaxWidth('7xl');
     return () => setMaxWidth('6xl');
   }, [setMaxWidth]);
+
   const errorMessage = error ? getErrorMessage(error) : null;
   const isConfigError = errorMessage ? /relation.*does not exist|permission denied|JWT/i.test(errorMessage) : false;
   const alertMessage = errorMessage
@@ -181,9 +184,23 @@ export const EventsView: React.FC = () => {
   }, [pastEvents.length]);
 
   // Handlers
-  const handleCreateEvent = () => {
+  const handleCreateEvent = useCallback(() => {
     setIsChoiceOpen(true);
-  };
+  }, []);
+
+  useEffect(() => {
+    setLeftAction(
+      <button
+        type="button"
+        onClick={handleCreateEvent}
+        className="p-2 -m-2 rounded-lg text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+        aria-label="Nouvel événement"
+      >
+        <Plus size={24} />
+      </button>
+    );
+    return () => setLeftAction(null);
+  }, [setLeftAction, handleCreateEvent]);
 
   const handleCreateEmpty = async () => {
     setIsChoiceOpen(false);
@@ -356,10 +373,12 @@ export const EventsView: React.FC = () => {
           title="Events"
           subtitle="Gérez vos événements et soirées musicales"
           actions={
-            <Button variant="primary" size="sm" onClick={handleCreateEvent}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nouvel événement
-            </Button>
+            <div className="hidden lg:block">
+              <Button variant="primary" size="sm" onClick={handleCreateEvent}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nouvel événement
+              </Button>
+            </div>
           }
           filters={
             <EventFilters

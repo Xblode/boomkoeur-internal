@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { Button, IconButton } from '@/components/ui/atoms';
 import { cn } from '@/lib/utils';
-import { LogOut, User, Settings, Search, Calendar, Shield, Menu, X, MessageSquare, ChevronLeft } from 'lucide-react';
+import { LogOut, User, Settings, Search, Calendar, Shield, Menu, X, MessageSquare, ChevronLeft, Plus } from 'lucide-react';
 import { Breadcrumb, OrgSelect } from '../molecules';
 import { GlobalSearchModal } from './GlobalSearchModal';
 import { useSearchModal } from '@/components/providers/SearchModalProvider';
@@ -18,6 +18,7 @@ import { useUser, useMessagesUnreadCount } from '@/hooks';
 import { useOrgOptional } from '@/components/providers/OrgProvider';
 import { siteConfig } from '@/config/site';
 import { isMainDashboardPage, getBackHrefForSubPage } from '@/config/layout';
+import { useHeaderAction } from '@/components/providers/HeaderActionProvider';
 
 export interface HeaderProps {
   navigation?: Array<{ label: string; href: string }>;
@@ -50,8 +51,10 @@ export const Header: React.FC<HeaderProps> = ({
   const [mounted, setMounted] = useState(false);
   const { isOpen: isSearchOpen, open: openSearch, close: closeSearch } = useSearchModal();
   const { config: pageSidebarConfig } = usePageSidebarOptional();
+  const { leftAction } = useHeaderAction();
   const isMainPage = isMainDashboardPage(pathname);
   const backHref = pageSidebarConfig?.backLink?.href ?? getBackHrefForSubPage(pathname);
+  const isCalendarPage = pathname === '/dashboard/calendar';
 
   useEffect(() => {
     setMounted(true);
@@ -71,10 +74,10 @@ export const Header: React.FC<HeaderProps> = ({
         "fixed top-0 left-0 right-0 z-50 h-[52px] border-b border-border-custom bg-backend backdrop-blur-md flex overflow-visible",
         className
       )}>
-        {/* Zone gauche : Logo (desktop) | Chevron back (mobile sub) | Vide (mobile main) */}
+        {/* Zone gauche : Logo (desktop) | Chevron back (mobile sub) | + (mobile events/meetings) | Vide */}
         <div className="w-[52px] min-w-[52px] h-full flex items-center justify-center shrink-0">
-          {/* Mobile sous-page : chevron retour */}
-          {!isMainPage && backHref && (
+          {/* Mobile sous-page : chevron retour (sauf calendrier) */}
+          {!isMainPage && !isCalendarPage && backHref && (
             <Link
               href={backHref}
               className="lg:hidden p-2 -m-2 rounded-lg text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
@@ -82,6 +85,10 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <ChevronLeft size={24} />
             </Link>
+          )}
+          {/* Mobile main : action gauche (ex: + pour Events/Réunions) */}
+          {isMainPage && leftAction && (
+            <div className="lg:hidden">{leftAction}</div>
           )}
           {/* Desktop : logo */}
           <Link
@@ -100,17 +107,15 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Header Content */}
-        <div className="flex-1 flex items-center justify-between px-3 overflow-visible min-w-0">
-          {/* Mobile : centre = OrgSelect (main) ou mobileHeaderSelector / entitySelector (sub) */}
-          <div className="lg:hidden flex-1 flex items-center justify-center min-w-0">
-            {isMainPage ? (
-              <OrgSelect className="min-w-0" maxLabelWidth={140} />
-            ) : (pageSidebarConfig?.mobileHeaderSelector ?? pageSidebarConfig?.entitySelector) ? (
-              <div className="min-w-0 flex justify-center [&>*]:max-w-full">
+        <div className="flex-1 flex items-center justify-between px-3 overflow-visible min-w-0 relative">
+          {/* Mobile : select centré par rapport à l'écran (position absolute) */}
+          <div className="lg:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(200px,70vw)]">
+            {(pageSidebarConfig?.mobileHeaderSelector ?? pageSidebarConfig?.entitySelector) ? (
+              <div className="w-full [&>*]:max-w-full">
                 {pageSidebarConfig.mobileHeaderSelector ?? pageSidebarConfig.entitySelector}
               </div>
             ) : (
-              <OrgSelect className="min-w-0" maxLabelWidth={140} />
+              <OrgSelect className="min-w-0 w-full" maxLabelWidth={140} mobile />
             )}
           </div>
 
@@ -119,7 +124,7 @@ export const Header: React.FC<HeaderProps> = ({
             <Breadcrumb variant="navigation" className="min-w-0" />
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0 ml-auto">
             {/* Search — masqué sur mobile (dans bottom toolbar), visible desktop */}
             <Button
               type="button"

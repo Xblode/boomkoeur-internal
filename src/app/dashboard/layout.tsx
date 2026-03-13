@@ -16,6 +16,7 @@ import { ChatPanelProvider } from '@/components/providers/ChatPanelProvider';
 import { DetailPanelProvider } from '@/components/providers/DetailPanelProvider';
 import { PageLayoutProvider } from '@/components/providers/PageLayoutProvider';
 import { OrgProvider } from '@/components/providers/OrgProvider';
+import { HeaderActionProvider } from '@/components/providers/HeaderActionProvider';
 
 function BackendLayoutContent({
   children,
@@ -104,6 +105,7 @@ export default function BackendLayout({
         storageKey="theme-dashboard"
       >
         <OrgProvider>
+        <HeaderActionProvider>
         <ToolbarProvider>
           <AlertProvider>
             <PageSidebarProvider>
@@ -119,6 +121,7 @@ export default function BackendLayout({
             </PageSidebarProvider>
           </AlertProvider>
         </ToolbarProvider>
+        </HeaderActionProvider>
         </OrgProvider>
       </ThemeProvider>
   );

@@ -13,6 +13,8 @@ export interface EntitySelectorDropdownProps<T> {
   renderValue?: (value: T) => React.ReactNode;
   placeholder?: string;
   className?: string;
+  /** variant="ghost" : pas de bordure, plus grand sur mobile (header) */
+  variant?: 'default' | 'ghost';
 }
 
 /**
@@ -29,6 +31,7 @@ export function EntitySelectorDropdown<T>({
   renderValue,
   placeholder = 'Sélectionner',
   className,
+  variant = 'default',
 }: EntitySelectorDropdownProps<T>) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -50,11 +53,12 @@ export function EntitySelectorDropdown<T>({
     <div ref={ref} className={cn('relative', className)}>
       <Button
         type="button"
-        variant="outline"
+        variant={variant === 'ghost' ? 'ghost' : 'outline'}
         size="sm"
         onClick={() => setOpen((o) => !o)}
         className={cn(
           'w-full justify-between font-bold text-sm',
+          variant === 'ghost' && 'border-0 shadow-none min-h-[44px] px-3 py-2.5',
           isPlaceholder && 'text-zinc-500'
         )}
       >

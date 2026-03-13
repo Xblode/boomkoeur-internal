@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Wallet,
   Receipt,
@@ -19,12 +19,12 @@ import { getAvailableYears } from '@/lib/years';
 export type FinanceSectionId = 'tresorerie' | 'transactions' | 'budget' | 'factures' | 'bilan';
 
 const FINANCE_SECTIONS = [
-  { id: 'tresorerie' as const, label: 'Trésorerie', icon: <Wallet size={16} /> },
-  { id: 'transactions' as const, label: 'Transactions', icon: <Receipt size={16} /> },
-  { id: 'budget' as const, label: 'Budget', icon: <PieChart size={16} /> },
-  { id: 'factures' as const, label: 'Factures', icon: <FileText size={16} /> },
-  { id: 'bilan' as const, label: 'Bilan', icon: <BarChart3 size={16} /> },
-];
+  { id: 'tresorerie' as const, label: 'Trésorerie', icon: <Wallet size={16} />, href: '/dashboard/finance?section=tresorerie' },
+  { id: 'transactions' as const, label: 'Transactions', icon: <Receipt size={16} />, href: '/dashboard/finance?section=transactions' },
+  { id: 'budget' as const, label: 'Budget', icon: <PieChart size={16} />, href: '/dashboard/finance?section=budget' },
+  { id: 'factures' as const, label: 'Factures', icon: <FileText size={16} />, href: '/dashboard/finance?section=factures' },
+  { id: 'bilan' as const, label: 'Bilan', icon: <BarChart3 size={16} />, href: '/dashboard/finance?section=bilan' },
+] as const;
 
 interface FinanceLayoutContextType {
   activeSection: FinanceSectionId;
@@ -44,6 +44,7 @@ export function useFinanceLayout() {
 const VALID_SECTIONS: FinanceSectionId[] = ['tresorerie', 'transactions', 'budget', 'factures', 'bilan'];
 
 export function FinanceLayoutConfig({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const { setPageSidebarConfig } = usePageSidebar();
   const { setMaxWidth, setFullBleed } = usePageLayout();
   const searchParams = useSearchParams();
@@ -61,6 +62,8 @@ export function FinanceLayoutConfig({ children }: { children: React.ReactNode })
     }
   }, [sectionFromUrl]);
 
+  const activeSectionData = FINANCE_SECTIONS.find((s) => s.id === activeSection);
+
   useEffect(() => {
     setMaxWidth('6xl');
     setFullBleed(false);
@@ -76,7 +79,19 @@ export function FinanceLayoutConfig({ children }: { children: React.ReactNode })
           placeholder="Sélectionner une année"
         />
       ),
-      sections: FINANCE_SECTIONS,
+      mobileHeaderSelector: (
+        <EntitySelectorDropdown<(typeof FINANCE_SECTIONS)[number]>
+          value={activeSectionData ?? null}
+          options={[...FINANCE_SECTIONS]}
+          onSelect={(s) => router.push(s.href)}
+          renderValue={(s) => s.label}
+          renderOption={(s) => s.label}
+          placeholder="Sous-page"
+          className="max-w-[180px]"
+          variant="ghost"
+        />
+      ),
+      sections: FINANCE_SECTIONS.map(({ id, label, icon }) => ({ id, label, icon })),
       activeSectionId: activeSection,
       onSectionChange: (id) => setActiveSection(id as FinanceSectionId),
     });
@@ -84,7 +99,7 @@ export function FinanceLayoutConfig({ children }: { children: React.ReactNode })
       setPageSidebarConfig(null);
       setFullBleed(false);
     };
-  }, [activeSection, selectedYear, setPageSidebarConfig, setMaxWidth, setFullBleed]);
+  }, [activeSection, activeSectionData, selectedYear, router, setPageSidebarConfig, setMaxWidth, setFullBleed]);
 
   return (
     <FinanceLayoutContext.Provider value={{ activeSection, setActiveSection, selectedYear, setSelectedYear }}>

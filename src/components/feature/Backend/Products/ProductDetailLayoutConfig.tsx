@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Product } from '@/types/product';
 import { ProductDetailProvider, useProductDetail } from './ProductDetailProvider';
@@ -26,7 +26,7 @@ const SIDEBAR_SECTIONS = [
   { id: 'stock' as const, label: 'Stock', icon: <BarChart size={16} />, slug: '/stock' },
   { id: 'variantes' as const, label: 'Variantes', icon: <Layers size={16} />, slug: '/variantes' },
   { id: 'commandes' as const, label: 'Commandes', icon: <ShoppingCart size={16} />, slug: '/commandes' },
-];
+] as const;
 
 const STATUS_LABELS: Record<string, string> = {
   idea: 'Idée',
@@ -54,6 +54,10 @@ function ProductDetailLayoutConfigInner({ children }: { children: React.ReactNod
 
   const basePath = `/dashboard/products/${product.id}`;
   const activeSection = getActiveSectionFromPath(pathname ?? '', basePath);
+  const activeSectionData = SIDEBAR_SECTIONS.find((s) => s.id === activeSection);
+
+  const sidebarConfigRef = useRef({ router, basePath, activeSectionData });
+  sidebarConfigRef.current = { router, basePath, activeSectionData };
 
   const [allProducts, setAllProducts] = useState<Product[]>([]);
 
@@ -76,6 +80,7 @@ function ProductDetailLayoutConfigInner({ children }: { children: React.ReactNod
   const comments = useMemo(() => product.comments ?? [], [product.comments]);
 
   useEffect(() => {
+    const { router: r, basePath: bp, activeSectionData: sec } = sidebarConfigRef.current;
     setMaxWidth('5xl');
     setPageSidebarConfig({
       backLink: { href: '/dashboard/products', label: 'Retour aux produits' },
@@ -94,7 +99,19 @@ function ProductDetailLayoutConfigInner({ children }: { children: React.ReactNod
           placeholder="Sélectionner un produit"
         />
       ),
-      sections: SIDEBAR_SECTIONS,
+      mobileHeaderSelector: (
+        <EntitySelectorDropdown<(typeof SIDEBAR_SECTIONS)[number]>
+          value={sec ?? null}
+          options={[...SIDEBAR_SECTIONS]}
+          onSelect={(s) => r.push(bp + (s.slug || ''))}
+          renderValue={(s) => s.label}
+          renderOption={(s) => s.label}
+          placeholder="Sous-page"
+          className="max-w-[180px]"
+          variant="ghost"
+        />
+      ),
+      sections: [...SIDEBAR_SECTIONS],
       activeSectionId: activeSection,
       basePath,
     });

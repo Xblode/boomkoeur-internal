@@ -10,9 +10,11 @@ export interface OrgSelectProps {
   className?: string;
   /** Max width du label affiché */
   maxLabelWidth?: number;
+  /** Sur mobile : bouton plus grand pour faciliter le clic */
+  mobile?: boolean;
 }
 
-export function OrgSelect({ className, maxLabelWidth = 160 }: OrgSelectProps) {
+export function OrgSelect({ className, maxLabelWidth = 160, mobile }: OrgSelectProps) {
   const { activeOrg, userOrgs, switchOrg, isLoading } = useOrg();
   const [orgSearch, setOrgSearch] = useState('');
   const [orgPopoverOpen, setOrgPopoverOpen] = useState(false);
@@ -37,8 +39,9 @@ export function OrgSelect({ className, maxLabelWidth = 160 }: OrgSelectProps) {
           type="button"
           className={cn(
             'flex items-center gap-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300',
-            'rounded-md px-1.5 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800',
+            'rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800',
             'hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors',
+            mobile ? 'px-3 py-2.5 min-h-[44px]' : 'px-1.5 py-1',
             className
           )}
         >

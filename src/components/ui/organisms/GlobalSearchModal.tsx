@@ -15,6 +15,7 @@ import {
   User,
   MessageSquare,
   Loader2,
+  LayoutDashboard,
 } from 'lucide-react';
 import { Input, IconButton } from '@/components/ui/atoms';
 import { useOrg, useEvents, useTransactions, useInvoices, useCommercialContacts } from '@/hooks';
@@ -31,11 +32,20 @@ const DEBOUNCE_MS = 300;
 
 export interface SearchResultItem {
   id: string;
-  type: 'event' | 'post' | 'transaction' | 'invoice' | 'product' | 'contact' | 'member';
+  type: 'event' | 'post' | 'transaction' | 'invoice' | 'product' | 'contact' | 'member' | 'page';
   title: string;
   subtitle?: string;
   href: string;
 }
+
+/** Pages principales du dashboard — recherchables sur mobile */
+const MAIN_PAGES = [
+  { id: 'page-events', label: 'Events', href: '/dashboard/events', keywords: ['events', 'événements', 'événement', 'event'] },
+  { id: 'page-meetings', label: 'Réunions', href: '/dashboard/meetings', keywords: ['réunions', 'réunion', 'meetings', 'meeting'] },
+  { id: 'page-finance', label: 'Finance', href: '/dashboard/finance', keywords: ['finance', 'finances'] },
+  { id: 'page-products', label: 'Produits', href: '/dashboard/products', keywords: ['produits', 'produit', 'products', 'product'] },
+  { id: 'page-commercial', label: 'Commercial', href: '/dashboard/commercial', keywords: ['commercial', 'commerciale', 'commerciales'] },
+];
 
 const EMPTY_RESULTS: SearchResultItem[] = [];
 const EMPTY_CAMPAIGNS: Campaign[] = [];
@@ -52,9 +62,18 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [mounted, setMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)');
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
 
   const { events, isLoading: eventsLoading } = useEvents({ enabled: isOpen });
   const { transactions, isLoading: transactionsLoading } = useTransactions(undefined, { enabled: isOpen });
@@ -109,6 +128,23 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
     }
     const q = debouncedQuery.toLowerCase().trim();
     const items: SearchResultItem[] = [];
+
+    // Sur mobile : pages principales (Events, Réunions, Finance, Produits, Commercial)
+    if (isMobile) {
+      MAIN_PAGES.forEach((page) => {
+        const labelMatch = page.label.toLowerCase().includes(q);
+        const keywordMatch = page.keywords.some((k) => k.includes(q));
+        if (labelMatch || keywordMatch) {
+          items.push({
+            id: page.id,
+            type: 'page',
+            title: page.label,
+            subtitle: 'Page principale',
+            href: page.href,
+          });
+        }
+      });
+    }
 
     events
       .filter(
@@ -250,6 +286,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
   }, [
     isOpen,
     debouncedQuery,
+    isMobile,
     events,
     campaigns,
     transactions,
@@ -280,6 +317,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
     product: 'Produit',
     contact: 'Contact',
     member: 'Membre',
+    page: 'Page',
   };
 
   const typeIcons: Record<SearchResultItem['type'], React.ReactNode> = {
@@ -290,6 +328,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
     product: <Package size={16} />,
     contact: <Users size={16} />,
     member: <User size={16} />,
+    page: <LayoutDashboard size={16} />,
   };
 
   if (!isOpen || !mounted) return null;
@@ -310,7 +349,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher événements, transactions, produits..."
+            placeholder="Rechercher événements, pages, produits..."
             className="flex-1 min-w-0 border-0 shadow-none focus-visible:ring-0 h-11 py-3 bg-transparent"
           />
           <IconButton

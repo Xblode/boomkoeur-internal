@@ -16,7 +16,7 @@ interface CalendarLayoutConfigProps {
 
 export function CalendarLayoutConfig({ children }: CalendarLayoutConfigProps) {
   const { setPageSidebarConfig } = usePageSidebar();
-  const { setMaxWidth, setFullBleed } = usePageLayout();
+  const { setMaxWidth, setFullBleed, setNoPadding } = usePageLayout();
   const { events, meetings, items } = useCalendarDataContext();
 
   const now = new Date();
@@ -121,6 +121,7 @@ export function CalendarLayoutConfig({ children }: CalendarLayoutConfigProps) {
   useEffect(() => {
     setMaxWidth('7xl');
     setFullBleed(true);
+    setNoPadding(true);
     setPageSidebarConfig({
       customContent: sidebarContent,
       activeSectionId: '',
@@ -128,8 +129,9 @@ export function CalendarLayoutConfig({ children }: CalendarLayoutConfigProps) {
     return () => {
       setPageSidebarConfig(null);
       setFullBleed(false);
+      setNoPadding(false);
     };
-  }, [nextEvent, nextMeeting, todayPosts, setPageSidebarConfig, setMaxWidth, setFullBleed]);
+  }, [nextEvent, nextMeeting, todayPosts, setPageSidebarConfig, setMaxWidth, setFullBleed, setNoPadding]);
 
   return <>{children}</>;
 }

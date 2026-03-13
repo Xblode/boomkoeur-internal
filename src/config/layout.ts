@@ -65,6 +65,7 @@ export function isMainDashboardPage(pathname: string | null | undefined): boolea
   if (normalized === '/dashboard/commercial') return true;
   if (normalized === '/dashboard/finance') return true;
   if (normalized === '/dashboard/products') return true;
+  if (normalized === '/dashboard/calendar') return true;
   return false;
 }
 

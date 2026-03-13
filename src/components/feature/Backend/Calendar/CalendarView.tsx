@@ -133,7 +133,7 @@ export const CalendarView: React.FC = () => {
     <div className="flex flex-col h-full">
 
       {/* Calendrier plein écran */}
-      <div className="flex-1 p-4 md:p-6">
+      <div className="flex-1 p-2 md:p-4">
 
         {/* En-têtes des jours */}
         <div className="grid grid-cols-7 gap-1.5 mb-2">

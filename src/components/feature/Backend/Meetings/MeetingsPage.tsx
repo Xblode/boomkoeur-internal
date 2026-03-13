@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Meeting, MeetingStatus } from '@/types/meeting';
 import MeetingsList from '@/components/feature/Backend/Meetings/MeetingsList';
@@ -13,6 +13,7 @@ import { useMeetings } from '@/hooks';
 import { getErrorMessage } from '@/lib/utils';
 import { useAlert } from '@/components/providers/AlertProvider';
 import { usePageLayout } from '@/components/providers/PageLayoutProvider';
+import { useHeaderAction } from '@/components/providers/HeaderActionProvider';
 import { Plus, CalendarDays } from 'lucide-react';
 
 type SortField = 'date' | 'title';
@@ -28,6 +29,7 @@ export default function MeetingsPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [meetingToDelete, setMeetingToDelete] = useState<Meeting | null>(null);
 
+  const { setLeftAction } = useHeaderAction();
   const errorMessage = error ? getErrorMessage(error) : null;
   const isConfigError = errorMessage ? /relation.*does not exist|permission denied|JWT/i.test(errorMessage) : false;
   const alertMessage = errorMessage
@@ -56,7 +58,7 @@ export default function MeetingsPage() {
     refetch();
   };
 
-  const handleCreateMeeting = async () => {
+  const handleCreateMeeting = useCallback(async () => {
     if (isCreating) return;
     setIsCreating(true);
     try {
@@ -77,7 +79,22 @@ export default function MeetingsPage() {
       console.error('Erreur lors de la création:', error);
       setIsCreating(false);
     }
-  };
+  }, [isCreating, router]);
+
+  useEffect(() => {
+    setLeftAction(
+      <button
+        type="button"
+        onClick={handleCreateMeeting}
+        disabled={isCreating}
+        className="p-2 -m-2 rounded-lg text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 disabled:opacity-50"
+        aria-label="Nouvelle réunion"
+      >
+        <Plus size={24} />
+      </button>
+    );
+    return () => setLeftAction(null);
+  }, [setLeftAction, handleCreateMeeting, isCreating]);
 
   const handleDeleteClick = (meeting: Meeting) => {
     setMeetingToDelete(meeting);
@@ -104,10 +121,12 @@ export default function MeetingsPage() {
           title="Réunions"
           subtitle="Gérez vos réunions et comptes-rendus"
           actions={
-            <Button variant="primary" size="sm" onClick={handleCreateMeeting} disabled={isCreating}>
-              <Plus className="h-4 w-4 mr-2" />
-              {isCreating ? 'Création...' : 'Nouvelle réunion'}
-            </Button>
+            <div className="hidden lg:block">
+              <Button variant="primary" size="sm" onClick={handleCreateMeeting} disabled={isCreating}>
+                <Plus className="h-4 w-4 mr-2" />
+                {isCreating ? 'Création...' : 'Nouvelle réunion'}
+              </Button>
+            </div>
           }
           filters={
             <MeetingFilters
