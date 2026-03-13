@@ -14,8 +14,8 @@ import { cn } from '@/lib/utils';
 import { useSearchModal } from '@/components/providers/SearchModalProvider';
 import { useMessagesUnreadCount } from '@/hooks';
 
-/** Hauteur totale de la toolbar (sync avec le padding du layout) */
-export const MOBILE_TOOLBAR_HEIGHT_PX = 72;
+/** Hauteur totale de la toolbar (sync avec le padding du layout) — pt-3 + contenu + pb-8 ≈ 88px */
+export const MOBILE_TOOLBAR_HEIGHT_PX = 88;
 
 export function MobileBottomToolbar() {
   const pathname = usePathname();
