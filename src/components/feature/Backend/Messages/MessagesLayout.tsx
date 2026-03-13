@@ -241,6 +241,7 @@ export function MessagesLayout({ className }: MessagesLayoutProps) {
           onSendQuickVote={handleSendQuickVote}
           onDelete={deleteMessage}
           canDeleteSystemMessages={canDeleteSystemMessages}
+          canRegenerateSummary={canDeleteSystemMessages}
           onSummarySaved={refreshJournal}
           className="flex-1 min-w-0"
         />

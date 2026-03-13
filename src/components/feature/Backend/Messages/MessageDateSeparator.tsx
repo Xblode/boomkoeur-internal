@@ -17,6 +17,8 @@ interface MessageDateSeparatorProps {
   onTogglePin?: (messageId: string, pinned: boolean) => void;
   onNavigateToMessage?: (messageId: string) => void;
   onSummarySaved?: () => void;
+  canRegenerateSummary?: boolean;
+  scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   className?: string;
 }
 
@@ -33,6 +35,8 @@ export function MessageDateSeparator({
   onTogglePin,
   onNavigateToMessage,
   onSummarySaved,
+  canRegenerateSummary = false,
+  scrollContainerRef,
   className,
 }: MessageDateSeparatorProps) {
   const [summary, setSummary] = useState<string | null>(null);
@@ -52,14 +56,15 @@ export function MessageDateSeparator({
 
   useEffect(() => {
     const el = containerRef.current;
+    const root = scrollContainerRef?.current ?? null;
     if (!el) return;
     const obs = new IntersectionObserver(
       ([e]) => setIsVisible(e.isIntersecting),
-      { rootMargin: '100px', threshold: 0 },
+      { root, rootMargin: '150px', threshold: 0 },
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, []);
+  }, [scrollContainerRef]);
 
   useEffect(() => {
     if (!hasSummary || previousDayMessages.length === 0 || !isVisible) {
@@ -148,6 +153,12 @@ export function MessageDateSeparator({
       clearTimeoutFn = () => clearTimeout(timeout);
     };
     if (orgId && cacheKey && regenerateTrigger === 0) {
+      const fromCache = summaryCache.get(cacheKey);
+      if (fromCache !== undefined) {
+        setSummary(fromCache);
+        setSummaryError(null);
+        return;
+      }
       getDaySummary(orgId, cacheKey)
         .then((s) => {
           if (cancelled) return;
@@ -169,10 +180,12 @@ export function MessageDateSeparator({
     };
   }, [hasSummary, cacheKey, previousDayMessages.length, isVisible, orgId, onSummarySaved, regenerateTrigger]);
 
-  // Notification push quand on change de jour et que la synthèse est disponible
+  // Notification push une seule fois par jour quand la synthèse est disponible
+  // Ne notifie pas si l'utilisateur a l'app au premier plan (évite overlay/notification gênante au scroll)
   useEffect(() => {
     if (!summary || summaryLoading || !isVisible || !cacheKey || !orgId || notifiedSummaryDays.has(cacheKey)) return;
     notifiedSummaryDays.add(cacheKey);
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible') return;
     fetch('/api/push/notify-summary-ready', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -206,7 +219,7 @@ export function MessageDateSeparator({
                 <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
                   {prevDateLabel} · {previousDayMessages.length} message{previousDayMessages.length > 1 ? 's' : ''}
                 </span>
-                {(summary || summaryError) && !summaryLoading && (
+                {canRegenerateSummary && (summary || summaryError) && !summaryLoading && (
                   <button
                     type="button"
                     onClick={handleRegenerate}
@@ -227,10 +240,11 @@ export function MessageDateSeparator({
                 )}
               >
                 {summaryLoading && (
-                  <p className="text-[11px] text-zinc-400 dark:text-zinc-500 flex items-center gap-1.5">
-                    <Sparkles size={12} className="animate-pulse" />
-                    Synthèse en cours…
-                  </p>
+                  <span className="text-[11px] text-zinc-500 dark:text-zinc-400 inline-flex" aria-label="Synthèse en cours">
+                    <span className="animate-typing-dot">.</span>
+                    <span className="animate-typing-dot-delay-1">.</span>
+                    <span className="animate-typing-dot-delay-2">.</span>
+                  </span>
                 )}
                 {summary && !summaryLoading && (
                   <div className="space-y-1.5 min-w-0">

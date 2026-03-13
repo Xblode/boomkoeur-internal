@@ -235,3 +235,23 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
+
+/* Animation "..." typing pour la synthèse en cours */
+@keyframes typing-dot {
+  0%, 20% { opacity: 0.3 }
+  40%, 100% { opacity: 1 }
+}
+
+.animate-typing-dot {
+  animation: typing-dot 1.4s ease-in-out infinite;
+}
+
+.animate-typing-dot-delay-1 {
+  animation: typing-dot 1.4s ease-in-out infinite;
+  animation-delay: 0.2s;
+}
+
+.animate-typing-dot-delay-2 {
+  animation: typing-dot 1.4s ease-in-out infinite;
+  animation-delay: 0.4s;
+}

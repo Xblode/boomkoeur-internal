@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
+import { startOfDay } from 'date-fns';
 import { MessageSquare } from 'lucide-react';
 import { EmptyState } from '@/components/ui/molecules';
 import { Spinner } from '@/components/ui/atoms';
@@ -19,7 +20,8 @@ function isSameDay(a: Date, b: Date): boolean {
 
 function buildFeedItems(
   messages: Message[],
-  pinnedMessages: Message[]
+  pinnedMessages: Message[],
+  now: Date
 ): Array<
   | { type: 'message'; message: Message; index: number }
   | { type: 'date'; date: Date; previousDayMessages: Message[]; previousDayPinned: Message[] }
@@ -50,6 +52,20 @@ function buildFeedItems(
     items.push({ type: 'message', message: msg, index: i });
   });
 
+  // À minuit : ajouter un séparateur "aujourd'hui" avec la synthèse de la veille, sans interaction utilisateur
+  const today = startOfDay(now);
+  const lastMsgDate = messages.length > 0 ? new Date(messages[messages.length - 1].createdAt) : null;
+  const lastMsgDay = lastMsgDate ? startOfDay(lastMsgDate) : null;
+  if (lastMsgDay && lastMsgDay < today && previousDayMessages.length > 0) {
+    const lastDayPinned = previousDayMessages.filter((m) => pinnedMessages.some((p) => p.id === m.id));
+    items.push({
+      type: 'date',
+      date: today,
+      previousDayMessages,
+      previousDayPinned: lastDayPinned,
+    });
+  }
+
   return items;
 }
 
@@ -73,6 +89,7 @@ interface MessageFeedProps {
   onSendQuickVote?: (quickVote: { question?: string; yes: string[]; no: string[] }) => void;
   onDelete?: (messageId: string) => void;
   canDeleteSystemMessages?: boolean;
+  canRegenerateSummary?: boolean;
   onSummarySaved?: () => void;
   className?: string;
 }
@@ -97,6 +114,7 @@ export function MessageFeed({
   onSendQuickVote,
   onDelete,
   canDeleteSystemMessages,
+  canRegenerateSummary = false,
   onSummarySaved,
   className,
 }: MessageFeedProps) {
@@ -104,6 +122,23 @@ export function MessageFeed({
   const isAtBottomRef = useRef(true);
   const prevLengthRef = useRef(messages.length);
   const initialScrollDoneRef = useRef(false);
+
+  // Mise à jour à minuit pour afficher le séparateur "aujourd'hui" automatiquement
+  const [now, setNow] = useState(() => new Date());
+  const midnightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const scheduleNextMidnight = () => {
+      const d = new Date();
+      const tomorrow = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+      const msUntilMidnight = tomorrow.getTime() - d.getTime();
+      midnightTimeoutRef.current = setTimeout(() => {
+        setNow(new Date());
+        scheduleNextMidnight();
+      }, msUntilMidnight);
+    };
+    scheduleNextMidnight();
+    return () => { if (midnightTimeoutRef.current) clearTimeout(midnightTimeoutRef.current); };
+  }, []);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
     if (scrollRef.current) {
@@ -175,7 +210,7 @@ export function MessageFeed({
           />
         ) : (
           <div className="py-2 min-w-0">
-            {buildFeedItems(messages, pinnedMessages).map((item, idx) =>
+            {buildFeedItems(messages, pinnedMessages, now).map((item, idx) =>
               item.type === 'date' ? (
                 <MessageDateSeparator
                   key={`date-${item.date.toISOString().slice(0, 10)}-${idx}`}
@@ -186,6 +221,8 @@ export function MessageFeed({
                   onTogglePin={onTogglePin}
                   onNavigateToMessage={handleNavigateToMessage}
                   onSummarySaved={onSummarySaved}
+                  canRegenerateSummary={canRegenerateSummary}
+                  scrollContainerRef={scrollRef}
                 />
               ) : (
                 <MessageItem
