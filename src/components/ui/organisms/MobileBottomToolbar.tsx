@@ -37,7 +37,7 @@ export function MobileBottomToolbar() {
           'flex items-center justify-around px-4',
           'min-h-[var(--mobile-toolbar-height,64px)]',
           'border-t border-border-custom bg-backend',
-          'pt-3 pb-[calc(2rem+env(safe-area-inset-bottom))]'
+          'pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]'
         )}
         aria-label="Navigation principale"
       >

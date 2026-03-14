@@ -102,9 +102,9 @@ export function PWAInstallBanner() {
   return (
     <div
       className={cn(
-        'fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between gap-3',
-        'bg-backend border-t border-border-custom px-4 py-3 shadow-lg',
-        'pb-[calc(0.75rem+env(safe-area-inset-bottom))]'
+        'fixed top-[52px] left-0 right-0 z-50 flex items-center justify-between gap-3',
+        'bg-backend border-b border-border-custom px-4 py-3 shadow-lg',
+        'pt-3'
       )}
       role="banner"
       aria-label="Installer l'application"
