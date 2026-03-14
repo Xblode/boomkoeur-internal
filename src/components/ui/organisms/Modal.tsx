@@ -168,7 +168,7 @@ export function Modal({
               className={cn(
                 'pointer-events-auto flex flex-col shadow-lg bg-card-bg w-full overflow-hidden',
                 isMobile
-                  ? 'rounded-t-xl rounded-b-none max-h-[90vh] border-t border-x border-border-custom'
+                  ? 'rounded-t-xl rounded-b-none max-h-[90vh] border-t border-x border-border-custom safe-area-padding-bottom'
                   : cn('border border-border-custom rounded-lg max-h-[95vh]', sizes[size]),
                 !isFullBleed && !scrollable && 'overflow-auto'
               )}

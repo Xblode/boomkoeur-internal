@@ -62,7 +62,8 @@ export function MessagesDrawer() {
             }}
             className={cn(
               'fixed right-0 top-0 bottom-0 z-[71] w-full max-w-[100vw] sm:max-w-md',
-              'bg-backend flex flex-col shadow-2xl lg:hidden touch-pan-y'
+              'bg-backend flex flex-col shadow-2xl lg:hidden touch-pan-y',
+              'safe-area-padding-bottom'
             )}
             onClick={(e) => e.stopPropagation()}
           >
