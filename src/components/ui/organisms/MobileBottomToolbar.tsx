@@ -34,13 +34,12 @@ export function MobileBottomToolbar() {
       <nav
         className={cn(
           'fixed bottom-0 left-0 right-0 z-40 lg:hidden',
-          'flex items-center justify-around px-4',
-          'min-h-[var(--mobile-toolbar-height,64px)]',
-          'border-t border-border-custom bg-backend',
-          'pt-3 pb-[env(safe-area-inset-bottom)]'
+          'flex flex-col border-t border-border-custom bg-backend'
         )}
         aria-label="Navigation principale"
       >
+        {/* Contenu principal — icônes */}
+        <div className="flex items-center justify-around px-4 pt-3 pb-2 min-h-[64px]">
         <Link
           href="/dashboard"
           aria-label="Dashboard"
@@ -127,6 +126,13 @@ export function MobileBottomToolbar() {
             strokeWidth={isActive('/dashboard/calendar') ? 2.5 : 1.5}
           />
         </Link>
+        </div>
+        {/* Zone safe area — remplit l'espace du home indicator avec le fond */}
+        <div
+          className="w-full shrink-0 bg-backend"
+          style={{ minHeight: 'env(safe-area-inset-bottom)' }}
+          aria-hidden
+        />
       </nav>
     </>
   );
