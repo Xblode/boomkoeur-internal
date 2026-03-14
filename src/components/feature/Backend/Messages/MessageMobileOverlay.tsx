@@ -73,19 +73,26 @@ export function MessageMobileOverlay({
     ? { top: actionsTop, right: SIDE }
     : { top: actionsTop, left: SIDE };
 
+  // z-index au-dessus du MessagesDrawer (z-70/71) pour afficher correctement dans le drawer mobile
+  const Z_BACKDROP = 80;
+  const Z_MESSAGE = 82;
+  const Z_MENU = 83;
+
   return createPortal(
     <>
       {/* Backdrop plein écran avec flou */}
       <div
-        className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+        style={{ zIndex: Z_BACKDROP }}
         onClick={onClose}
       />
 
       {/* Clone du message à la position ajustée + animation bouing */}
       {children && (
         <div
-          className="fixed z-[62] pointer-events-none animate-mobile-ctx-pop"
+          className="fixed pointer-events-none animate-mobile-ctx-pop"
           style={{
+            zIndex: Z_MESSAGE,
             top: adjustedTop,
             left: rect.left,
             width: rect.width,
@@ -97,8 +104,14 @@ export function MessageMobileOverlay({
 
       {/* Emoji picker */}
       <div
-        className="fixed z-[63] flex items-center bg-card-bg rounded-full px-2 py-1.5 shadow-md"
-        style={{ top: emojiBarTop, left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap' }}
+        className="fixed flex items-center bg-card-bg rounded-full px-2 py-1.5 shadow-md"
+        style={{
+          zIndex: Z_MENU,
+          top: emojiBarTop,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          whiteSpace: 'nowrap',
+        }}
       >
         {QUICK_EMOJIS.map((emoji) => (
           <button
@@ -115,10 +128,10 @@ export function MessageMobileOverlay({
       {/* Menu d'actions */}
       <div
         className={cn(
-          'fixed z-[63] min-w-[220px] max-w-[300px] rounded-xl overflow-hidden',
+          'fixed min-w-[220px] max-w-[300px] rounded-xl overflow-hidden',
           'bg-card-bg shadow-md',
         )}
-        style={actionsStyle}
+        style={{ ...actionsStyle, zIndex: Z_MENU }}
       >
         {header && (
           <div className="px-4 py-2.5">

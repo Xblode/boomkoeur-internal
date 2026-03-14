@@ -36,8 +36,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, onAv
     const file = e.target.files?.[0];
     if (!file || !userId) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('Image trop lourde (max 2 Mo)');
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error('Image trop lourde (max 20 Mo)');
       return;
     }
 

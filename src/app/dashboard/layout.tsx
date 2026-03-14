@@ -19,6 +19,7 @@ import { OrgProvider } from '@/components/providers/OrgProvider';
 import { HeaderActionProvider } from '@/components/providers/HeaderActionProvider';
 import { MessagesDrawerProvider } from '@/components/providers/MessagesDrawerProvider';
 import { MessagesDrawer } from '@/components/feature/Backend/Messages/MessagesDrawer';
+import { PWAInstallBanner } from '@/components/feature/Backend/PWAInstallBanner';
 
 function BackendLayoutContent({
   children,
@@ -45,7 +46,7 @@ function BackendLayoutContent({
     <SearchModalProvider>
       <div className={cn(
         "bg-backend flex flex-col",
-        showMobileToolbar ? "h-screen overflow-hidden" : "min-h-screen"
+        showMobileToolbar ? "h-[100dvh] overflow-hidden" : "min-h-[100dvh]"
       )}>
         {/* Header Fixed Top */}
         <Header variant="admin" />
@@ -72,7 +73,7 @@ function BackendLayoutContent({
         {/* Contenu principal — une seule zone de scroll sur mobile */}
         <div className={cn(
           "flex flex-col flex-1 min-h-0 transition-all duration-300 ease-in-out",
-          showMobileToolbar && "lg:flex-initial lg:min-h-screen",
+          showMobileToolbar && "lg:flex-initial lg:min-h-[100dvh]",
           (toolbar && !isDetail) ? "pt-[97px]" : "pt-[52px]",
           "pl-0 lg:pl-[52px]",
           sidebarMode === 'expanded' && "lg:pl-[200px]",
@@ -82,7 +83,7 @@ function BackendLayoutContent({
             <DashboardShell showMobileToolbar={showMobileToolbar}>{children}</DashboardShell>
           ) : (
             <main className="flex-1 min-w-0 min-h-0 flex flex-col">
-              <div className="flex-1 min-h-0 overflow-y-auto px-4 py-6 lg:p-8">
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-none px-4 py-6 lg:p-8">
                 <div className="max-w-7xl mx-auto">{children}</div>
               </div>
             </main>
@@ -126,6 +127,7 @@ export default function BackendLayout({
         </ToolbarProvider>
         </HeaderActionProvider>
         <MessagesDrawer />
+        <PWAInstallBanner />
         </MessagesDrawerProvider>
         </OrgProvider>
       </ThemeProvider>

@@ -14,12 +14,15 @@ export const MESSAGE_HIGHLIGHT_CONFIG: Record<
   {
     bg: string;
     borderColor: string;
+    /** Bordure des réactions — couleur hex (ex: #1b1515) */
+    reactionBorderColor: string;
     badge: { label: string; icon: LucideIcon; badgeClassName: string };
   }
 > = {
   mentioned: {
     bg: 'bg-blue-50/40 dark:bg-blue-950/10',
     borderColor: 'bg-blue-400 dark:bg-blue-500',
+    reactionBorderColor: '#17181d',
     badge: {
       label: '@ vous',
       icon: AtSign,
@@ -29,6 +32,7 @@ export const MESSAGE_HIGHLIGHT_CONFIG: Record<
   important: {
     bg: 'bg-orange-50/30 dark:bg-orange-950/10',
     borderColor: 'bg-orange-400 dark:bg-orange-500',
+    reactionBorderColor: '#1b1515',
     badge: {
       label: 'Important',
       icon: Zap,
@@ -38,6 +42,7 @@ export const MESSAGE_HIGHLIGHT_CONFIG: Record<
   pinned: {
     bg: 'bg-amber-50/40 dark:bg-amber-950/10',
     borderColor: 'bg-amber-400 dark:bg-amber-500',
+    reactionBorderColor: '#1b1714',
     badge: {
       label: 'Épinglé',
       icon: Pin,
@@ -61,6 +66,8 @@ interface MessageWrapperProps {
   messageId: string;
   isFirst?: boolean;
   isLastOfDay?: boolean;
+  /** Dernier message du feed (le plus récent) — mb-2 sur desktop au lieu de mb-6 */
+  isLastInFeed?: boolean;
   /** États de surbrillance (mentionné, important, épinglé) — appliquent fond + bordure gauche + padding vertical */
   highlightStates?: MessageHighlightState[];
   /** Pas de padding bas si le message suivant est du même auteur et aussi surligné (groupe compact) */
@@ -74,6 +81,7 @@ export function MessageWrapper({
   messageId,
   isFirst,
   isLastOfDay,
+  isLastInFeed = false,
   highlightStates = [],
   compactBelow,
   wide,
@@ -101,7 +109,8 @@ export function MessageWrapper({
       className={cn(
         'relative group px-2 sm:px-4',
         wide && 'w-full',
-        isLastOfDay && 'mb-6',
+        isLastInFeed && 'mb-2',
+        isLastOfDay && !isLastInFeed && 'mb-6',
         paddingClasses,
         hasHighlight && bg,
         className,

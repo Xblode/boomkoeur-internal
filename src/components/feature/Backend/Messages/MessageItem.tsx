@@ -63,6 +63,7 @@ interface MessageItemProps {
   previousMessage?: Message;
   nextMessage?: Message;
   seenBy?: MessageSeenByUser[];
+  isLastInFeed?: boolean;
   orgId?: string | null;
   currentUserId?: string | null;
   onTogglePin: (messageId: string, pinned: boolean) => void;
@@ -84,6 +85,7 @@ export function MessageItem({
   previousMessage,
   nextMessage,
   seenBy = [],
+  isLastInFeed = false,
   orgId,
   currentUserId,
   onTogglePin,
@@ -135,6 +137,7 @@ export function MessageItem({
         messageId={message.id}
         isFirst={isFirst}
         isLastOfDay={isLastOfDay}
+        isLastInFeed={isLastInFeed}
         wide
         className={className}
       >
@@ -460,11 +463,13 @@ export function MessageItem({
             messageId={message.id}
             reactions={message.reactions ?? []}
             onToggleReaction={onToggleReaction}
+            highlightStates={highlightStates}
           />
         )}
 
-        {/* Vu par — avatars en bas à droite (exclure l'auteur, masquer pour messages système) */}
+        {/* Vu par — avatars en bas à droite, uniquement sur le dernier message (exclure l'auteur) */}
         {message.type === 'user' &&
+          isLastInFeed &&
           seenBy.filter((u) => u.id !== message.authorId).length > 0 && (
           <div
             className={cn(
@@ -511,6 +516,7 @@ export function MessageItem({
       messageId={message.id}
       isFirst={isFirst}
       isLastOfDay={isLastOfDay}
+      isLastInFeed={isLastInFeed}
       highlightStates={highlightStates}
       compactBelow={compactBelow}
       className={className}

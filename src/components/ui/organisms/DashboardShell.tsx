@@ -143,7 +143,7 @@ export function DashboardShell({ children, className, showMobileToolbar }: Dashb
           </div>
         )}
 
-        <div className={cn('flex-1 min-h-0 min-w-0 scrollbar-gutter-stable', noPadding ? 'overflow-hidden' : 'overflow-y-auto', noPadding ? '' : fullBleed ? 'px-4 py-6' : 'px-4 py-6 md:p-8 lg:p-12')}>
+        <div className={cn('flex-1 min-h-0 min-w-0 scrollbar-gutter-stable overscroll-none', noPadding ? 'overflow-hidden' : 'overflow-y-auto', noPadding ? '' : fullBleed ? 'px-4 py-6' : 'px-4 py-6 md:p-8 lg:p-12')}>
           <div className={cn(!fullBleed && !noPadding && 'mx-auto', !fullBleed && !noPadding && maxWidthClasses[maxWidth], noPadding && 'h-full min-w-0')}>
             {children}
           </div>

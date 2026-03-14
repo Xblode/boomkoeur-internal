@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Gestion d\'événements et de projets',
     start_url: '/dashboard',
     display: 'standalone',
-    background_color: '#ffffff',
-    theme_color: '#ffffff',
+    background_color: '#171717',
+    theme_color: '#171717',
     icons: [
       { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
       { src: '/web-app-manifest-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },

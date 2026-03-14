@@ -243,7 +243,7 @@ export function MessagesLayout({ className, pathnameOverride }: MessagesLayoutPr
         currentPath={pathname ?? ''}
       />
       {isJournalPage ? (
-        <div className="flex-1 min-w-0 overflow-y-auto p-3 sm:p-6">
+        <div className="flex-1 min-w-0 overflow-y-auto overscroll-none p-3 sm:p-6">
           <MessageJournal />
         </div>
       ) : (

@@ -44,9 +44,10 @@
 }
 
 body {
-  background: var(--background);
+  background: var(--bg-backend);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  min-height: 100dvh;
 }
 
 /* Styles globaux supplémentaires */
@@ -56,6 +57,12 @@ body {
 
 html {
   scroll-behavior: smooth;
+  min-height: 100dvh;
+}
+
+/* Limite l'effet élastique (bounce) et pull-to-refresh sur les zones de scroll */
+.overscroll-none {
+  overscroll-behavior: none;
 }
 
 /* Amélioration des scrollbars */

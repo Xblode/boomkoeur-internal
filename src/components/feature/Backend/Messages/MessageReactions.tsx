@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { SmilePlus } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/atoms';
 import { cn } from '@/lib/utils';
+import { MESSAGE_HIGHLIGHT_CONFIG } from './MessageParts';
 import type { MessageReaction } from '@/types/messages';
+import type { MessageHighlightState } from './MessageParts';
 
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
@@ -63,6 +65,7 @@ interface MessageReactionPillsProps {
   messageId: string;
   reactions: MessageReaction[];
   onToggleReaction: (messageId: string, emoji: string) => void;
+  highlightStates?: MessageHighlightState[];
   className?: string;
 }
 
@@ -70,21 +73,28 @@ export function MessageReactionPills({
   messageId,
   reactions,
   onToggleReaction,
+  highlightStates = [],
   className,
 }: MessageReactionPillsProps) {
   if (reactions.length === 0) return null;
 
+  const reactionBorderColor =
+    highlightStates.length > 0
+      ? MESSAGE_HIGHLIGHT_CONFIG[highlightStates[0]].reactionBorderColor
+      : '#171717';
+
   return (
-    <div className={cn('flex items-center gap-0.5 -mt-1 mb-2 flex-wrap', className)}>
+    <div className={cn('flex items-center gap-0.5 -mt-1 flex-wrap', className)}>
       {reactions.map((r) => (
         <button
           key={r.emoji}
           type="button"
           onClick={() => onToggleReaction(messageId, r.emoji)}
+          style={{ border: `3px solid ${reactionBorderColor}` }}
           className={cn(
-            'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-xs transition-colors',
+            'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg text-xs transition-colors',
             r.hasCurrentUser
-              ? 'bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300'
+              ? 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
               : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
           )}
         >
@@ -102,6 +112,7 @@ interface MessageReactionsProps {
   messageId: string;
   reactions: MessageReaction[];
   onToggleReaction: (messageId: string, emoji: string) => void;
+  highlightStates?: MessageHighlightState[];
   className?: string;
 }
 
@@ -109,16 +120,16 @@ export function MessageReactions({
   messageId,
   reactions,
   onToggleReaction,
+  highlightStates = [],
   className,
 }: MessageReactionsProps) {
   return (
-    <>
-      <MessageReactionPills
-        messageId={messageId}
-        reactions={reactions}
-        onToggleReaction={onToggleReaction}
-        className={className}
-      />
-    </>
+    <MessageReactionPills
+      messageId={messageId}
+      reactions={reactions}
+      onToggleReaction={onToggleReaction}
+      highlightStates={highlightStates}
+      className={className}
+    />
   );
 }

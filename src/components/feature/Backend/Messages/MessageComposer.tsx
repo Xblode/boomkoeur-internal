@@ -370,7 +370,7 @@ export function MessageComposer({
   // ── JSX ───────────────────────────────────────────────────────────────────
 
   return (
-    <div className={cn('border-t border-border-custom bg-backend px-2 sm:px-4 py-3 min-w-0', className)}>
+    <div className={cn('border-0 sm:border-t sm:border-border-custom bg-backend px-2 sm:px-4 py-3 min-w-0', className)}>
       <div className="flex items-end gap-2 min-w-0">
 
         {/* Textarea + mention dropdown */}
@@ -455,7 +455,7 @@ export function MessageComposer({
             </div>
           )}
 
-          <div className="flex items-end gap-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-2 transition-colors focus-within:ring-1 focus-within:ring-zinc-400 dark:focus-within:ring-zinc-600">
+          <div className="flex items-end gap-2 rounded-2xl sm:rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-2 transition-colors focus-within:ring-1 focus-within:ring-zinc-400 dark:focus-within:ring-zinc-600">
             <Textarea
               ref={textareaRef}
               placeholder="Envoyer un message… (@ pour mentionner)"
@@ -485,7 +485,7 @@ export function MessageComposer({
                     size="sm"
                     onClick={() => imageInputRef.current?.click()}
                     disabled={disabled}
-                    className="flex items-center justify-center w-9 h-9 rounded-lg shrink-0 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                    className="flex items-center justify-center w-9 h-9 rounded-full sm:rounded-lg shrink-0 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
                   />
                 </>
               )}
@@ -498,7 +498,7 @@ export function MessageComposer({
                       variant="ghost"
                       size="sm"
                       disabled={disabled}
-                      className="flex items-center justify-center w-9 h-9 rounded-lg shrink-0 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                      className="flex items-center justify-center w-9 h-9 rounded-full sm:rounded-lg shrink-0 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
                     />
                   }
                   items={[
@@ -566,7 +566,7 @@ export function MessageComposer({
                 size="sm"
                 onClick={handleSend}
                 disabled={disabled || (!content.trim() && pendingMentions.length === 0 && pendingMemberMentions.length === 0)}
-                className="flex items-center justify-center w-9 h-9 rounded-lg shrink-0 disabled:opacity-30"
+                className="flex items-center justify-center w-9 h-9 rounded-full sm:rounded-lg shrink-0 disabled:opacity-30"
               />
             </div>
           </div>

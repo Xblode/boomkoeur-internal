@@ -228,7 +228,7 @@ export function MessageFeed({
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 min-w-0"
+        className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 min-w-0 overscroll-none"
         style={{ overflowAnchor: 'none' } as React.CSSProperties}
       >
         {isLoading ? (
@@ -271,6 +271,7 @@ export function MessageFeed({
                   previousMessage={messages[item.index - 1]}
                   nextMessage={messages[item.index + 1]}
                   seenBy={messageSeenByMap.get(item.message.id)}
+                  isLastInFeed={item.index === messages.length - 1}
                   orgId={orgId}
                   currentUserId={currentUserId}
                   onTogglePin={onTogglePin}
