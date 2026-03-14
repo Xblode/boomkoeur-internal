@@ -73,6 +73,7 @@ interface MessageFeedProps {
   messages: Message[];
   pinnedMessages: Message[];
   messageSeenByMap?: Map<string, MessageSeenByUser[]>;
+  conversationId?: string | null;
   isLoading: boolean;
   isLoadingOlder?: boolean;
   hasMoreOlder?: boolean;
@@ -104,6 +105,7 @@ export function MessageFeed({
   messages,
   pinnedMessages,
   messageSeenByMap = new Map(),
+  conversationId,
   isLoading,
   isLoadingOlder = false,
   hasMoreOlder = false,
@@ -137,6 +139,13 @@ export function MessageFeed({
   const scrollHeightBeforeLoadRef = useRef(0);
   const scrollTopBeforeLoadRef = useRef(0);
   const loadMoreTriggeredRef = useRef(false);
+  const prevConversationIdRef = useRef(conversationId);
+
+  // Reset scroll state when conversation changes
+  if (prevConversationIdRef.current !== conversationId) {
+    prevConversationIdRef.current = conversationId;
+    initialScrollDoneRef.current = false;
+  }
 
   // Mise à jour à minuit pour afficher le séparateur "aujourd'hui" automatiquement
   const [now, setNow] = useState(() => new Date());
@@ -162,12 +171,31 @@ export function MessageFeed({
   }, []);
 
   // Scroll initial une seule fois quand les messages sont chargés
+  // Déféré pour laisser le layout se calculer (drawer mobile, animation, etc.)
   useEffect(() => {
     if (!isLoading && messages.length > 0 && !initialScrollDoneRef.current) {
-      initialScrollDoneRef.current = true;
-      scrollToBottom('instant');
+      let attempts = 0;
+      const maxAttempts = 15;
+      const doScroll = () => {
+        if (!scrollRef.current || attempts >= maxAttempts) {
+          initialScrollDoneRef.current = true;
+          return;
+        }
+        attempts++;
+        const el = scrollRef.current;
+        el.scrollTop = el.scrollHeight;
+        const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 20;
+        if (!atBottom && attempts < maxAttempts) {
+          requestAnimationFrame(doScroll);
+        } else {
+          initialScrollDoneRef.current = true;
+        }
+      };
+      const start = () => requestAnimationFrame(() => requestAnimationFrame(doScroll));
+      const id = setTimeout(start, 50);
+      return () => clearTimeout(id);
     }
-  }, [isLoading, messages.length, scrollToBottom]);
+  }, [isLoading, messages.length]);
 
   // Auto-scroll uniquement si déjà en bas et qu'un message est ajouté
   useEffect(() => {

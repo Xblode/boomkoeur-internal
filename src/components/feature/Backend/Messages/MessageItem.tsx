@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Pin, PinOff, MoreVertical, Copy, Trash2, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -10,6 +10,7 @@ import { MessageEntityCard } from './MessageEntityCard';
 import { MessageAttachment, PollDisplay, QuickVoteDisplay, LinkPreview } from './MessageContent';
 import { PollModal } from './MessageComposerModals';
 import { MessageReactions, MessageReactionAddButton } from './MessageReactions';
+import { useMessagesDrawer } from '@/components/providers/MessagesDrawerProvider';
 import { MessageMobileOverlay } from './MessageMobileOverlay';
 import {
   MessageWrapper,
@@ -103,6 +104,12 @@ export function MessageItem({
   const [mobileCtxRect, setMobileCtxRect] = useState<DOMRect | null>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const messageRowRef = useRef<HTMLDivElement>(null);
+  const { isClosing } = useMessagesDrawer();
+
+  // Fermer l'overlay mobile avant l'unmount du drawer — évite l'erreur "removeChild" sur null
+  useEffect(() => {
+    if (isClosing) setMobileCtxRect(null);
+  }, [isClosing]);
 
   const handleTouchStart = useCallback(() => {
     longPressTimerRef.current = setTimeout(() => {

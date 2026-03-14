@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/atoms';
+import { useMessagesDrawer } from '@/components/providers/MessagesDrawerProvider';
 import { cn } from '@/lib/utils';
 import type { LucideIcon } from 'lucide-react';
 
@@ -41,6 +42,12 @@ export function MenuPicker({
   closeOnSelect = true,
 }: MenuPickerProps) {
   const [open, setOpen] = useState(false);
+  const { isClosing } = useMessagesDrawer();
+
+  // Fermer le menu avant l'unmount du drawer (évite erreur "removeChild" sur null)
+  useEffect(() => {
+    if (isClosing) setOpen(false);
+  }, [isClosing]);
 
   const handleItemClick = (item: MenuPickerItem) => {
     if (item.disabled) return;

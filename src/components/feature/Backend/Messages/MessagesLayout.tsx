@@ -251,6 +251,7 @@ export function MessagesLayout({ className, pathnameOverride }: MessagesLayoutPr
           messages={messages}
           pinnedMessages={pinnedMessages}
           messageSeenByMap={messageSeenByMap}
+          conversationId={conversation?.id}
           isLoading={isLoading}
           isLoadingOlder={isLoadingOlder}
           hasMoreOlder={hasMoreOlder}
