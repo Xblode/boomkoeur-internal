@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
 import Link from 'next/link';
@@ -15,8 +15,8 @@ import { useSearchModal } from '@/components/providers/SearchModalProvider';
 import { useMessagesDrawer } from '@/components/providers/MessagesDrawerProvider';
 import { useMessagesUnreadCount } from '@/hooks';
 
-/** Hauteur totale de la toolbar (sync avec le padding du layout) — pt-3 + contenu + pb-8 ≈ 88px */
-export const MOBILE_TOOLBAR_HEIGHT_PX = 88;
+/** Hauteur totale de la toolbar (sync avec le padding du layout) — contenu ≈ 64px + safe area gérée séparément */
+export const MOBILE_TOOLBAR_HEIGHT_PX = 64;
 
 export function MobileBottomToolbar() {
   const pathname = usePathname();
@@ -37,7 +37,7 @@ export function MobileBottomToolbar() {
           'flex items-center justify-around px-4',
           'min-h-[var(--mobile-toolbar-height,64px)]',
           'border-t border-border-custom bg-backend',
-          'pt-3 pb-[calc(2rem+env(safe-area-inset-bottom))]'
+          'pt-3 pb-[env(safe-area-inset-bottom)]'
         )}
         aria-label="Navigation principale"
       >

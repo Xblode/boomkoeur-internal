@@ -45,6 +45,7 @@ export const defaultMetadata: Metadata = {
   manifest: '/site.webmanifest',
   appleWebApp: {
     title: siteConfig.name,
+    statusBarStyle: 'black-translucent',
   },
   keywords: siteConfig.keywords,
   authors: [
