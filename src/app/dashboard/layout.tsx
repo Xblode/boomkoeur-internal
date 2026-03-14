@@ -55,7 +55,7 @@ function BackendLayoutContent({
         {toolbar && !isDetail && (
           <div
             className={cn(
-              "fixed top-[52px] right-0 z-40 flex w-full transition-all duration-300 ease-in-out",
+              "fixed top-[calc(52px+env(safe-area-inset-top))] right-0 z-40 flex w-full transition-all duration-300 ease-in-out",
               "left-0 lg:left-[52px]",
               sidebarMode === 'expanded' && "lg:left-[200px]"
             )}
@@ -74,7 +74,7 @@ function BackendLayoutContent({
         <div className={cn(
           "flex flex-col flex-1 min-h-0 transition-all duration-300 ease-in-out",
           showMobileToolbar && "lg:flex-initial lg:min-h-[100dvh]",
-          (toolbar && !isDetail) ? "pt-[97px]" : "pt-[52px]",
+          (toolbar && !isDetail) ? "pt-[calc(97px+env(safe-area-inset-top))]" : "pt-[calc(52px+env(safe-area-inset-top))]",
           "pl-0 lg:pl-[52px]",
           sidebarMode === 'expanded' && "lg:pl-[200px]",
           showMobileToolbar && `pb-[calc(${MOBILE_TOOLBAR_HEIGHT_PX}px+env(safe-area-inset-bottom))] lg:pb-0`

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -71,9 +71,13 @@ export const Header: React.FC<HeaderProps> = ({
   if (variant === 'admin') {
     return (
       <header className={cn(
-        "fixed top-0 left-0 right-0 z-50 h-[52px] border-b border-border-custom bg-backend backdrop-blur-md flex overflow-visible",
+        "fixed top-0 left-0 right-0 z-50 border-b border-border-custom bg-backend backdrop-blur-md flex flex-col overflow-visible",
         className
       )}>
+        {/* Safe area spacer pour iPhone avec encoche/Dynamic Island */}
+        <div className="h-[env(safe-area-inset-top)] bg-backend shrink-0" />
+        {/* Contenu du header — hauteur fixe 52px */}
+        <div className="h-[52px] flex overflow-visible">
         {/* Zone gauche : Logo (desktop) | Chevron back (mobile sub) | + (mobile events/meetings) | Vide */}
         <div className="w-[52px] min-w-[52px] h-full flex items-center justify-center shrink-0 lg:border-r lg:border-border-custom">
           {/* Mobile sous-page : chevron retour (sauf calendrier) */}
@@ -265,6 +269,7 @@ export const Header: React.FC<HeaderProps> = ({
         {mounted && (
           <GlobalSearchModal isOpen={isSearchOpen} onClose={closeSearch} />
         )}
+        </div>
       </header>
     );
   }

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
 import Link from 'next/link';
@@ -152,7 +152,7 @@ export function DashboardShell({ children, className, showMobileToolbar }: Dashb
 
       {/* DetailPanel — panneau latéral droit pour édition */}
       {detailPanelConfig != null && (
-        <aside className="fixed top-[52px] right-0 bottom-0 w-full max-w-md lg:max-w-lg xl:max-w-xl bg-backend border-l border-border-custom shadow-xl z-30 flex flex-col overflow-hidden">
+        <aside className="fixed top-[calc(52px+env(safe-area-inset-top))] right-0 bottom-0 w-full max-w-md lg:max-w-lg xl:max-w-xl bg-backend border-l border-border-custom shadow-xl z-30 flex flex-col overflow-hidden">
           <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-border-custom">
             <h2 className="text-lg font-semibold text-foreground truncate">
               {detailPanelConfig.title ?? 'Détail'}
