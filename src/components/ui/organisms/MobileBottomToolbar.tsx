@@ -127,10 +127,12 @@ export function MobileBottomToolbar() {
           />
         </Link>
         </div>
-        {/* Zone safe area — remplit l'espace du home indicator avec le fond */}
+        {/* Zone safe area — remplit l'espace du home indicator (fallback 34px pour iOS) */}
         <div
           className="w-full shrink-0 bg-backend"
-          style={{ minHeight: 'env(safe-area-inset-bottom)' }}
+          style={{
+            minHeight: 'max(env(safe-area-inset-bottom), 34px)',
+          }}
           aria-hidden
         />
       </nav>
