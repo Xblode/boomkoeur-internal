@@ -370,7 +370,7 @@ export function MessageComposer({
   // ── JSX ───────────────────────────────────────────────────────────────────
 
   return (
-    <div className={cn('border-0 sm:border-t sm:border-border-custom bg-backend px-2 sm:px-4 py-3 min-w-0', className)}>
+    <div className={cn('sm:border-t sm:border-border-custom bg-backend px-2 sm:px-4 py-3 min-w-0', className)}>
       <div className="flex items-end gap-2 min-w-0">
 
         {/* Textarea + mention dropdown */}

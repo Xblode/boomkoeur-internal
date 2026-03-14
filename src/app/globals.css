@@ -44,10 +44,9 @@
 }
 
 body {
-  background: var(--bg-backend);
+  background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
-  min-height: 100dvh;
 }
 
 /* Styles globaux supplémentaires */
@@ -57,12 +56,10 @@ body {
 
 html {
   scroll-behavior: smooth;
-  min-height: 100dvh;
-}
-
-/* Limite l'effet élastique (bounce) et pull-to-refresh sur les zones de scroll */
-.overscroll-none {
+  /* Empêche le bounce iOS sur le body (overscroll élastique) */
   overscroll-behavior: none;
+  /* Fond de base sur html pour éviter le fond noir quand le clavier s'ouvre */
+  background: var(--background);
 }
 
 /* Amélioration des scrollbars */

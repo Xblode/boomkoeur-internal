@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { SmilePlus } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/atoms';
-import { useMessagesDrawer } from '@/components/providers/MessagesDrawerProvider';
 import { cn } from '@/lib/utils';
 import { MESSAGE_HIGHLIGHT_CONFIG } from './MessageParts';
 import type { MessageReaction } from '@/types/messages';
@@ -23,12 +22,6 @@ export function MessageReactionAddButton({
   className,
 }: MessageReactionAddButtonProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
-  const { isClosing } = useMessagesDrawer();
-
-  // Fermer le popover avant l'unmount du drawer — évite l'erreur "removeChild" sur null
-  useEffect(() => {
-    if (isClosing) setPickerOpen(false);
-  }, [isClosing]);
 
   return (
     <Popover open={pickerOpen} onOpenChange={setPickerOpen}>

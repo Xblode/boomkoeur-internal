@@ -4,26 +4,6 @@ import * as React from 'react';
 import { ThemeProvider as NextThemesProvider, useTheme as useNextTheme } from 'next-themes';
 
 const THEME_STORAGE_KEY = 'theme-dashboard';
-
-/** Couleurs pour theme-color meta (PWA) — clair/sombre */
-const THEME_COLORS = { light: '#ffffff', dark: '#171717' } as const;
-
-function ThemeColorSync() {
-  const { resolvedTheme } = useNextTheme();
-  React.useEffect(() => {
-    if (typeof document === 'undefined' || !resolvedTheme) return;
-    const color = THEME_COLORS[resolvedTheme as keyof typeof THEME_COLORS] ?? THEME_COLORS.light;
-    document.querySelectorAll('meta[name="theme-color"]').forEach((el) => el.remove());
-    const meta = document.createElement('meta');
-    meta.setAttribute('name', 'theme-color');
-    meta.setAttribute('content', color);
-    document.head.appendChild(meta);
-    return () => {
-      meta.remove();
-    };
-  }, [resolvedTheme]);
-  return null;
-}
 const PALETTE_STORAGE_KEY = 'theme-palette';
 
 export const PALETTE_OPTIONS = ['neutral', 'brand'] as const;
@@ -122,7 +102,6 @@ export function ThemeProvider({
         themes={['light', 'dark', 'system']}
       >
         <ThemeStateSync storageKey={storageKey} defaultPalette={defaultPalette} />
-        <ThemeColorSync />
         {children}
       </NextThemesProvider>
     </PaletteStateContext.Provider>

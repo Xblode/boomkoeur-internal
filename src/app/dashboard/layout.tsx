@@ -19,7 +19,7 @@ import { OrgProvider } from '@/components/providers/OrgProvider';
 import { HeaderActionProvider } from '@/components/providers/HeaderActionProvider';
 import { MessagesDrawerProvider } from '@/components/providers/MessagesDrawerProvider';
 import { MessagesDrawer } from '@/components/feature/Backend/Messages/MessagesDrawer';
-import { PWAInstallBanner } from '@/components/feature/Backend/PWAInstallBanner';
+import { PwaInstallBanner } from '@/components/feature/PWA/PwaInstallBanner';
 
 function BackendLayoutContent({
   children,
@@ -83,7 +83,7 @@ function BackendLayoutContent({
             <DashboardShell showMobileToolbar={showMobileToolbar}>{children}</DashboardShell>
           ) : (
             <main className="flex-1 min-w-0 min-h-0 flex flex-col">
-              <div className="flex-1 min-h-0 overflow-y-auto overscroll-none px-4 py-6 lg:p-8">
+              <div className="flex-1 min-h-0 overflow-y-auto px-4 py-6 lg:p-8">
                 <div className="max-w-7xl mx-auto">{children}</div>
               </div>
             </main>
@@ -127,8 +127,8 @@ export default function BackendLayout({
         </ToolbarProvider>
         </HeaderActionProvider>
         <MessagesDrawer />
-        <PWAInstallBanner />
         </MessagesDrawerProvider>
+        <PwaInstallBanner />
         </OrgProvider>
       </ThemeProvider>
   );
