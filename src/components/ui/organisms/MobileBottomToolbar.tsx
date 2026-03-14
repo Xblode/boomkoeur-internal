@@ -30,16 +30,16 @@ export function MobileBottomToolbar() {
   };
 
   return (
-    <>
+    <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-backend mobile-toolbar-wrapper">
       <nav
         className={cn(
-          'fixed bottom-0 left-0 right-0 z-40 lg:hidden',
-          'flex flex-col border-t border-border-custom bg-backend'
+          'h-full flex flex-col border-t border-border-custom bg-backend',
+          'pb-[max(env(safe-area-inset-bottom),34px)]'
         )}
         aria-label="Navigation principale"
       >
         {/* Contenu principal — icônes */}
-        <div className="flex items-center justify-around px-4 pt-3 pb-2 min-h-[64px]">
+        <div className="flex items-center justify-around px-4 pt-3 pb-2 min-h-[64px] flex-1">
         <Link
           href="/dashboard"
           aria-label="Dashboard"
@@ -127,10 +127,8 @@ export function MobileBottomToolbar() {
           />
         </Link>
         </div>
-        {/* Zone safe area — classe CSS pour application dès le premier rendu */}
-        <div className="safe-area-bottom w-full shrink-0 bg-backend" aria-hidden />
       </nav>
-    </>
+    </div>
   );
 }
 

@@ -70,9 +70,9 @@ function BackendLayoutContent({
         {/* Mobile Bottom Toolbar — pages principales uniquement */}
         {showMobileToolbar && <MobileBottomToolbar />}
         
-        {/* Contenu principal — une seule zone de scroll sur mobile */}
+        {/* Contenu principal — padding-bottom réserve l'espace pour la toolbar (même fond = pas de gap visible) */}
         <div className={cn(
-          "flex flex-col flex-1 min-h-0 transition-all duration-300 ease-in-out",
+          "flex flex-col flex-1 min-h-0 transition-all duration-300 ease-in-out bg-backend",
           showMobileToolbar && "lg:flex-initial lg:min-h-[100dvh]",
           (toolbar && !isDetail) ? "pt-[calc(97px+env(safe-area-inset-top))]" : "pt-[calc(52px+env(safe-area-inset-top))]",
           "pl-0 lg:pl-[52px]",

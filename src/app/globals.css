@@ -90,6 +90,7 @@ html {
 /* Safe area iOS — appliqué dès le chargement (avant hydration) pour éviter le vide au premier rendu */
 .safe-area-bottom {
   min-height: max(env(safe-area-inset-bottom), 34px);
+  height: max(env(safe-area-inset-bottom), 34px);
 }
 .safe-area-padding-bottom {
   padding-bottom: max(env(safe-area-inset-bottom), 34px);
@@ -97,6 +98,12 @@ html {
 .mobile-toolbar-content-padding {
   padding-bottom: calc(64px + max(env(safe-area-inset-bottom), 34px));
 }
+
+/* Wrapper toolbar mobile — hauteur explicite incluant la safe area (home indicator iPhone) */
+.mobile-toolbar-wrapper {
+  height: calc(64px + max(env(safe-area-inset-bottom), 34px));
+}
+
 
 /* Toast Notifications (Sonner) */
 [data-sonner-toast] {
