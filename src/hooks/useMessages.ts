@@ -8,6 +8,7 @@ import {
   getMessagesNewerThan,
   getMessagesOlderThan,
   getReactionsForMessages,
+  getMessageSeenBy,
   sendMessage as sendMessageApi,
   togglePin as togglePinApi,
   toggleReaction as toggleReactionApi,
@@ -19,7 +20,7 @@ import {
   getUnreadCount as getUnreadCountApi,
 } from '@/lib/supabase/messages';
 import { useOrgOptional } from '@/components/providers/OrgProvider';
-import type { Conversation, Message, SendMessageInput, MessageAuthor } from '@/types/messages';
+import type { Conversation, Message, MessageSeenByUser, SendMessageInput, MessageAuthor } from '@/types/messages';
 
 export function useMessages() {
   const orgContext = useOrgOptional();
@@ -34,6 +35,7 @@ export function useMessages() {
   const [hasMoreOlder, setHasMoreOlder] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [messageSeenByMap, setMessageSeenByMap] = useState<Map<string, MessageSeenByUser[]>>(new Map());
   const authorCacheRef = useRef<Map<string, MessageAuthor>>(new Map());
   const messagesRef = useRef<Message[]>([]);
   messagesRef.current = messages;
@@ -83,6 +85,9 @@ export function useMessages() {
 
         await markConversationRead(conv.id);
         if (!cancelled) setUnreadCount(0);
+
+        const seenByMap = await getMessageSeenBy(conv.id, orgId, msgsWithReactions);
+        if (!cancelled) setMessageSeenByMap(seenByMap);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Erreur inconnue');
       } finally {
@@ -93,6 +98,15 @@ export function useMessages() {
     load();
     return () => { cancelled = true; };
   }, [orgId, refreshPinned]);
+
+  // Fetch seenBy when messages change + realtime conversation_reads
+  const refreshSeenBy = useCallback(async () => {
+    if (!conversation || !orgId) return;
+    const msgs = messagesRef.current;
+    if (msgs.length === 0) return;
+    const map = await getMessageSeenBy(conversation.id, orgId, msgs);
+    setMessageSeenByMap(map);
+  }, [conversation, orgId]);
 
   // Realtime subscription
   useEffect(() => {
@@ -154,6 +168,7 @@ export function useMessages() {
               refreshPinned(next);
               return next;
             });
+            refreshSeenBy();
           }
 
           if (payload.eventType === 'UPDATE') {
@@ -189,7 +204,29 @@ export function useMessages() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conversation, refreshPinned]);
+  }, [conversation, refreshPinned, refreshSeenBy]);
+
+  useEffect(() => {
+    if (!conversation || !orgId || messagesRef.current.length === 0) return;
+    refreshSeenBy();
+  }, [conversation, orgId, refreshSeenBy]);
+
+  useEffect(() => {
+    if (!conversation) return;
+
+    const channel = supabase
+      .channel(`conversation_reads:${conversation.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'conversation_reads', filter: `conversation_id=eq.${conversation.id}` },
+        () => refreshSeenBy()
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [conversation, refreshSeenBy]);
 
   // Polling fallback quand l'onglet est visible (au cas où realtime rate un événement)
   useEffect(() => {
@@ -222,11 +259,12 @@ export function useMessages() {
         refreshPinned(next);
         return next;
       });
+      refreshSeenBy();
     };
 
     const id = setInterval(poll, 5000);
     return () => clearInterval(id);
-  }, [conversation, refreshPinned]);
+  }, [conversation, refreshPinned, refreshSeenBy]);
 
   // Realtime reactions
   useEffect(() => {
@@ -372,11 +410,12 @@ export function useMessages() {
         });
         setMessages((prev) => [...withReactions, ...prev]);
         refreshPinned([...withReactions, ...messagesRef.current]);
+        refreshSeenBy();
       }
     } finally {
       setIsLoadingOlder(false);
     }
-  }, [conversation, isLoadingOlder, hasMoreOlder, refreshPinned]);
+  }, [conversation, isLoadingOlder, hasMoreOlder, refreshPinned, refreshSeenBy]);
 
   const voteQuick = useCallback(
     async (messageId: string, vote: 'yes' | 'no') => {
@@ -405,6 +444,7 @@ export function useMessages() {
     conversation,
     messages,
     pinnedMessages,
+    messageSeenByMap,
     unreadCount,
     isLoading,
     isLoadingOlder,

@@ -21,6 +21,12 @@ export type MessageReaction = {
   hasCurrentUser: boolean;
 };
 
+export type MessageSeenByUser = {
+  id: string;
+  name: string;
+  avatar?: string;
+};
+
 export type Message = {
   id: string;
   conversationId: string;

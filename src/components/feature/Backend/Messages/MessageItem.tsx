@@ -21,7 +21,7 @@ import {
   getCardBubbleRadius,
 } from './MessageParts';
 import { getEntityConfig } from '@/lib/messages-entity-config';
-import type { Message } from '@/types/messages';
+import type { Message, MessageSeenByUser } from '@/types/messages';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -62,6 +62,7 @@ interface MessageItemProps {
   message: Message;
   previousMessage?: Message;
   nextMessage?: Message;
+  seenBy?: MessageSeenByUser[];
   orgId?: string | null;
   currentUserId?: string | null;
   onTogglePin: (messageId: string, pinned: boolean) => void;
@@ -82,6 +83,7 @@ export function MessageItem({
   message,
   previousMessage,
   nextMessage,
+  seenBy = [],
   orgId,
   currentUserId,
   onTogglePin,
@@ -459,6 +461,39 @@ export function MessageItem({
             reactions={message.reactions ?? []}
             onToggleReaction={onToggleReaction}
           />
+        )}
+
+        {/* Vu par — avatars en bas à droite (exclure l'auteur, masquer pour messages système) */}
+        {message.type === 'user' &&
+          seenBy.filter((u) => u.id !== message.authorId).length > 0 && (
+          <div
+            className={cn(
+              'flex items-center justify-end gap-0.5 mt-1',
+              isOwnMessage ? 'pr-1' : 'pr-1',
+            )}
+            title={seenBy.filter((u) => u.id !== message.authorId).map((u) => u.name).join(', ')}
+          >
+            <div className="flex -space-x-1.5">
+              {seenBy
+                .filter((u) => u.id !== message.authorId)
+                .slice(0, 4)
+                .map((u) => (
+                  <div
+                  key={u.id}
+                  className="relative flex h-5 w-5 shrink-0 overflow-hidden rounded-full border-2 border-backend bg-zinc-100 dark:bg-zinc-800 ring-1 ring-zinc-200 dark:ring-zinc-700"
+                  title={u.name}
+                >
+                  {u.avatar ? (
+                    <img src={u.avatar} alt={u.name} className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center text-[9px] font-medium text-zinc-500 dark:text-zinc-400">
+                      {u.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
+                    </span>
+                  )}
+                  </div>
+                ))}
+            </div>
+          </div>
         )}
 
         {/* MessageEntityCard below text for messages with entity + text content */}

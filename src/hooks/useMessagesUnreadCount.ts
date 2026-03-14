@@ -40,5 +40,18 @@ export function useMessagesUnreadCount() {
     return () => window.removeEventListener('focus', onFocus);
   }, [pathname, refresh]);
 
+  // Pastille sur l'icône PWA de l'écran d'accueil (Badging API)
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('setAppBadge' in navigator)) return;
+    if (count > 0) {
+      navigator.setAppBadge(count).catch(() => {});
+    } else {
+      navigator.clearAppBadge?.().catch(() => {});
+    }
+    return () => {
+      navigator.clearAppBadge?.().catch(() => {});
+    };
+  }, [count]);
+
   return { count, refresh };
 }

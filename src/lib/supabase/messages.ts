@@ -5,7 +5,7 @@
 
 import { supabase } from './client';
 import { getActiveOrgId } from './activeOrg';
-import type { Conversation, Message, MessageAuthor, MessageReaction, SendMessageInput } from '@/types/messages';
+import type { Conversation, Message, MessageAuthor, MessageReaction, MessageSeenByUser, SendMessageInput } from '@/types/messages';
 
 // --- DB row types ---
 
@@ -397,6 +397,57 @@ export async function markConversationRead(conversationId: string): Promise<void
     { user_id: user.id, conversation_id: conversationId, last_read_at: new Date().toISOString() },
     { onConflict: 'user_id,conversation_id', ignoreDuplicates: false }
   );
+}
+
+/** Retourne pour chaque message la liste des utilisateurs qui l'ont vu (last_read_at >= created_at) */
+export async function getMessageSeenBy(
+  conversationId: string,
+  orgId: string | null,
+  messages: Message[]
+): Promise<Map<string, MessageSeenByUser[]>> {
+  const result = new Map<string, MessageSeenByUser[]>();
+  if (!orgId || messages.length === 0) return result;
+
+  const { data: reads } = await supabase
+    .from('conversation_reads')
+    .select('user_id, last_read_at')
+    .eq('conversation_id', conversationId);
+
+  if (!reads?.length) return result;
+
+  const { data: members } = await supabase
+    .from('organisation_members')
+    .select('user_id, profiles(first_name, last_name, avatar)')
+    .eq('org_id', orgId);
+
+  const profileMap = new Map<string, MessageSeenByUser>();
+  for (const row of members ?? []) {
+    const uid = row.user_id as string;
+    const raw = row.profiles as { first_name: string; last_name: string; avatar: string | null } | { first_name: string; last_name: string; avatar: string | null }[] | null;
+    const p = Array.isArray(raw) ? raw[0] : raw;
+    if (p) {
+      const name = [p.first_name, p.last_name].filter(Boolean).join(' ') || 'Utilisateur';
+      profileMap.set(uid, { id: uid, name, avatar: p.avatar ?? undefined });
+    }
+  }
+
+  const readMap = new Map<string, Date>();
+  for (const r of reads) {
+    readMap.set(r.user_id as string, new Date(r.last_read_at as string));
+  }
+
+  for (const msg of messages) {
+    const msgDate = new Date(msg.createdAt);
+    const seenBy: MessageSeenByUser[] = [];
+    for (const [userId, lastRead] of readMap) {
+      if (lastRead >= msgDate) {
+        const profile = profileMap.get(userId);
+        if (profile) seenBy.push(profile);
+      }
+    }
+    if (seenBy.length > 0) result.set(msg.id, seenBy);
+  }
+  return result;
 }
 
 export async function getUnreadCount(conversationId: string): Promise<number> {

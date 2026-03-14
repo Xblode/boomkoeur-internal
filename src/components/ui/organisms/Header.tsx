@@ -75,7 +75,7 @@ export const Header: React.FC<HeaderProps> = ({
         className
       )}>
         {/* Zone gauche : Logo (desktop) | Chevron back (mobile sub) | + (mobile events/meetings) | Vide */}
-        <div className="w-[52px] min-w-[52px] h-full flex items-center justify-center shrink-0">
+        <div className="w-[52px] min-w-[52px] h-full flex items-center justify-center shrink-0 lg:border-r lg:border-border-custom">
           {/* Mobile sous-page : chevron retour (sauf calendrier) */}
           {!isMainPage && !isCalendarPage && backHref && (
             <Link

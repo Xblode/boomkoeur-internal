@@ -51,7 +51,7 @@ export function MessagesLayout({ className, pathnameOverride }: MessagesLayoutPr
   const orgName = orgContext?.activeOrg?.name;
   const orgId = orgContext?.activeOrg?.id ?? null;
   const canDeleteSystemMessages = orgContext?.isAdmin ?? false;
-  const { conversation, messages, pinnedMessages, isLoading, isLoadingOlder, hasMoreOlder, loadMoreOlder, error, currentUserId, sendMessage, togglePin, toggleReaction, toggleImportant, votePoll, voteQuick, deleteMessage } = useMessages();
+  const { conversation, messages, pinnedMessages, messageSeenByMap, isLoading, isLoadingOlder, hasMoreOlder, loadMoreOlder, error, currentUserId, sendMessage, togglePin, toggleReaction, toggleImportant, votePoll, voteQuick, deleteMessage } = useMessages();
   const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : null;
   const [journalRefreshKey, setJournalRefreshKey] = useState(0);
   const refreshJournal = useCallback(() => setJournalRefreshKey((k) => k + 1), []);
@@ -250,6 +250,7 @@ export function MessagesLayout({ className, pathnameOverride }: MessagesLayoutPr
         <MessageFeed
           messages={messages}
           pinnedMessages={pinnedMessages}
+          messageSeenByMap={messageSeenByMap}
           isLoading={isLoading}
           isLoadingOlder={isLoadingOlder}
           hasMoreOlder={hasMoreOlder}

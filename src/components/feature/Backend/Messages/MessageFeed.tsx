@@ -10,7 +10,7 @@ import { MessageItem } from './MessageItem';
 import { MessagePinnedBar } from './MessagePinnedBar';
 import { MessageComposer } from './MessageComposer';
 import { MessageDateSeparator } from './MessageDateSeparator';
-import type { Message } from '@/types/messages';
+import type { Message, MessageSeenByUser } from '@/types/messages';
 import type { PickedEntity } from './MessageComposerModals';
 import type { PollData } from './MessageComposerModals';
 
@@ -72,6 +72,7 @@ function buildFeedItems(
 interface MessageFeedProps {
   messages: Message[];
   pinnedMessages: Message[];
+  messageSeenByMap?: Map<string, MessageSeenByUser[]>;
   isLoading: boolean;
   isLoadingOlder?: boolean;
   hasMoreOlder?: boolean;
@@ -102,6 +103,7 @@ interface MessageFeedProps {
 export function MessageFeed({
   messages,
   pinnedMessages,
+  messageSeenByMap = new Map(),
   isLoading,
   isLoadingOlder = false,
   hasMoreOlder = false,
@@ -268,6 +270,7 @@ export function MessageFeed({
                   message={item.message}
                   previousMessage={messages[item.index - 1]}
                   nextMessage={messages[item.index + 1]}
+                  seenBy={messageSeenByMap.get(item.message.id)}
                   orgId={orgId}
                   currentUserId={currentUserId}
                   onTogglePin={onTogglePin}
